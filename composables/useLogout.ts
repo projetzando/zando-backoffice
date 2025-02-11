@@ -19,8 +19,8 @@ export default function useLogout() {
             replace: true,
         })
         
-        authStore.logout()
         useCookie('zando_token').value = ''
+        authStore.logout()
 
         resetPinia.all()
     }).catch((error: any) => {

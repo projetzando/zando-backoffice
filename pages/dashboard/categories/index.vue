@@ -10,8 +10,6 @@ categoryStore.fetchCategories()
 
 const { categories } = storeToRefs(categoryStore);
 
-console.log(categoryStore.categories);
-
 const {
     q,
     page,

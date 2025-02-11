@@ -18,7 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             if (error) throw error
 
-            user.value = {
+            connected_user.value = {
                 name: data.user?.user_metadata?.name || '',
                 email: data.user?.email,
                 id: data.user?.id
@@ -67,7 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             if (error) throw error
 
-            user.value = {
+            connected_user.value = {
                 name: data.user.user_metadata.name,
                 email: data.user.email,
                 id: data.user.id
@@ -89,8 +89,6 @@ export const useAuthStore = defineStore('auth', () => {
             const { data: { user: currentUser }, error } = await supabase.auth.getUser()
 
             if (error) throw error
-
-            console.log(currentUser)
 
             connected_user.value = {
                 name: currentUser?.user_metadata?.name || '',
