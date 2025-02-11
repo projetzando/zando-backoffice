@@ -37,10 +37,10 @@ const items = [
                     name="heroicons:user-circle"
                 />
 
-                <h1 class="text-gray-900 font-bold text-xl leading-8 my-1">{{ auth.user.name }}</h1>
+                <h1 class="text-gray-900 font-bold text-xl leading-8 my-1">{{ auth.connected_user.name }}</h1>
 
                 <h3 class="text-gray-600 font-lg  text-semibold leading-6">{{
-                    auth.user.email }}</h3>
+                    auth.connected_user.email }}</h3>
             </div>
         </div>
 
@@ -53,7 +53,7 @@ const items = [
             </template>
 
             <template #info>
-                <ProfileInfos :user="auth.user" />
+                <ProfileInfos :user="auth.connected_user" />
             </template>
         </UTabs>
     </div>

@@ -8,20 +8,21 @@ export default function useLogout() {
         icon: 'i-heroicons-exclamation-triangle',
         message: 'Voulez-vous vraiment vous déconnectez de cette session ?',
         okButton: 'Confirmer',
-    }).then(() => {
+    }).then(async () => {
         const authStore = useAuthStore()
         
         localStorage.removeItem('activeMenu')
         
         localStorage.removeItem('activeChild')
         
+        await authStore.logout()
+        
         navigateTo('/', {
             replace: true,
         })
         
         useCookie('zando_token').value = ''
-        authStore.logout()
-
+        
         resetPinia.all()
     }).catch((error: any) => {
         console.log(error);
