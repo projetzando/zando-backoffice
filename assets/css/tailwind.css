@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: theme("padding.3");
+  }
+
+  .table-title {
+    font-weight: theme("fontWeight.semibold");
+    font-size: theme("fontSize.lg");
+    line-height: theme("lineHeight.7");
+  }
+}
