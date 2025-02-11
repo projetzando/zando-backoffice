@@ -6,11 +6,9 @@ definePageMeta({
 
 const categoryStore = useCategoryStore();
 
-categoryStore.fetchCategories()   
+categoryStore.get()   
 
 const { categories } = storeToRefs(categoryStore);
-
-console.log(categoryStore.categories);
 
 const {
     q,
@@ -65,7 +63,7 @@ const {
                     <template #actions-data="{ row }">
                         <div class="flex gap-2">
                             <UButton
-                                @click="navigateTo(`/dashboard/categories/edit-${row.id}`)"
+                                @click="navigateTo(`/dashboard/categories/edit-${row.slug}`)"
                                 icon="lets-icons:edit-fill"
                                 size="sm"
                                 title="Modifier"
@@ -105,9 +103,9 @@ const {
             </template>
         </TableWrapper>
 
-        <!-- <DepartmentDelete
-            v-model:department="oneItem"
+        <CategoryDelete
+            v-model:category="oneItem"
             v-model:status=isOpen
-        /> -->
+        />
     </div>
 </template>

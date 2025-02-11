@@ -14,6 +14,7 @@ watch(() => route.meta.name, (newName) => {
 
 <template>
   <div>
+    <NuxtLoadingIndicator />
     <NuxtLayout>
       <NuxtPage />
       <UNotifications />

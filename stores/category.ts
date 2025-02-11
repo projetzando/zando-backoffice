@@ -19,7 +19,7 @@ export const useCategoryStore = defineStore('category', () => {
     )
 
     // Actions
-    async function fetchCategories() {
+    async function get() {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -43,7 +43,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function createCategory(category: Omit<Category, 'id' | 'created_at'>) {
+    async function store(category: Omit<Category, 'id' | 'created_at'>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -67,7 +67,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function updateCategory(id: string, category: Partial<Category>) {
+    async function update(id: string, category: Partial<Category>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -96,7 +96,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function deleteCategory(id: string) {
+    async function destroy(id: string) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -119,7 +119,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function getCategoryBySlug(slug: string) {
+    async function show(slug: string) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -185,11 +185,11 @@ export const useCategoryStore = defineStore('category', () => {
         categoriesByLevel,
         
         // Actions
-        fetchCategories,
-        createCategory,
-        updateCategory,
-        deleteCategory,
-        getCategoryBySlug,
+        get,
+        store,
+        update,
+        destroy,
+        show,
         getChildCategories,
         $reset
     }

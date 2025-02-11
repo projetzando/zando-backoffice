@@ -27,7 +27,7 @@ const { resetMenuState } = useMenu();
 
             <NavigationSidebarModule />
 
-            <NavigationSidebarConfig v-role="[RoleEnum.Admin, RoleEnum.Root]" />
+            <NavigationSidebarConfig />
         </nav>
     </aside>
 </template>
