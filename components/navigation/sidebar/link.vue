@@ -12,7 +12,7 @@ defineProps<{
         <NuxtLink
             :to="`${link}`"
             :target="target"
-            active-class="text-green-600"
+            active-class="text-gray-700 font-bold"
             class="flex  text-black rounded-md w-full  p-2 items-center space-x-5 text-sm"
         >
             <UIcon

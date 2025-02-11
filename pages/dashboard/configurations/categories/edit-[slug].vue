@@ -20,7 +20,7 @@ await categoryStore.show(route.params.slug).then((data) => {
 })
 
 function VIEW() {
-    return navigateTo('/dashboard/categories')
+    return navigateTo('/dashboard/configurations/categories')
 }
 
 function edit() {

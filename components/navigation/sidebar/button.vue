@@ -16,8 +16,8 @@ function handleClick() {
     <button
         @click="handleClick"
         :class="[
-            'flex justify-between items-center w-full p-2 rounded-xl',
-            isActive ? 'bg-green-600 text-white' : 'text-gray-700 hover:text-green-600'
+            'flex justify-between items-center w-full p-2 rounded-md',
+            isActive ? 'bg-gray-200 text-gray-700' : 'text-gray-700 hover:text-gray-600 hover:bg-gray-200'
         ]"
     >
         <div class="flex items-center space-x-4">

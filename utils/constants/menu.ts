@@ -36,7 +36,11 @@ export const paymentLinks = ref<sidebarLink[]>([
 export const localisationLinks = ref<sidebarLink[]>([
     {
         title: 'Catégories',
-        route_link: '/dashboard/categories',
+        route_link: '/dashboard/configurations/categories',
+    },
+    {
+        title: 'Devises',
+        route_link: '/dashboard/configurations/currencies',
     },
 ])
 
