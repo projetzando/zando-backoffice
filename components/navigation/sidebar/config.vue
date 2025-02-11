@@ -7,9 +7,9 @@ const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu();
         <h3 class="uppercase text-sm font-semibold  my-4">Configuration</h3>
 
         <NavigationSidebarButton
-            label="Localisation"
+            label="Configuration"
             :isActive="activeMenu === Menu.Localisation || activeChild === Menu.Localisation"
-            iconLeft="heroicons:map"
+            iconLeft="heroicons:cog"
             @click="toggleMenu(Menu.Localisation)"
         />
 
