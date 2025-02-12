@@ -39,7 +39,7 @@ function changePassword() {
             class="my-3 space-y-4"
             @submit="changePassword"
         >
-            <div class="flex gap-x-2">
+            <div class="tablet:flex-row flex-col gap-2 flex">
                 <UFormGroup
                     class="w-full"
                     label="Ancient mot de passe"

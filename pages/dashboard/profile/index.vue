@@ -16,6 +16,8 @@ useHead({
 
 const auth = useAuthStore()
 
+auth.connectedUser()
+
 const items = [
     {
         slot: 'password',

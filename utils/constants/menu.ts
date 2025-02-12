@@ -64,7 +64,7 @@ export const adminLinks = ref<sidebarLink[]>([
         route_link: '/dashboard/admin/permissions',
     },
     {
-        title: 'Groupes',
-        route_link: '/dashboard/admin/groups',
+        title: 'Rôles',
+        route_link: '/dashboard/admin/roles',
     },
 ])

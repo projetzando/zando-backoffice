@@ -7,10 +7,7 @@ const { submit, error, errors, loading } = useFormSubmission()
 
 function store() {
     submit({
-        action: () => authStore.update(Number(user.value.id), {
-            name: user.value.name,
-            email: user.value.email,
-        }),
+        action: () => authStore.update(user.value),
     })
 }
 </script>
@@ -49,6 +46,7 @@ function store() {
                     <UInput
                         required
                         type="email"
+                        disabled
                         v-model="user.email"
                         placeholder="Adresse email"
                     />
