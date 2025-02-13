@@ -43,7 +43,24 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } = 
         </NavigationSidebarDropdown>
 
         <NavigationSidebarButton
-            label="Utilisateurs"
+            label="Paiements"
+            :isActive="activeMenu === Menu.Payment || activeChild === Menu.Payment"
+            iconLeft="heroicons:banknotes"
+            @click="toggleMenu(Menu.Payment)"
+        />
+
+        <NavigationSidebarDropdown :isActive="activeMenu === Menu.Payment">
+            <NavigationSidebarLink
+                @click="setActiveChild(Menu.Payment)"
+                v-for="link in paymentLinks"
+                :key="link.title"
+                :title="link.title"
+                :link="link.route_link"
+            />
+        </NavigationSidebarDropdown>
+
+        <NavigationSidebarButton
+            label="Comptes"
             :isActive="activeMenu === Menu.User || activeChild === Menu.User"
             iconLeft="heroicons:users"
             @click="toggleMenu(Menu.User)"

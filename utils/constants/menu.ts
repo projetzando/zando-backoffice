@@ -21,15 +21,23 @@ export const productLinks = ref<sidebarLink[]>([
 
 export const userLinks = ref<sidebarLink[]>([
     {
-        title: 'Tous les utilisateurs',
-        route_link: '/dashboard/users',
+        title: 'Tous les clients',
+        route_link: '/dashboard/accounts/customers',
+    },
+    {
+        title: 'Tous les vendeurs',
+        route_link: '/dashboard/accounts/sellers',
     },
 ])
 
 export const paymentLinks = ref<sidebarLink[]>([
     {
         title: 'Paiements en attente',
-        route_link: '/dashboard/payments/pending',
+        route_link: '/dashboard/payments',
+    },
+    {
+        title: 'Paiements validés',
+        route_link: '/dashboard/payments',
     },
 ])
 
