@@ -1,7 +1,7 @@
-export const useCurrencyStore = defineStore('currency', () => {
+export const useSettingStore = defineStore('setting', () => {
     // États
-    const currencies = ref<Currency[]>([])
-    const currentCurrency = ref<Currency | null>(null)
+    const settings = ref<Setting[]>([])
+    const currentSetting = ref<Setting | null>(null)
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
 
@@ -13,7 +13,7 @@ export const useCurrencyStore = defineStore('currency', () => {
 
         try {
             const { data, error: supaError } = await supabase
-                .from('currencies')
+                .from('settings')
                 .select('*')
 
             if (supaError) {
@@ -24,7 +24,7 @@ export const useCurrencyStore = defineStore('currency', () => {
                 }
             }
 
-            currencies.value = data
+            settings.value = data
             return { success: true, data }
         } catch (err) {
             error.value = err.message
@@ -34,15 +34,15 @@ export const useCurrencyStore = defineStore('currency', () => {
         }
     }
 
-    async function store(currency: Omit<Currency, 'id' | 'created_at'>) {
+    async function store(setting: Omit<Setting, 'id' | 'created_at'>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
             const { data, error: supaError } = await supabase
-                .from('currencies')
-                .insert([currency])
+                .from('settings')
+                .insert([setting])
                 .select()
                 .single()
 
@@ -54,7 +54,7 @@ export const useCurrencyStore = defineStore('currency', () => {
                 }
             }
 
-            currencies.value.push(data)
+            settings.value.push(data)
             return { success: true, data }
         } catch (err) {
             error.value = err.message
@@ -64,15 +64,15 @@ export const useCurrencyStore = defineStore('currency', () => {
         }
     }
 
-    async function update(id: string, currency: Partial<Currency>) {
+    async function update(id: string, setting: Partial<Setting>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
             const { data, error: supaError } = await supabase
-                .from('currencies')
-                .update(currency)
+                .from('settings')
+                .update(setting)
                 .eq('id', id)
                 .select()
                 .single()
@@ -85,9 +85,9 @@ export const useCurrencyStore = defineStore('currency', () => {
                 }
             }
 
-            const index = currencies.value.findIndex(c => c.id === id)
+            const index = settings.value.findIndex(c => c.id === id)
             if (index !== -1) {
-                currencies.value[index] = { ...currencies.value[index], ...data }
+                settings.value[index] = { ...settings.value[index], ...data }
             }
 
             return { success: true, data }
@@ -106,7 +106,7 @@ export const useCurrencyStore = defineStore('currency', () => {
 
         try {
             const { error: supaError } = await supabase
-                .from('currencies')
+                .from('settings')
                 .delete()
                 .eq('id', id)
 
@@ -118,7 +118,7 @@ export const useCurrencyStore = defineStore('currency', () => {
                 }
             }
 
-            currencies.value = currencies.value.filter(c => c.id !== id)
+            settings.value = settings.value.filter(c => c.id !== id)
             return { success: true }
         } catch (err) {
             error.value = err.message
@@ -135,7 +135,7 @@ export const useCurrencyStore = defineStore('currency', () => {
 
         try {
             const { data, error: supaError } = await supabase
-                .from('currencies')
+                .from('settings')
                 .select('*')
                 .eq('id', id)
                 .single()
@@ -148,7 +148,7 @@ export const useCurrencyStore = defineStore('currency', () => {
                 }
             }
 
-            currentCurrency.value = data
+            currentSetting.value = data
             return { success: true, data }
         } catch (err) {
             error.value = err.message
@@ -159,16 +159,16 @@ export const useCurrencyStore = defineStore('currency', () => {
     }
 
     function $reset() {
-        currencies.value = []
-        currentCurrency.value = null
+        settings.value = []
+        currentSetting.value = null
         loading.value = false
         error.value = null
     }
 
     return {
         // États
-        currencies,
-        currentCurrency,
+        settings,
+        currentSetting,
         loading,
         error,
         

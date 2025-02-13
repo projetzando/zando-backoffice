@@ -31,7 +31,13 @@ export const useCategoryStore = defineStore('category', () => {
                 .order('level', { ascending: true })
                 .order('name', { ascending: true })
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             categories.value = data
             return { success: true, data }
@@ -55,11 +61,17 @@ export const useCategoryStore = defineStore('category', () => {
                 .select()
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             categories.value.push(data)
             return { success: true, data }
-        } catch (err) {
+        } catch (err: any) {
             error.value = err.message
             return { success: false, error: err.message }
         } finally {
@@ -80,7 +92,13 @@ export const useCategoryStore = defineStore('category', () => {
                 .select()
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             const index = categories.value.findIndex(c => c.id === id)
             if (index !== -1) {
@@ -107,7 +125,13 @@ export const useCategoryStore = defineStore('category', () => {
                 .delete()
                 .eq('id', id)
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             categories.value = categories.value.filter(c => c.id !== id)
             return { success: true }
@@ -131,7 +155,13 @@ export const useCategoryStore = defineStore('category', () => {
                 .eq('slug', slug)
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             currentCategory.value = data
             return { success: true, data }
@@ -155,7 +185,13 @@ export const useCategoryStore = defineStore('category', () => {
                 .eq('parent_id', parentId)
                 .order('name')
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             return { success: true, data }
         } catch (err) {

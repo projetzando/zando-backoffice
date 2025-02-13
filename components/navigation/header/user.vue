@@ -15,7 +15,7 @@ const profile = () => {
     navigateTo('/dashboard/profile')
 }
 
-const userName = computed(() => authStore.connected_user?.user_metadata?.name || authStore.connected_user?.email)
+const userName = computed(() => authStore.connected_user?.name || authStore.connected_user?.email)
 
 const items = [
     [

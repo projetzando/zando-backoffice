@@ -21,15 +21,23 @@ export const productLinks = ref<sidebarLink[]>([
 
 export const userLinks = ref<sidebarLink[]>([
     {
-        title: 'Tous les utilisateurs',
-        route_link: '/dashboard/users',
+        title: 'Tous les clients',
+        route_link: '/dashboard/accounts/customers',
+    },
+    {
+        title: 'Tous les vendeurs',
+        route_link: '/dashboard/accounts/sellers',
     },
 ])
 
 export const paymentLinks = ref<sidebarLink[]>([
     {
         title: 'Paiements en attente',
-        route_link: '/dashboard/payments/pending',
+        route_link: '/dashboard/payments',
+    },
+    {
+        title: 'Paiements validés',
+        route_link: '/dashboard/payments',
     },
 ])
 
@@ -42,12 +50,13 @@ export const localisationLinks = ref<sidebarLink[]>([
         title: 'Devises',
         route_link: '/dashboard/configurations/currencies',
     },
-])
-
-export const settingsLinks = ref<sidebarLink[]>([
     {
-        title: 'Années scolaires',
-        route_link: '/dashboard/settings/school-years',
+        title: 'Marques',
+        route_link: '/dashboard/configurations/brands',
+    },
+    {
+        title: 'Paramètres généraux',
+        route_link: '/dashboard/configurations/settings',
     },
 ])
 
@@ -64,7 +73,7 @@ export const adminLinks = ref<sidebarLink[]>([
         route_link: '/dashboard/admin/permissions',
     },
     {
-        title: 'Groupes',
-        route_link: '/dashboard/admin/groups',
+        title: 'Rôles',
+        route_link: '/dashboard/admin/roles',
     },
 ])

@@ -1,11 +1,11 @@
 <script setup lang='ts'>
 definePageMeta({
     layout: 'dashboard',
-    name: "Utilisateurs"
+    name: "Vendeurs"
 })
 </script>
 <template>
     <div>
-        <h1>Utilisateurs</h1>
+        <h1>Vendeurs</h1>
     </div>
 </template>

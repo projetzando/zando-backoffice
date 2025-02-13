@@ -1,14 +1,14 @@
 <script setup lang="ts">
 definePageMeta({
-    name: 'Liste des devises',
+    name: 'Paramètres généraux',
     layout: 'dashboard'
 })
 
-const currencyStore = useCurrencyStore();
+const settingStore = useSettingStore();
 
-currencyStore.get()   
+settingStore.get()   
 
-const { currencies } = storeToRefs(currencyStore);
+const { settings } = storeToRefs(settingStore);
 
 const {
     q,
@@ -19,7 +19,7 @@ const {
     rows,
     totalFilteredRows,
     confirmDeleteItem,
-} = useTable(currencies);
+} = useTable(settings);
 </script>
 
 <template>
@@ -28,10 +28,10 @@ const {
             <template #header>
                 <div class="table-header">
                     <h5 class="table-title">
-                        Liste des devises
+                        Liste des paramètres
                     </h5>
 
-                    <ButtonCreate @new="() => navigateTo(`/dashboard/configurations/currencies/create`)" />
+                    <ButtonCreate @new="() => navigateTo(`/dashboard/configurations/settings/create`)" />
                 </div>
 
                 <div class="flex justify-between py-3 border-y ">
@@ -51,8 +51,8 @@ const {
 
             <template #content>
                 <UTable
-                    :loading="currencyStore.loading"
-                    :columns="currencyColumns"
+                    :loading="settingStore.loading"
+                    :columns="settingColumns"
                     :rows="rows"
                 >
 
@@ -63,7 +63,7 @@ const {
                     <template #actions-data="{ row }">
                         <div class="flex gap-2">
                             <UButton
-                                @click="navigateTo(`/dashboard/configurations/currencies/edit-${row.id}`)"
+                                @click="navigateTo(`/dashboard/configurations/settings/edit-${row.id}`)"
                                 icon="lets-icons:edit-fill"
                                 size="sm"
                                 title="Modifier"
@@ -89,7 +89,7 @@ const {
                     :page="page"
                     :page-count="pageCount"
                     :length="totalFilteredRows"
-                    title="devises"
+                    title="paramètres"
                 />
 
                 <UPagination
@@ -103,8 +103,8 @@ const {
             </template>
         </TableWrapper>
 
-        <CurrencyDelete
-            v-model:currency="oneItem"
+        <SettingDelete
+            v-model:setting="oneItem"
             v-model:status=isOpen
         />
     </div>
