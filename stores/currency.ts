@@ -128,7 +128,7 @@ export const useCurrencyStore = defineStore('currency', () => {
         }
     }
 
-    async function show(slug: string) {
+    async function show(id: string) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -137,7 +137,7 @@ export const useCurrencyStore = defineStore('currency', () => {
             const { data, error: supaError } = await supabase
                 .from('currencies')
                 .select('*')
-                .eq('slug', slug)
+                .eq('id', id)
                 .single()
 
             if (supaError) {
