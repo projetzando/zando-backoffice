@@ -16,7 +16,13 @@ export const useAuthStore = defineStore('auth', () => {
                 password: payload.password!
             })
 
-            if (error) throw error
+            if (error) {
+                return {
+                    success: false,
+                    error: error,
+                    data: null
+                }
+            }
 
             connected_user.value = {
                 name: data.user?.user_metadata?.name || '',
@@ -43,7 +49,13 @@ export const useAuthStore = defineStore('auth', () => {
                 password: payload.password
             })
 
-            if (error) throw error
+            if (error) {
+                return {
+                    success: false,
+                    error: error,
+                    data: null
+                }
+            }
             
             return { success: true, data: [] }
         } catch (error) {
@@ -58,14 +70,20 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
 
         try {
-            const { data, error } = await supabase.auth.updateUser({
+            const { data, error: supaError } = await supabase.auth.updateUser({
                 data: {
                     name: payload.name,
                     // autres champs à mettre à jour
                 }
             })
 
-            if (error) throw error
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             connected_user.value = {
                 name: data.user.user_metadata.name,
@@ -88,7 +106,13 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const { data: { user: currentUser }, error } = await supabase.auth.getUser()
 
-            if (error) throw error
+            if (error) {
+                return {
+                    success: false,
+                    error: error,
+                    data: null
+                }
+            }
 
             connected_user.value = {
                 name: currentUser?.user_metadata?.name || '',
@@ -110,9 +134,15 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
 
         try {
-            const { error } = await supabase.auth.signOut()
+            const { error: supaError } = await supabase.auth.signOut()
             
-            if (error) throw error
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             // Réinitialiser le store
             $reset()

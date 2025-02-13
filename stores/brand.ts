@@ -1,22 +1,9 @@
-export const useCategoryStore = defineStore('category', () => {
+export const useBrandStore = defineStore('brand', () => {
     // États
-    const categories = ref<Category[]>([])
-    const currentCategory = ref<Category | null>(null)
+    const brands = ref<Brand[]>([])
+    const currentBrand = ref<Brand | null>(null)
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
-
-    // Getters
-    const activeCategories = computed(() => 
-        categories.value.filter(cat => cat.is_active)
-    )
-
-    const categoriesByLevel = computed(() => 
-        categories.value.reduce((acc, cat) => {
-            acc[cat.level] = acc[cat.level] || []
-            acc[cat.level].push(cat)
-            return acc
-        }, {} as Record<number, Category[]>)
-    )
 
     // Actions
     async function get() {
@@ -26,10 +13,8 @@ export const useCategoryStore = defineStore('category', () => {
 
         try {
             const { data, error: supaError } = await supabase
-                .from('categories')
+                .from('brands')
                 .select('*')
-                .order('level', { ascending: true })
-                .order('name', { ascending: true })
 
             if (supaError) {
                 return {
@@ -39,7 +24,7 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
 
-            categories.value = data
+            brands.value = data
             return { success: true, data }
         } catch (err) {
             error.value = err.message
@@ -49,15 +34,15 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function store(category: Omit<Category, 'id' | 'created_at'>) {
+    async function store(brand: Omit<Brand, 'id' | 'created_at'>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
             const { data, error: supaError } = await supabase
-                .from('categories')
-                .insert([category])
+                .from('brands')
+                .insert([brand])
                 .select()
                 .single()
 
@@ -69,9 +54,9 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
 
-            categories.value.push(data)
+            brands.value.push(data)
             return { success: true, data }
-        } catch (err: any) {
+        } catch (err) {
             error.value = err.message
             return { success: false, error: err.message }
         } finally {
@@ -79,15 +64,15 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function update(id: string, category: Partial<Category>) {
+    async function update(id: string, brand: Partial<Brand>) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
             const { data, error: supaError } = await supabase
-                .from('categories')
-                .update(category)
+                .from('brands')
+                .update(brand)
                 .eq('id', id)
                 .select()
                 .single()
@@ -100,9 +85,9 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
 
-            const index = categories.value.findIndex(c => c.id === id)
+            const index = brands.value.findIndex(b => b.id === id)
             if (index !== -1) {
-                categories.value[index] = { ...categories.value[index], ...data }
+                brands.value[index] = { ...brands.value[index], ...data }
             }
 
             return { success: true, data }
@@ -121,7 +106,7 @@ export const useCategoryStore = defineStore('category', () => {
 
         try {
             const { error: supaError } = await supabase
-                .from('categories')
+                .from('brands')
                 .delete()
                 .eq('id', id)
 
@@ -133,7 +118,7 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
 
-            categories.value = categories.value.filter(c => c.id !== id)
+            brands.value = brands.value.filter(b => b.id !== id)
             return { success: true }
         } catch (err) {
             error.value = err.message
@@ -150,7 +135,7 @@ export const useCategoryStore = defineStore('category', () => {
 
         try {
             const { data, error: supaError } = await supabase
-                .from('categories')
+                .from('brands')
                 .select('*')
                 .eq('slug', slug)
                 .single()
@@ -163,36 +148,7 @@ export const useCategoryStore = defineStore('category', () => {
                 }
             }
 
-            currentCategory.value = data
-            return { success: true, data }
-        } catch (err) {
-            error.value = err.message
-            return { success: false, error: err.message }
-        } finally {
-            loading.value = false
-        }
-    }
-
-    async function getChildCategories(parentId: string) {
-        const supabase = useSupabaseClient()
-        loading.value = true
-        error.value = null
-
-        try {
-            const { data, error: supaError } = await supabase
-                .from('categories')
-                .select('*')
-                .eq('parent_id', parentId)
-                .order('name')
-
-            if (supaError) {
-                return {
-                    success: false,
-                    error: supaError,
-                    data: null
-                }
-            }
-
+            currentBrand.value = data
             return { success: true, data }
         } catch (err) {
             error.value = err.message
@@ -203,22 +159,18 @@ export const useCategoryStore = defineStore('category', () => {
     }
 
     function $reset() {
-        categories.value = []
-        currentCategory.value = null
+        brands.value = []
+        currentBrand.value = null
         loading.value = false
         error.value = null
     }
 
     return {
         // États
-        categories,
-        currentCategory,
+        brands,
+        currentBrand,
         loading,
         error,
-        
-        // Getters
-        activeCategories,
-        categoriesByLevel,
         
         // Actions
         get,
@@ -226,7 +178,6 @@ export const useCategoryStore = defineStore('category', () => {
         update,
         destroy,
         show,
-        getChildCategories,
         $reset
     }
 }, {

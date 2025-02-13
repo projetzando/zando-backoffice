@@ -42,6 +42,10 @@ export const localisationLinks = ref<sidebarLink[]>([
         title: 'Devises',
         route_link: '/dashboard/configurations/currencies',
     },
+    {
+        title: 'Marques',
+        route_link: '/dashboard/configurations/brands',
+    },
 ])
 
 export const settingsLinks = ref<sidebarLink[]>([

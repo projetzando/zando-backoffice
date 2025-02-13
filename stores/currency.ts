@@ -16,7 +16,13 @@ export const useCurrencyStore = defineStore('currency', () => {
                 .from('currencies')
                 .select('*')
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             currencies.value = data
             return { success: true, data }
@@ -40,7 +46,13 @@ export const useCurrencyStore = defineStore('currency', () => {
                 .select()
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             currencies.value.push(data)
             return { success: true, data }
@@ -65,7 +77,13 @@ export const useCurrencyStore = defineStore('currency', () => {
                 .select()
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             const index = currencies.value.findIndex(c => c.id === id)
             if (index !== -1) {
@@ -92,7 +110,13 @@ export const useCurrencyStore = defineStore('currency', () => {
                 .delete()
                 .eq('id', id)
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             currencies.value = currencies.value.filter(c => c.id !== id)
             return { success: true }
@@ -116,7 +140,13 @@ export const useCurrencyStore = defineStore('currency', () => {
                 .eq('slug', slug)
                 .single()
 
-            if (supaError) throw supaError
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
 
             currentCurrency.value = data
             return { success: true, data }
