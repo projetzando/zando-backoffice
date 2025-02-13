@@ -46,12 +46,9 @@ export const localisationLinks = ref<sidebarLink[]>([
         title: 'Marques',
         route_link: '/dashboard/configurations/brands',
     },
-])
-
-export const settingsLinks = ref<sidebarLink[]>([
     {
-        title: 'Années scolaires',
-        route_link: '/dashboard/settings/school-years',
+        title: 'Paramètres généraux',
+        route_link: '/dashboard/configurations/settings',
     },
 ])
 
