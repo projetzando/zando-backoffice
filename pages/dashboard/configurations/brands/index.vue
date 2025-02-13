@@ -56,6 +56,10 @@ const {
                     :rows="rows"
                 >
 
+                    <template #image-data="{ row }">
+                        <UAvatar :src=row.image />
+                    </template>
+
                     <template #created_at-data="{ row }">
                         {{ new Date(row.created_at).toLocaleDateString() }}
                     </template>

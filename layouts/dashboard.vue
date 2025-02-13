@@ -13,7 +13,7 @@ provide('confirm', confirm)
         <ConfirmDialog ref="confirm" />
 
         <main class=" bg-white w-full overflow-x-auto">
-            <!-- <InitData /> -->
+            <InitData />
 
             <NavigationHeader />
 

@@ -10,7 +10,7 @@ const counter = ref(0)
 const current_load = ref('Début du chargement')
 
 function update(value: string) {
-    timer.value += 5.9
+    timer.value += 20
 
     counter.value++
 
@@ -20,7 +20,10 @@ function update(value: string) {
 async function init() {
     if (!appStore.initData) {
         const stores = [
-            { store: useCountryStore(), label: 'pays' },
+            { store: useCategoryStore(), label: 'Catégories' },
+            { store: useBrandStore(), label: 'Marques' },
+            { store: useCurrencyStore(), label: 'Devise' },
+            { store: useSettingStore(), label: 'Paramètres' },
         ];
 
         for (const { store, label } of stores) {
@@ -36,12 +39,12 @@ async function init() {
         }
 
         try {
-            await useAppStore().getConfig();
+            await useEnumStore().fetchEnumTypes();
 
-            update('config');
+            update('Enumérations');
         } catch (error: any) {
             if (error.response?.status === 403) {
-                update('config');
+                update('Enumérations');
             }
         }
     }
