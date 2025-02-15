@@ -98,10 +98,5 @@ const {
                 />
             </template>
         </TableWrapper>
-
-        <SellerDelete
-            v-model:seller="oneItem"
-            v-model:status=isOpen
-        />
     </div>
 </template>
