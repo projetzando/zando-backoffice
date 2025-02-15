@@ -13,6 +13,12 @@ export interface Product extends Timestamps {
     dimensions?: object
     thumbnail?: string
     brand_id?: string
+    product_images?: ProductImage[]
+    product_variants?: ProductVariant[]
+    product_views?: ProductView[]
+    sellers?: Seller
+    categories?: Category
+    brands?: Brand
 }
 
 export interface ProductImage extends Timestamps {
