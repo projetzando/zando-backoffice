@@ -7,6 +7,7 @@ provide('confirm', confirm)
 <template>
     <div class="flex min-h-screen  w-full relative">
         <Preloader />
+        <NetworkStatus />
 
         <NavigationSidebar class="" />
 

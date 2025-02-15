@@ -31,7 +31,7 @@ const {
                         Liste des vendeurs
                     </h5>
 
-                    <ButtonCreate @new="() => navigateTo(`/dashboard/accounts/sellers/create`)" />
+                    <!-- <ButtonCreate @new="() => navigateTo(`/dashboard/accounts/sellers/create`)" /> -->
                 </div>
 
                 <div class="flex justify-between py-3 border-y ">
@@ -67,20 +67,12 @@ const {
                     <template #actions-data="{ row }">
                         <div class="flex gap-2">
                             <UButton
-                                @click="navigateTo(`/dashboard/accounts/sellers/edit-${row.id}`)"
-                                icon="lets-icons:edit-fill"
+                                @click="navigateTo(`/dashboard/accounts/sellers/${row.id}`)"
+                                icon="lets-icons:eye"
                                 size="sm"
+                                label="Voir"
                                 title="Modifier"
                                 color="primary"
-                                variant="outline"
-                            />
-
-                            <UButton
-                                @click="confirmDeleteItem(row)"
-                                icon="lets-icons:trash"
-                                size="sm"
-                                title="Supprimer"
-                                color="red"
                                 variant="outline"
                             />
                         </div>
@@ -106,10 +98,5 @@ const {
                 />
             </template>
         </TableWrapper>
-
-        <SellerDelete
-            v-model:seller="oneItem"
-            v-model:status=isOpen
-        />
     </div>
 </template>
