@@ -1,17 +1,17 @@
 <script lang="ts" setup>
 definePageMeta({
     layout: 'dashboard',
-    name: "Détails d'un produit"
+    name: "Détails d'une commande"
 })
 
 const route = useRoute()
 
-const productStore = useProductStore();
+const orderStore = useOrderStore();
 
-productStore.show(route.params.id)
+orderStore.show(route.params.id)
 
 function VIEW() {
-    return navigateTo('/dashboard/products')
+    return navigateTo('/dashboard/orders')
 }
 
 const items = [
@@ -35,9 +35,9 @@ const openActivate = ref(false)
     <div>
         <ButtonList @return="VIEW" />
 
-        <h1>Détails du produit</h1>
+        <h1>Détails de la commande</h1>
         <pre>
-            {{ productStore.currentProduct }}
+            {{ orderStore.currentOrder }}
         </pre>
     </div>
 </template>
