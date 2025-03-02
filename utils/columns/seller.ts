@@ -1,9 +1,9 @@
 export const sellerColumns = [
-    {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
         key: 'company_name',
         label: 'Nom',

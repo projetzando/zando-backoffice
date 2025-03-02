@@ -1,9 +1,9 @@
 export const customerColumns = [
-    {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
         key: 'first_name',
         label: 'Prénom',

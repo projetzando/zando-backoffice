@@ -1,9 +1,9 @@
 export const currencyColumns = [
-    {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
         key: 'code',
         label: 'Code',

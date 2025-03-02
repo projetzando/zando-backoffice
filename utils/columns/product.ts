@@ -1,9 +1,9 @@
 export const productColumns = [
-    {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
         key: 'title',
         label: 'Nom',

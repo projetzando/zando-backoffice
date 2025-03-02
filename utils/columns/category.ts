@@ -1,9 +1,9 @@
 export const categoryColumns = [
-    {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
         key: 'name',
         label: 'Nom',

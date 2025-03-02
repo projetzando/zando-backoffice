@@ -1,22 +1,17 @@
 export const orderColumns = [
+    // {
+    //     key: 'id',
+    //     label: 'ID',
+    //     sortable: true
+    // },
     {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
-    {
-        key: 'title',
-        label: 'Nom',
+        key: 'buyer.first_name',
+        label: 'Client',
         sortable: true
     },
     {
         key: 'total_amount',
-        label: 'Prix',
-        sortable: true
-    },
-    {
-        key: 'stock',
-        label: 'Qté',
+        label: 'Montant',
         sortable: true
     },
     {
