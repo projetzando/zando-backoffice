@@ -10,7 +10,7 @@ const counter = ref(0)
 const current_load = ref('Début du chargement')
 
 function update(value: string) {
-    timer.value += 20
+    timer.value += 25
 
     counter.value++
 
