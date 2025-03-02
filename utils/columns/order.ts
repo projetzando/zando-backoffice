@@ -10,7 +10,7 @@ export const orderColumns = [
         sortable: true
     },
     {
-        key: 'price',
+        key: 'total_amount',
         label: 'Prix',
         sortable: true
     },
