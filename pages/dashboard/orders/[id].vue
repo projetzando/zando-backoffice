@@ -14,31 +14,12 @@ function VIEW() {
     return navigateTo('/dashboard/orders')
 }
 
-const items = [
-    {
-        slot: 'info',
-        label: 'Details',
-    },
-    {
-        slot: 'order',
-        label: 'Commandes',
-    }
-]
-
-const openAddress = ref(false)
-
-const openUpdate = ref(false)
-
-const openActivate = ref(false)
 </script>
 <template>
-    <div>
+    <div class="space-y-4">
         <ButtonList @return="VIEW" />
 
-        <h1>Détails de la commande</h1>
-        <pre>
-            {{ orderStore.currentOrder }}
-        </pre>
+        <OrderDetails :order="orderStore.currentOrder" :loading="orderStore.loading" />
     </div>
 </template>
 <style></style>

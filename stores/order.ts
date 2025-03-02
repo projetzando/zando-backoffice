@@ -27,9 +27,7 @@ export const useOrderStore = defineStore('order', () => {
         try {
             const { data, error: supaError } = await supabase
                 .from('orders')
-                .select('*')
-                .order('level', { ascending: true })
-                .order('name', { ascending: true })
+                .select('*, order_items(*, products(*))')
 
             if (supaError) {
                 return {
@@ -143,7 +141,7 @@ export const useOrderStore = defineStore('order', () => {
         }
     }
 
-    async function show(slug: string) {
+    async function show(id: string) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -151,17 +149,36 @@ export const useOrderStore = defineStore('order', () => {
         try {
             const { data, error: supaError } = await supabase
                 .from('orders')
-                .select('*')
-                .eq('slug', slug)
+                .select(`
+                    *, 
+                    order_items(*, products(*, brands(*), categories(*))), 
+                    shipping_address:addresses!orders_shipping_address_id_fkey(*),
+                    billing_address:addresses!orders_billing_address_id_fkey(*),
+                    buyer:buyer_id
+                `)
+                .eq('id', id)
                 .single()
 
-            if (supaError) {
-                return {
-                    success: false,
-                    error: supaError,
-                    data: null
+            
+                
+                if (supaError) {
+                    return {
+                        success: false,
+                        error: supaError,
+                        data: null
+                    }
                 }
-            }
+
+                if (data && data.buyer) {
+                    const { data: buyer, error: buyerError } = await supabase
+                    .from('profiles')
+                    .select('*') // Remplace `full_name` par le champ réel
+                    .eq('id', data.buyer)
+                    .single();
+                
+                    if (buyerError) console.error('Erreur lors de la récupération du buyer:', buyerError);
+                    else data.buyer = buyer;
+                }
 
             currentOrder.value = data
             return { success: true, data }
