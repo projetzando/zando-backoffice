@@ -111,6 +111,13 @@ export default defineNuxtConfig({
     },
   ],
   compatibilityDate: '2024-11-01',
+
+  icon: {
+    provider : 'server',
+    serverBundle: {
+      collections: ['iconoir', 'heroicons'] 
+    }
+  },
   
   devtools: {
     enabled: true,

@@ -6,7 +6,7 @@ export function useHandleErrors() {
             title: message,
             icon: "i-heroicons-check-badge",
             color: "primary",
-            timeout: 3000
+            duration: 3000
         });
     }
 
@@ -17,7 +17,7 @@ export function useHandleErrors() {
                 description: error.data.error,
                 color: 'warning',
                 icon: "i-heroicons-x-circle",
-                timeout: 3000
+                duration: 3000
             });
         } else if (Array.isArray(error.data.error) && error.data.error.length > 0) {
             error.data.error.forEach(err => {
@@ -26,7 +26,7 @@ export function useHandleErrors() {
                     description: err,
                     color: 'warning',
                     icon: "i-heroicons-x-circle",
-                    timeout: 3000
+                    duration: 3000
                 });
             });
         } else {
@@ -35,7 +35,7 @@ export function useHandleErrors() {
                 description: error.data.message || "Une erreur inattendue est survenue.",
                 color: 'warning',
                 icon: "i-heroicons-x-circle",
-                timeout: 3000
+                duration: 3000
             });
         }
     }

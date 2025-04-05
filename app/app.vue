@@ -14,10 +14,8 @@ watch(() => route.meta.name, (newName) => {
 
 <template>
   <UApp :toaster="{position : 'top-right'}">
-    <NuxtLoadingIndicator />
     <NuxtLayout>
       <NuxtPage />
-      <UNotifications />
     </NuxtLayout>
   </UApp>
 </template>
