@@ -45,14 +45,14 @@ async function Login() {
 
 <template>
     <FormAuth title="Connexion" :errors="display_errors" :error="display_error">
-        <UForm :state="user" :schema="authSchema" class="space-y-4 mt-6" @submit="Login">
+        <UForm :state="user" :schema="authSchema" class="flex flex-col gap-4" @submit="Login">
             <UFormGroup label="Email" name="email">
-                <UInput icon="i-heroicons-envelope" id="email" required v-model="user.email"
+                <UInput class="w-full" icon="i-heroicons-envelope" id="email" required v-model="user.email"
                     placeholder="Votre adresse email" size="lg" />
             </UFormGroup>
 
             <UFormGroup class="relative" label="Mot de passe" name="password">
-                <UInput icon="i-heroicons-lock-closed" id="password" required v-model="user.password"
+                <UInput class="w-full" icon="i-heroicons-lock-closed" id="password" required v-model="user.password"
                     :type="showPassword ? 'text' : 'password'" placeholder="Votre mot de passe" size="lg"
                     :ui="{ icon: { trailing: { pointer: '' } } }">
                     <template #trailing>
