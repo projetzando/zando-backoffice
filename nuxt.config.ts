@@ -29,8 +29,13 @@ export default defineNuxtConfig({
     port: 3006
   },
 
+  future : {
+    compatibilityVersion : 4
+  },
+
   css: [
-    '@/assets/css/index.css'
+    '@/assets/css/index.css',
+    '@/assets/css/tailwind.css',
   ],
   modules: [
     '@pinia/nuxt',

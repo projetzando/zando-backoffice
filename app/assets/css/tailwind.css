@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  --color-brown : "#F1F1E8"
+}

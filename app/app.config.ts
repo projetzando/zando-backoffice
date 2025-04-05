@@ -1,21 +1,36 @@
 export default defineAppConfig({
     ui: {
-
         input: {
-            default: { size: 'lg' }
+            slots : {
+                defaultVariants : {
+                    size: 'lg' 
+                }
+            }
         },
         selectMenu: {
-            default: { size: 'lg' }
+            slots : {
+                defaultVariants : {
+                    size: 'lg' 
+                }
+            }
         },
         skeleton: {
             background: 'bg-gray-200',
             rounded: 'rounded-lg'
         },
         select: {
-            default: { size: 'lg' }
+            slots : {
+                defaultVariants : {
+                    size: 'lg' 
+                }
+            }
         },
         button: {
-            default: { size: 'lg' },
+            slots : {
+                defaultVariants : {
+                    size: 'lg' 
+                }
+            },
             size: {
                 '2xl': 'text-lg',
                 '3xl': 'text-xl',
@@ -52,7 +67,8 @@ export default defineAppConfig({
             },
         },
         pagination: {
-            wrapper: 'flex items-center gap-x-2',
+            slots : {
+                wrapper: 'flex items-center gap-x-2',
             rounded: '!rounded-full min-w-[32px] justify-center',
             default: {
                 firstButton: {
@@ -62,34 +78,26 @@ export default defineAppConfig({
                     icon: 'ic:outline-keyboard-double-arrow-right'
                 },
             }
+            }
         },
         table: {
             thead: 'bg-gray-100 dark:bg-gray-800',
-            default: {
-                loadingState: {
-                    icon: 'i-heroicons-arrow-path-20-solid',
-                    label: 'Chargement des données......',
-                },
-                progress: {
-                    color: 'primary',
-                    animation: 'carousel',
-                },
-                emptyState: {
-                    icon: 'i-heroicons-circle-stack-20-solid',
-                    label: 'Aucun element trouvé.',
-                },
+            slots : {
+                default : {
+                    loadingState: {
+                        icon: 'i-heroicons-arrow-path-20-solid',
+                        label: 'Chargement des données......',
+                    },
+                    progress: {
+                        color: 'primary',
+                        animation: 'carousel',
+                    },
+                    emptyState: {
+                        icon: 'i-heroicons-circle-stack-20-solid',
+                        label: 'Aucun element trouvé.',
+                    },
+                }
             }
         },
-        notification: {
-            default: {
-                timeout: 1500,
-            },
-        },
-        notifications: {
-            position: 'top-0 bottom-auto'
-        },
-        icons: {
-            dynamic: true
-        }
     },
 })

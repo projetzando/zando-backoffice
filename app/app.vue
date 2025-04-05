@@ -13,13 +13,13 @@ watch(() => route.meta.name, (newName) => {
 </script>
 
 <template>
-  <div>
+  <UApp :toaster="{position : 'top-right'}">
     <NuxtLoadingIndicator />
     <NuxtLayout>
       <NuxtPage />
       <UNotifications />
     </NuxtLayout>
-  </div>
+  </UApp>
 </template>
 
 <style>
