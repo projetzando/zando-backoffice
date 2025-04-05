@@ -120,7 +120,7 @@ function changePassword() {
 
                 <UButton
                     type="reset"
-                    color="red"
+                    color="error"
                     label="Annuler"
                 />
             </div>

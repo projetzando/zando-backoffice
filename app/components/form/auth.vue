@@ -27,7 +27,7 @@ defineProps<{
 
             <UAlert
                 icon="i-heroicons-exclamation-triangle"
-                color="red"
+                color="error"
                 v-show="error"
                 :title="error"
                 class="mt-3"
@@ -37,7 +37,7 @@ defineProps<{
                 v-for="(error, i) in errors"
                 :key="i"
                 icon="i-heroicons-exclamation-triangle"
-                color="red"
+                color="error"
                 v-show="errors"
                 :title="error"
                 class="mt-3"

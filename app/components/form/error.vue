@@ -8,7 +8,7 @@ defineProps<{
 <template>
     <UAlert
         icon="i-heroicons-bell-alert"
-        color="orange"
+        color="warning"
         v-if="error"
         :title="error"
         variant="subtle"
@@ -22,7 +22,7 @@ defineProps<{
         <UAlert
             title="Erreurs"
             icon="i-heroicons-bell-alert"
-            color="orange"
+            color="warning"
             variant="subtle"
         >
             <template #description>
@@ -40,7 +40,7 @@ defineProps<{
         <UAlert
             title="Erreurs"
             icon="i-heroicons-bell-alert"
-            color="orange"
+            color="warning"
             variant="subtle"
         >
             <template #description>

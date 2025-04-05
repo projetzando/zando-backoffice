@@ -12,7 +12,7 @@ function handleClick() {
         icon="lets-icons:trash"
         size="sm"
         title="Supprimer"
-        color="red"
+        color="error"
         variant="outline"
     />
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const confirm = useTemplateRef('confirm')
+// const confirm = useTemplateRef('confirm')
 
-provide('confirm', confirm)
+// provide('confirm', confirm)
 </script>
 
 <template>
@@ -11,7 +11,7 @@ provide('confirm', confirm)
 
         <NavigationSidebar class="" />
 
-        <ConfirmDialog ref="confirm" />
+        <!-- <ConfirmDialog ref="confirm" /> -->
 
         <main class=" bg-white w-full overflow-x-auto">
             <InitData />

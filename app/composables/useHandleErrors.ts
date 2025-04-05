@@ -15,7 +15,7 @@ export function useHandleErrors() {
             toast.add({
                 title: "Erreur",
                 description: error.data.error,
-                color: 'orange',
+                color: 'warning',
                 icon: "i-heroicons-x-circle",
                 timeout: 3000
             });
@@ -24,7 +24,7 @@ export function useHandleErrors() {
                 toast.add({
                     title: "Erreur",
                     description: err,
-                    color: 'orange',
+                    color: 'warning',
                     icon: "i-heroicons-x-circle",
                     timeout: 3000
                 });
@@ -33,7 +33,7 @@ export function useHandleErrors() {
             toast.add({
                 title: "Erreur",
                 description: error.data.message || "Une erreur inattendue est survenue.",
-                color: 'orange',
+                color: 'warning',
                 icon: "i-heroicons-x-circle",
                 timeout: 3000
             });

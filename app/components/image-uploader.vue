@@ -97,7 +97,7 @@ watch(file, (newValue) => {
             v-if="previewUrl || file"
             @click="removeImage"
             label="Retirer"
-            color="red"
+            color="error"
             class="my-2"
         />
     </div>

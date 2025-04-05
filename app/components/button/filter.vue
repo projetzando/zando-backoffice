@@ -12,7 +12,7 @@ function handleClick() {
         @click="handleClick"
         icon="hugeicons:filter"
         size="md"
-        color="white"
+        color="neutral"
         variant="solid"
         label="Filtres"
         :trailing="false"

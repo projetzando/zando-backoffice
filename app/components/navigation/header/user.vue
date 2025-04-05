@@ -43,7 +43,7 @@ const items = [
 </script>
 
 <template>
-    <UDropdown
+    <UDropdownMenu
         :items="items"
         :ui="{ item: { disabled: 'cursor-text select-text' } }"
         :popper="{ placement: 'bottom-start' }"
@@ -71,7 +71,7 @@ const items = [
                 class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto"
             />
         </template>
-    </UDropdown>
+    </UDropdownMenu>
 </template>
 
 <style lang="css" scoped></style>

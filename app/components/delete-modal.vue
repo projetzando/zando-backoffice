@@ -38,7 +38,7 @@ const isOpen = defineModel<boolean>({ required: true, default: () => false })
                 <div class="flex justify-end space-x-2">
                     <UButton
                         size="lg"
-                        color="white"
+                        color="neutral"
                         label="Annuler"
                         @click="isOpen = !isOpen"
                     />

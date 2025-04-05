@@ -37,9 +37,9 @@ const openActivate = ref(false)
 
         <div v-if="!customerStore.loading" class="space-x-2 bg-gray-100 p-2 rounded-lg flex justify-between my-3">
 
-            <UButton @click="openUpdate = !openUpdate" color="blue" label="Mise à jour" />
+            <UButton @click="openUpdate = !openUpdate" color="secondary" label="Mise à jour" />
 
-            <UButton @click="openActivate = !openActivate" color="cyan" label="Activer" />
+            <UButton @click="openActivate = !openActivate" color="info" label="Activer" />
         </div>
 
         <ActivateCustomer v-model:status="openActivate" v-model:customer="customerStore.currentCustomer" />

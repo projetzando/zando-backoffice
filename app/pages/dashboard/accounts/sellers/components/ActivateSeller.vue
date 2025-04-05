@@ -61,7 +61,7 @@ function validate() {
             <template #footer>
                 <div class="flex justify-end space-x-2">
                     <UButton
-                        color="orange"
+                        color="warning"
                         label="Annuler"
                         @click="isOpen = !isOpen"
                     />

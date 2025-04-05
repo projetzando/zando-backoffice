@@ -23,7 +23,7 @@ export function useDelete<T>() {
             toast.add({
                 title: err.data.message,
                 description: err.data.error,
-                color: 'orange',
+                color: 'warning',
                 icon: 'i-heroicons-x-circle'
             })
         } finally {

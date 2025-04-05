@@ -71,7 +71,7 @@ defineExpose({
                 <UIcon
                     @click="_cancel"
                     class="cursor-pointer"
-                    color="orange"
+                    color="warning"
                     name="i-heroicons-x-mark"
                     size="25"
                 />
@@ -92,7 +92,7 @@ defineExpose({
             <div class="flex justify-end space-x-2">
                 <UButton
                     size="lg"
-                    color="orange"
+                    color="warning"
                     @click="_cancel"
                     :label="cancelButton"
                 />
