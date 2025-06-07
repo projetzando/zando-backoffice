@@ -2,5 +2,5 @@
 @import "@nuxt/ui";
 
 @theme {
-  --color-brown : "#F1F1E8"
+  --color-brown : "#F1F1E8",
 }

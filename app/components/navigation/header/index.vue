@@ -23,16 +23,16 @@ async function reloadDatabase() {
 </script>
 
 <template>
-    <nav class="flex items-center justify-between border-b  top-0 p-6">
-        <h1 class="text-lg flex items-center font-semibold text-black laptop-m:space-x-0 space-x-2">
+    <nav class="flex items-center justify-between border-b border-b-gray-200  top-0 p-6">
+        <h1 class="text-lg flex items-center font-semibold text-black lg:space-x-0 space-x-2">
             <UIcon
                 @click="isOpen = !isOpen"
-                class="laptop-m:hidden block"
+                class="lg:hidden block"
                 size="25"
                 name="heroicons:bars-3"
             />
 
-            <span class="tablet:text-base text-sm">{{ route.meta.name?.toUpperCase() ?? 'Zando' }}</span>
+            <span class="md:text-base text-sm">{{ route.meta.name?.toUpperCase() ?? 'Zando' }}</span>
         </h1>
 
         <div class=' flex items-center gap-x-5'>

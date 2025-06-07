@@ -10,11 +10,11 @@ defineProps<{
         class="border bg-white rounded-md flex-col w-full mt-2 shadow-sm p-2 flex items-center"
     >
         <div class="w-full flex items-center space-x-2">
-            <div class="laptop:block hidden">
+            <div class="lg:block hidden">
                 <slot name="avatar" />
             </div>
 
-            <div class="grid laptop:grid-cols-4 grid-cols-1 gap-2 w-full">
+            <div class="grid lg:grid-cols-4 grid-cols-1 gap-2 w-full">
                 <slot name="header" />
             </div>
         </div>

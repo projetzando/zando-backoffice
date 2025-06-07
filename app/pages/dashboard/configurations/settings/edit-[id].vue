@@ -46,7 +46,7 @@ function edit() {
                 class="my-3 space-y-4"
                 @submit="edit"
             >
-                <div class="tablet:flex-row flex-col gap-2 flex">
+                <div class="md:flex-row flex-col gap-2 flex">
                     <UFormGroup
                         class="w-full"
                         label="Clé"

@@ -5,6 +5,15 @@ export default defineAppConfig({
                 size: 'lg' 
             }
         },
+        sliderover : {
+            variants : {
+                side : {
+                    left : {
+                        content : 'left-0 inset-y-0 w-full max-w-sm'
+                    }
+                }
+            }
+        },
         selectMenu: {
             defaultVariants : {
                 size: 'lg' 

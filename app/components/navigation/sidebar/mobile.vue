@@ -1,16 +1,14 @@
 <script setup lang='ts'>
-const isOpen = defineModel<boolean>()
+const isOpen = defineModel<boolean>({required : true, default: false})
+
 
 const { resetMenuState } = useMenu();
 </script>
 
 <template>
-    <USlideover
-        :ui="{ width: 'w-screen max-w-xs' }"
-        side="left"
-        v-model="isOpen"
-    >
-        <aside class="w-80 h-screen bg-white flex flex-col border-r sticky top-0">
+<USlideover side="left" v-model:open="isOpen">
+    <template #content>
+        <aside class="w-80 h-screen bg-white flex flex-col">
             <div class="py-4 px-4 sticky top-0 bg-white z-10 flex">
                 <img
                     src="~/assets/images/logo.png"
@@ -36,7 +34,8 @@ const { resetMenuState } = useMenu();
                 <NavigationSidebarConfig />
             </nav>
         </aside>
-    </USlideover>
+    </template>
+  </USlideover>
 </template>
 
 <style lang="css" scoped></style>

@@ -59,7 +59,7 @@ function handleSubmit() {
 
         <FormWrapper title="Nouvelle marque" :errors="errors" :error="error">
             <UForm :state="brand" :schema="brandSchema" class="my-3 space-y-4" @submit="handleSubmit">
-                <div class="tablet:flex-col flex-col gap-2 flex">
+                <div class="md:flex-col flex-col gap-2 flex">
                     <UFormGroup class="w-full" label="Nom" name="name">
                         <UInput required v-model="brand.name" placeholder="Nom de la marque" />
                     </UFormGroup>

@@ -2,9 +2,8 @@
 const { resetMenuState } = useMenu();
 </script>
 
-
 <template>
-    <aside class="w-80 h-screen bg-white hidden flex-col border-r sticky top-0 laptop-m:flex">
+    <aside class="w-80 h-screen bg-white hidden flex-col border-r border-r-gray-200 sticky top-0 lg:flex">
         <div class="py-4 px-4 sticky top-0 bg-white z-10 flex">
             <img
                 src="~/assets/images/logo.png"
