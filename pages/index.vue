@@ -86,13 +86,13 @@ async function Login() {
         </UInput>
       </UFormGroup>
 
-      <div class="text-right">
+      <!-- <div class="text-right">
         <NuxtLink
           to="/"
           class="text-sm font-semibold text-gray-700 hover:text-blue-700 focus:text-blue-700"
           >Mot de passe oublié?</NuxtLink
         >
-      </div>
+      </div> -->
 
       <UButton
         type="submit"

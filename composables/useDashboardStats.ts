@@ -75,7 +75,7 @@ export const useDashboardStats = () => {
       // Récupérer les commandes pour la période courante
       const { data: currentOrders, error: currentError } = await supabase
         .from("orders")
-        .select("total_amount, created_at, buyer_id")
+        .select("total_amount, created_at, user_id")
         .gte("created_at", currentStart.toISOString())
         .lte("created_at", now.toISOString());
 
@@ -84,7 +84,7 @@ export const useDashboardStats = () => {
       // Récupérer les commandes pour la période précédente
       const { data: previousOrders, error: previousError } = await supabase
         .from("orders")
-        .select("total_amount, created_at, buyer_id")
+        .select("total_amount, created_at, user_id")
         .gte("created_at", previousStart.toISOString())
         .lte("created_at", previousEnd.toISOString());
 
@@ -93,7 +93,7 @@ export const useDashboardStats = () => {
       // Récupérer les produits
       const { data: products, error: productsError } = await supabase
         .from("products")
-        .select("created_at, status");
+        .select("created_at, is_active");
 
       if (productsError) throw productsError;
 
@@ -126,7 +126,7 @@ export const useDashboardStats = () => {
 
       // Produits actifs
       const activeProducts =
-        products?.filter((p) => p.status === "active").length || 0;
+        products?.filter((p) => p.is_active === true).length || 0;
       const totalProducts = products?.length || 0;
 
       // Nouveaux clients
@@ -240,7 +240,7 @@ export const useDashboardStats = () => {
         .from("products")
         .select("title, stock")
         .lt("stock", 10)
-        .eq("status", "active");
+        .eq("is_active", true);
 
       if (lowStockProducts && lowStockProducts.length > 0) {
         alerts.push({

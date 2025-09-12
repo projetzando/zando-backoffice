@@ -26,8 +26,13 @@ export const orderColumns = [
     sortable: false,
   },
   {
-    key: "shipping_method",
-    label: "Livraison",
+    key: "delivery_address",
+    label: "Adresse livraison",
+    sortable: false,
+  },
+  {
+    key: "payment_method",
+    label: "Paiement",
     sortable: false,
   },
   {
@@ -41,15 +46,13 @@ export const orderColumns = [
   },
 ];
 
-// Statuts des commandes
+// Statuts des commandes (selon nouveau schéma)
 export const orderStatuses = [
   { value: "pending", label: "En attente", color: "orange" },
   { value: "confirmed", label: "Confirmée", color: "blue" },
-  { value: "processing", label: "En cours", color: "yellow" },
   { value: "shipped", label: "Expédiée", color: "purple" },
   { value: "delivered", label: "Livrée", color: "green" },
   { value: "cancelled", label: "Annulée", color: "red" },
-  { value: "returned", label: "Retournée", color: "gray" },
 ];
 
 // Helper pour obtenir le statut formaté

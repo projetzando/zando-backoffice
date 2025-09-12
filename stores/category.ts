@@ -10,14 +10,6 @@ export const useCategoryStore = defineStore('category', () => {
         categories.value.filter(cat => cat.is_active)
     )
 
-    const categoriesByLevel = computed(() => 
-        categories.value.reduce((acc, cat) => {
-            acc[cat.level] = acc[cat.level] || []
-            acc[cat.level].push(cat)
-            return acc
-        }, {} as Record<number, Category[]>)
-    )
-
     // Actions
     async function get() {
         const supabase = useSupabaseClient()
@@ -28,7 +20,6 @@ export const useCategoryStore = defineStore('category', () => {
             const { data, error: supaError } = await supabase
                 .from('categories')
                 .select('*')
-                .order('level', { ascending: true })
                 .order('name', { ascending: true })
 
             if (supaError) {
@@ -143,7 +134,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function show(slug: string) {
+    async function show(id: string) {
         const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
@@ -152,7 +143,7 @@ export const useCategoryStore = defineStore('category', () => {
             const { data, error: supaError } = await supabase
                 .from('categories')
                 .select('*')
-                .eq('slug', slug)
+                .eq('id', id)
                 .single()
 
             if (supaError) {
@@ -173,34 +164,7 @@ export const useCategoryStore = defineStore('category', () => {
         }
     }
 
-    async function getChildCategories(parentId: string) {
-        const supabase = useSupabaseClient()
-        loading.value = true
-        error.value = null
-
-        try {
-            const { data, error: supaError } = await supabase
-                .from('categories')
-                .select('*')
-                .eq('parent_id', parentId)
-                .order('name')
-
-            if (supaError) {
-                return {
-                    success: false,
-                    error: supaError,
-                    data: null
-                }
-            }
-
-            return { success: true, data }
-        } catch (err) {
-            error.value = err.message
-            return { success: false, error: err.message }
-        } finally {
-            loading.value = false
-        }
-    }
+    // Méthode getChildCategories supprimée car plus de hiérarchie dans le nouveau schéma
 
     function $reset() {
         categories.value = []
@@ -218,7 +182,6 @@ export const useCategoryStore = defineStore('category', () => {
         
         // Getters
         activeCategories,
-        categoriesByLevel,
         
         // Actions
         get,
@@ -226,7 +189,6 @@ export const useCategoryStore = defineStore('category', () => {
         update,
         destroy,
         show,
-        getChildCategories,
         $reset
     }
 }, {

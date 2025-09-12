@@ -1,31 +1,31 @@
 <script setup lang="ts">
 definePageMeta({
-    name: "Modification d'une devise",
+    name: "Modification d'une catégorie",
     // roles: ['admin', 'superadmin'],
     layout: 'dashboard'
 })
 
-const currencyStore = useCurrencyStore()
+const categoryStore = useCategoryStore()
 
 const route = useRoute()
 
 const { submit, error, errors, loading } = useFormSubmission()
 
-const currency = ref<Currency>({
-    code: '',
+const category = ref<Category>({
+    name: '',
 })
 
-await currencyStore.show(route.params.id).then((data) => {
-    currency.value = data.data
+await categoryStore.show(route.params.id).then((data) => {
+    category.value = data.data
 })
 
 function VIEW() {
-    return navigateTo('/dashboard/configurations/currencies')
+    return navigateTo('/dashboard/configurations/categories')
 }
 
 function edit() {
     submit({
-        action: () => currencyStore.update(currency.value.id, currency.value),
+        action: () => categoryStore.update(category.value.id, category.value),
         redirect: () => VIEW(),
     })
 }
@@ -36,56 +36,52 @@ function edit() {
         <ButtonList @return="VIEW" />
 
         <FormWrapper
-            title="Modification devise"
+            title="Modification catégorie"
             :errors="errors"
             :error="error"
         >
             <UForm
-                :state="currency"
+                :state="category"
                 class="my-3 space-y-4"
                 @submit="edit"
             >
                 <div class="tablet:flex-row flex-col gap-2 flex">
                     <UFormGroup
                         class="w-full"
-                        label="Code"
-                        name="code"
+                        label="Nom"
+                        name="name"
                     >
                         <UInput
                             required
-                            v-model="currency.code"
-                            placeholder="Code de la devise"
+                            v-model="category.name"
+                            placeholder="Mettre le nom de la catégorie"
+                        />
+                    </UFormGroup>
+                    <UFormGroup
+                        class="w-full"
+                        label="Image URL"
+                        name="image"
+                    >
+                        <UInput
+                            v-model="category.image"
+                            placeholder="URL de l'image (optionnel)"
                         />
                     </UFormGroup>
 
                     <UFormGroup
                         class="w-full"
-                        label="Symbôle"
-                        name="symbol"
+                        label="Statut"
+                        name="is_active"
                     >
-                        <UInput
-                            required
-                            v-model="currency.symbol"
-                            placeholder="Symbôle de la devise"
-                        />
-                    </UFormGroup>
-
-                    <UFormGroup
-                        class="w-full"
-                        label="Taux"
-                        name="rate"
-                    >
-                        <UInput
-                            required
-                            type="number"
-                            v-model="currency.rate"
-                            placeholder="Taux de la devise"
+                        <UToggle
+                            v-model="category.is_active"
+                            label="Catégorie active"
                         />
                     </UFormGroup>
                 </div>
 
                 <div class="flex space-x-2">
-                    <ButtonSubmit v-model="currencyStore.loading" />
+                    <ButtonSubmit v-model="categoryStore.loading" />
 
                     <UButton
                         type="reset"

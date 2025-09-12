@@ -5,10 +5,10 @@ export const useOrderStore = defineStore("order", () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // Obtenir toutes les commandes (version simple)
+  // Obtenir toutes les commandes
   async function getAll(filters?: {
     status?: string;
-    buyer_id?: string;
+    user_id?: string;
     date_from?: string;
     date_to?: string;
     search?: string;
@@ -28,8 +28,8 @@ export const useOrderStore = defineStore("order", () => {
       if (filters?.status) {
         query = query.eq("status", filters.status);
       }
-      if (filters?.buyer_id) {
-        query = query.eq("buyer_id", filters.buyer_id);
+      if (filters?.user_id) {
+        query = query.eq("user_id", filters.user_id);
       }
       if (filters?.date_from) {
         query = query.gte("created_at", filters.date_from);
@@ -56,35 +56,13 @@ export const useOrderStore = defineStore("order", () => {
           try {
             // Récupérer le profil de l'acheteur
             let buyer = null;
-            if (order.buyer_id) {
+            if (order.user_id) {
               const { data: profile } = await supabase
                 .from("profiles")
                 .select("*")
-                .eq("id", order.buyer_id)
+                .eq("id", order.user_id)
                 .single();
               buyer = profile;
-            }
-
-            // Récupérer les adresses
-            let shippingAddress = null;
-            let billingAddress = null;
-
-            if (order.shipping_address_id) {
-              const { data: address } = await supabase
-                .from("addresses")
-                .select("*")
-                .eq("id", order.shipping_address_id)
-                .single();
-              shippingAddress = address;
-            }
-
-            if (order.billing_address_id) {
-              const { data: address } = await supabase
-                .from("addresses")
-                .select("*")
-                .eq("id", order.billing_address_id)
-                .single();
-              billingAddress = address;
             }
 
             // Récupérer les articles de la commande
@@ -101,8 +79,6 @@ export const useOrderStore = defineStore("order", () => {
             return {
               ...order,
               buyer,
-              shipping_address: shippingAddress,
-              billing_address: billingAddress,
               order_items: orderItems || [],
             };
           } catch (err) {
@@ -114,8 +90,6 @@ export const useOrderStore = defineStore("order", () => {
             return {
               ...order,
               buyer: null,
-              shipping_address: null,
-              billing_address: null,
               order_items: [],
             };
           }
@@ -151,35 +125,13 @@ export const useOrderStore = defineStore("order", () => {
 
       // 2. Récupérer le profil de l'acheteur
       let buyer = null;
-      if (orderData.buyer_id) {
+      if (orderData.user_id) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", orderData.buyer_id)
+          .eq("id", orderData.user_id)
           .single();
         buyer = profile;
-      }
-
-      // 3. Récupérer les adresses
-      let shippingAddress = null;
-      let billingAddress = null;
-
-      if (orderData.shipping_address_id) {
-        const { data: address } = await supabase
-          .from("addresses")
-          .select("*")
-          .eq("id", orderData.shipping_address_id)
-          .single();
-        shippingAddress = address;
-      }
-
-      if (orderData.billing_address_id) {
-        const { data: address } = await supabase
-          .from("addresses")
-          .select("*")
-          .eq("id", orderData.billing_address_id)
-          .single();
-        billingAddress = address;
       }
 
       // 4. Récupérer les articles avec leurs produits
@@ -190,10 +142,9 @@ export const useOrderStore = defineStore("order", () => {
                     *,
                     product:products(
                         *,
-                        category:categories(*),
-                        product_images(*)
+                        category:categories(*)
                     ),
-                    variant:product_variants(*)
+                    variation:product_variations(*)
                 `
         )
         .eq("order_id", id);
@@ -207,8 +158,6 @@ export const useOrderStore = defineStore("order", () => {
       const enrichedOrder = {
         ...orderData,
         buyer,
-        shipping_address: shippingAddress,
-        billing_address: billingAddress,
         order_items: orderItems || [],
         payments: payments || [],
       };

@@ -1,7 +1,7 @@
 // config/columns.ts
 export const productColumns = [
   {
-    key: "product_images",
+    key: "cover_image",
     label: "Image",
   },
   {
@@ -10,8 +10,8 @@ export const productColumns = [
     sortable: true,
   },
   {
-    key: "sku",
-    label: "SKU",
+    key: "product_type",
+    label: "Type",
     sortable: true,
   },
   {
@@ -25,7 +25,7 @@ export const productColumns = [
     sortable: true,
   },
   {
-    key: "status",
+    key: "is_active",
     label: "Statut",
     sortable: true,
   },
@@ -52,13 +52,22 @@ export const productColumns = [
 
 // Statuts disponibles
 export const productStatuses = [
-  { value: "draft", label: "Brouillon", color: "gray" },
-  { value: "active", label: "Actif", color: "green" },
-  { value: "inactive", label: "Inactif", color: "orange" },
-  { value: "archived", label: "Archivé", color: "red" },
+  { value: true, label: "Actif", color: "green" },
+  { value: false, label: "Inactif", color: "red" },
+];
+
+// Types de produits
+export const productTypes = [
+  { value: "simple", label: "Simple", color: "blue" },
+  { value: "variable", label: "Variable", color: "purple" },
 ];
 
 // Helper pour obtenir le statut formaté
-export function getProductStatus(status: string) {
-  return productStatuses.find((s) => s.value === status) || productStatuses[0];
+export function getProductStatus(isActive: boolean) {
+  return productStatuses.find((s) => s.value === isActive) || productStatuses[1];
+}
+
+// Helper pour obtenir le type formaté
+export function getProductType(type: string) {
+  return productTypes.find((t) => t.value === type) || productTypes[0];
 }

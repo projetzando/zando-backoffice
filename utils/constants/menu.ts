@@ -19,6 +19,25 @@ export const productLinks = ref<sidebarLink[]>([
     },
 ])
 
+// Nouveaux liens pour les fonctionnalités ajoutées
+export const communicationLinks = ref<sidebarLink[]>([
+    {
+        title: 'Conversations',
+        route_link: '/dashboard/conversations',
+    },
+    {
+        title: 'Avis clients',
+        route_link: '/dashboard/reviews',
+    },
+])
+
+export const testLinks = ref<sidebarLink[]>([
+    {
+        title: 'Test des vues',
+        route_link: '/dashboard/test-views',
+    },
+])
+
 export const userLinks = ref<sidebarLink[]>([
     {
         title: 'Tous les clients',
@@ -45,18 +64,6 @@ export const localisationLinks = ref<sidebarLink[]>([
     {
         title: 'Catégories',
         route_link: '/dashboard/configurations/categories',
-    },
-    {
-        title: 'Devises',
-        route_link: '/dashboard/configurations/currencies',
-    },
-    {
-        title: 'Marques',
-        route_link: '/dashboard/configurations/brands',
-    },
-    {
-        title: 'Paramètres généraux',
-        route_link: '/dashboard/configurations/settings',
     },
 ])
 

@@ -1,11 +1,13 @@
 export interface Seller extends Timestamps {
     readonly id?: string
-    user_id?: string | null
-    company_name?: string
-    legal_status?: string
-    siret?: string | null
-    vat_number?: string | null
-    commission_rate?: number
+    user_id?: string
+    company_name: string
+    company_description?: string
+    company_logo?: string
+    phone?: string
+    email?: string
+    website?: string
+    is_approved?: boolean
 }
 
 export interface SellerSetting extends Timestamps {

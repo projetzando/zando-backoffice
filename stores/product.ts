@@ -1,15 +1,15 @@
 // stores/product.ts
 export const useProductStore = defineStore("product", () => {
-  const products = ref<Product[]>([]);
-  const currentProduct = ref<Product | null>(null);
+  const products = ref<ProductWithPrice[]>([]);
+  const currentProduct = ref<ProductWithPrice | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // Obtenir tous les produits avec relations
+  // Obtenir tous les produits avec relations (utilise la vue products_with_price par défaut)
   async function getAll(filters?: {
     seller_id?: string;
     category_id?: string;
-    status?: string;
+    is_active?: boolean;
     search?: string;
   }) {
     const supabase = useSupabaseClient();
@@ -18,16 +18,8 @@ export const useProductStore = defineStore("product", () => {
 
     try {
       let query = supabase
-        .from("products")
-        .select(
-          `
-                    *,
-                    seller:sellers(*),
-                    category:categories(*),
-                    product_images(*),
-                    product_variants(*)
-                `
-        )
+        .from("products_with_price")
+        .select("*")
         .order("created_at", { ascending: false });
 
       // Appliquer les filtres
@@ -37,12 +29,12 @@ export const useProductStore = defineStore("product", () => {
       if (filters?.category_id) {
         query = query.eq("category_id", filters.category_id);
       }
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
+      if (filters?.is_active !== undefined) {
+        query = query.eq("is_active", filters.is_active);
       }
       if (filters?.search) {
         query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
         );
       }
 
@@ -60,7 +52,7 @@ export const useProductStore = defineStore("product", () => {
     }
   }
 
-  // Obtenir un produit par ID avec toutes ses relations
+  // Obtenir un produit par ID avec toutes ses relations (utilise la vue pour les calculs)
   async function getById(id: string) {
     const supabase = useSupabaseClient();
     loading.value = true;
@@ -68,17 +60,8 @@ export const useProductStore = defineStore("product", () => {
 
     try {
       const { data, error: supaError } = await supabase
-        .from("products")
-        .select(
-          `
-                    *,
-                    seller:sellers(*),
-                    category:categories(*),
-                    product_images(*),
-                    product_variants(*),
-                    product_views(*)
-                `
-        )
+        .from("products_with_price")
+        .select("*")
         .eq("id", id)
         .single();
 
@@ -197,49 +180,35 @@ export const useProductStore = defineStore("product", () => {
     }
   }
 
-  // Upload d'images pour un produit
-  async function uploadImage(
-    file: File,
-    productId: string,
-    position: number = 0,
-    isMain: boolean = false
-  ) {
+  // Upload d'images pour un produit (version simplifiée)
+  async function uploadImages(files: File[], productId: string) {
     const supabase = useSupabaseClient();
     loading.value = true;
     error.value = null;
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${productId}/${Date.now()}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const uploadPromises = files.map(async (file, index) => {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${productId}/${Date.now()}_${index}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
-      // Upload du fichier
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, file);
+        // Upload du fichier
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Obtenir l'URL publique
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        // Obtenir l'URL publique
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
-      // Enregistrer en base
-      const { data, error: insertError } = await supabase
-        .from("product_images")
-        .insert({
-          product_id: productId,
-          url: publicUrl,
-          position,
-          is_main: isMain,
-        })
-        .select()
-        .single();
+        return publicUrl;
+      });
 
-      if (insertError) throw insertError;
-
-      return { success: true, data };
+      const imageUrls = await Promise.all(uploadPromises);
+      return { success: true, data: imageUrls };
     } catch (err: any) {
       error.value = err.message;
       return { success: false, error: err };
@@ -248,48 +217,85 @@ export const useProductStore = defineStore("product", () => {
     }
   }
 
-  // Supprimer une image
-  async function removeImage(imageId: string) {
+  // Gérer les variations d'un produit
+  async function manageVariations(productId: string, variations: Partial<ProductVariation>[]) {
     const supabase = useSupabaseClient();
     loading.value = true;
     error.value = null;
 
     try {
-      const { error: supaError } = await supabase
-        .from("product_images")
-        .delete()
-        .eq("id", imageId);
+      // Supprimer les anciennes variations
+      await supabase.from('product_variations').delete().eq('product_id', productId);
+      
+      // Ajouter les nouvelles variations
+      if (variations.length > 0) {
+        const { data, error: supaError } = await supabase
+          .from('product_variations')
+          .insert(variations.map(v => ({ ...v, product_id: productId })))
+          .select();
+          
+        if (supaError) throw supaError;
+        return { success: true, data };
+      }
+      
+      return { success: true, data: [] };
+    } catch (err: any) {
+      error.value = err.message;
+      return { success: false, error: err };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // Obtenir les produits depuis la table brute (pour l'édition)
+  async function getProductsRaw(filters?: {
+    seller_id?: string;
+    category_id?: string;
+    is_active?: boolean;
+    search?: string;
+  }) {
+    const supabase = useSupabaseClient();
+    loading.value = true;
+    error.value = null;
+
+    try {
+      let query = supabase
+        .from('products')
+        .select(`
+          *,
+          seller:sellers(*),
+          category:categories(*),
+          product_variations(*),
+          product_attributes(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      // Appliquer les filtres
+      if (filters?.seller_id) {
+        query = query.eq('seller_id', filters.seller_id);
+      }
+      if (filters?.category_id) {
+        query = query.eq('category_id', filters.category_id);
+      }
+      if (filters?.is_active !== undefined) {
+        query = query.eq('is_active', filters.is_active);
+      }
+      if (filters?.search) {
+        query = query.or(
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        );
+      }
+
+      const { data, error: supaError } = await query;
 
       if (supaError) throw supaError;
 
-      return { success: true };
+      return { success: true, data: data || [] };
     } catch (err: any) {
       error.value = err.message;
       return { success: false, error: err };
     } finally {
       loading.value = false;
-    }
-  }
-
-  // Enregistrer une vue de produit
-  async function recordView(
-    productId: string,
-    userId?: string,
-    ipAddress?: string,
-    deviceInfo?: object
-  ) {
-    const supabase = useSupabaseClient();
-
-    try {
-      await supabase.from("product_views").insert({
-        product_id: productId,
-        user_id: userId,
-        ip_address: ipAddress,
-        device_info: deviceInfo,
-      });
-    } catch (err) {
-      // Ne pas faire échouer si l'enregistrement de la vue échoue
-      console.warn("Erreur lors de l'enregistrement de la vue:", err);
     }
   }
 
@@ -314,9 +320,9 @@ export const useProductStore = defineStore("product", () => {
     create,
     update,
     remove,
-    uploadImage,
-    removeImage,
-    recordView,
+    uploadImages,
+    manageVariations,
+    getProductsRaw,
     $reset,
   };
 });

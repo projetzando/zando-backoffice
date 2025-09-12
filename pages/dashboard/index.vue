@@ -51,11 +51,8 @@ async function loadDashboardData() {
   loadingAlerts.value = true;
 
   try {
-    // Charger les données de base
-    await Promise.all([
-      orderStore.getAll({ limit: 10 }),
-      productStore.getAll({ limit: 10 }),
-    ]);
+    // Charger les données de base (utilise les vues optimisées)
+    await Promise.all([orderStore.getAll(), productStore.getAll()]);
 
     // Calculer les statistiques
     const { data: stats } = await calculateStats(selectedPeriod.value as any);
@@ -186,10 +183,12 @@ const recentProducts = computed(
     products.value?.slice(0, 5).map((product) => ({
       id: product.id,
       title: product.title,
-      price: product.price,
-      stock: product.stock,
-      status: product.status,
+      price: product.display_price || product.price || 0,
+      stock: product.available_stock || product.stock || 0,
+      status: product.is_active ? "active" : "inactive",
       date: product.created_at,
+      review_count: product.review_count || 0,
+      avg_rating: product.avg_rating || 0,
     })) || []
 );
 
@@ -198,7 +197,6 @@ function getStatusColor(status: string): string {
   const colors = {
     pending: "orange",
     confirmed: "blue",
-    processing: "yellow",
     shipped: "purple",
     delivered: "green",
     cancelled: "red",
@@ -213,7 +211,6 @@ function getStatusLabel(status: string): string {
   const labels = {
     pending: "En attente",
     confirmed: "Confirmée",
-    processing: "En cours",
     shipped: "Expédiée",
     delivered: "Livrée",
     cancelled: "Annulée",
@@ -277,26 +274,43 @@ function handleAlertAction(alert: any) {
 
     <!-- Cartes de statistiques principales -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <UCard v-for="card in statCards" :key="card.title">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">{{ card.title }}</p>
-            <p class="text-2xl font-bold text-gray-900">
-              {{ card.value }}
-            </p>
-            <p :class="`text-sm mt-1 ${getTrendColor(card.growth)}`">
-              <UIcon
-                :name="getTrendIcon(card.growth)"
-                class="w-4 h-4 inline mr-1"
-              />
-              {{ Math.abs(card.growth).toFixed(1) }}% vs période précédente
-            </p>
+      <!-- Skeletons pendant le chargement -->
+      <template v-if="loadingStats">
+        <UCard v-for="i in 4" :key="i">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <USkeleton class="h-4 w-24 mb-2" />
+              <USkeleton class="h-8 w-16 mb-2" />
+              <USkeleton class="h-4 w-32" />
+            </div>
+            <USkeleton class="h-12 w-12 rounded-full" />
           </div>
-          <div :class="`p-3 rounded-full ${card.iconBg}`">
-            <UIcon :name="card.icon" :class="`w-6 h-6 ${card.iconColor}`" />
+        </UCard>
+      </template>
+
+      <!-- Cartes réelles -->
+      <template v-else>
+        <UCard v-for="card in statCards" :key="card.title">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">{{ card.title }}</p>
+              <p class="text-2xl font-bold text-gray-900">
+                {{ card.value }}
+              </p>
+              <p :class="`text-sm mt-1 ${getTrendColor(card.growth)}`">
+                <UIcon
+                  :name="getTrendIcon(card.growth)"
+                  class="w-4 h-4 inline mr-1"
+                />
+                {{ Math.abs(card.growth).toFixed(1) }}% vs période précédente
+              </p>
+            </div>
+            <div :class="`p-3 rounded-full ${card.iconBg}`">
+              <UIcon :name="card.icon" :class="`w-6 h-6 ${card.iconColor}`" />
+            </div>
           </div>
-        </div>
-      </UCard>
+        </UCard>
+      </template>
     </div>
 
     <!-- Actions rapides -->
@@ -332,27 +346,40 @@ function handleAlertAction(alert: any) {
         </template>
 
         <div class="h-64">
-          <SimpleChart
-            v-if="chartData.data.length > 0"
-            :data="chartData.data"
-            :labels="chartData.labels"
-            type="area"
-            color="#3b82f6"
-            :height="256"
-            :format-value="formatCurrency"
-          />
-          <div
-            v-else
-            class="h-full flex items-center justify-center bg-gray-50 rounded-lg"
-          >
-            <div class="text-center">
-              <UIcon
-                name="i-heroicons-chart-line"
-                class="w-12 h-12 text-gray-400 mx-auto mb-2"
-              />
-              <p class="text-gray-500">Chargement des données...</p>
-            </div>
+          <!-- Skeleton pendant le chargement -->
+          <div v-if="loadingStats" class="space-y-3 p-4">
+            <USkeleton class="h-4 w-full" />
+            <USkeleton class="h-6 w-3/4" />
+            <USkeleton class="h-8 w-1/2" />
+            <USkeleton class="h-10 w-full" />
+            <USkeleton class="h-12 w-5/6" />
+            <USkeleton class="h-6 w-2/3" />
+            <USkeleton class="h-4 w-full" />
           </div>
+          <!-- Graphique réel -->
+          <template v-else>
+            <SimpleChart
+              v-if="chartData.data.length > 0"
+              :data="chartData.data"
+              :labels="chartData.labels"
+              type="area"
+              color="#3b82f6"
+              :height="256"
+              :format-value="formatCurrency"
+            />
+            <div
+              v-else
+              class="h-full flex items-center justify-center bg-gray-50 rounded-lg"
+            >
+              <div class="text-center">
+                <UIcon
+                  name="i-heroicons-chart-line"
+                  class="w-12 h-12 text-gray-400 mx-auto mb-2"
+                />
+                <p class="text-gray-500">Aucune donnée disponible</p>
+              </div>
+            </div>
+          </template>
         </div>
       </UCard>
 
@@ -363,32 +390,52 @@ function handleAlertAction(alert: any) {
         </template>
 
         <div class="h-64">
-          <SimpleChart
-            v-if="orders && orders.length > 0"
-            :data="Object.values(orders.reduce((acc, order) => {
-                            acc[order.status] = (acc[order.status] || 0) + 1
-                            return acc
-                        }, {} as Record<string, number>))"
-            :labels="Object.keys(orders.reduce((acc, order) => {
-                            acc[order.status] = (acc[order.status] || 0) + 1
-                            return acc
-                        }, {} as Record<string, number>)).map(getStatusLabel)"
-            type="bar"
-            color="#10b981"
-            :height="256"
-          />
-          <div
-            v-else
-            class="h-full flex items-center justify-center bg-gray-50 rounded-lg"
-          >
-            <div class="text-center">
-              <UIcon
-                name="i-heroicons-chart-bar"
-                class="w-12 h-12 text-gray-400 mx-auto mb-2"
-              />
-              <p class="text-gray-500">Aucune donnée disponible</p>
+          <!-- Skeleton pendant le chargement -->
+          <div v-if="ordersLoading" class="space-y-2 p-4">
+            <div class="flex justify-between items-end space-x-2">
+              <USkeleton class="h-12 w-8" />
+              <USkeleton class="h-16 w-8" />
+              <USkeleton class="h-20 w-8" />
+              <USkeleton class="h-8 w-8" />
+              <USkeleton class="h-24 w-8" />
+            </div>
+            <div class="flex justify-between space-x-2 mt-4">
+              <USkeleton class="h-3 w-12" />
+              <USkeleton class="h-3 w-16" />
+              <USkeleton class="h-3 w-14" />
+              <USkeleton class="h-3 w-12" />
+              <USkeleton class="h-3 w-10" />
             </div>
           </div>
+          <!-- Graphique réel -->
+          <template v-else>
+            <SimpleChart
+              v-if="orders && orders.length > 0"
+              :data="Object.values(orders.reduce((acc, order) => {
+                              acc[order.status] = (acc[order.status] || 0) + 1
+                              return acc
+                          }, {} as Record<string, number>))"
+              :labels="Object.keys(orders.reduce((acc, order) => {
+                              acc[order.status] = (acc[order.status] || 0) + 1
+                              return acc
+                          }, {} as Record<string, number>)).map(getStatusLabel)"
+              type="bar"
+              color="#10b981"
+              :height="256"
+            />
+            <div
+              v-else
+              class="h-full flex items-center justify-center bg-gray-50 rounded-lg"
+            >
+              <div class="text-center">
+                <UIcon
+                  name="i-heroicons-chart-bar"
+                  class="w-12 h-12 text-gray-400 mx-auto mb-2"
+                />
+                <p class="text-gray-500">Aucune donnée disponible</p>
+              </div>
+            </div>
+          </template>
         </div>
       </UCard>
     </div>
@@ -411,42 +458,63 @@ function handleAlertAction(alert: any) {
         </template>
 
         <div class="space-y-4">
-          <div
-            v-for="order in recentOrders"
-            :key="order.id"
-            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            @click="navigateTo(`/dashboard/orders/${order.id}`)"
-          >
-            <div>
-              <p class="font-medium text-gray-900">{{ order.customer }}</p>
-              <p class="text-sm text-gray-500">
-                {{ new Date(order.date).toLocaleDateString("fr-FR") }}
-              </p>
+          <!-- Skeletons pendant le chargement -->
+          <template v-if="ordersLoading">
+            <div
+              v-for="i in 5"
+              :key="i"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
+              <div class="flex-1">
+                <USkeleton class="h-4 w-32 mb-2" />
+                <USkeleton class="h-3 w-20" />
+              </div>
+              <div class="text-right">
+                <USkeleton class="h-4 w-20 mb-2" />
+                <USkeleton class="h-5 w-16 rounded-full" />
+              </div>
             </div>
-            <div class="text-right">
-              <p class="font-medium text-gray-900">
-                {{ formatCurrency(order.amount) }}
-              </p>
-              <UBadge
-                :color="getStatusColor(order.status)"
-                variant="subtle"
-                size="sm"
-              >
-                {{ getStatusLabel(order.status) }}
-              </UBadge>
-            </div>
-          </div>
+          </template>
 
-          <div
-            v-if="recentOrders.length === 0"
-            class="text-center py-8 text-gray-500"
-          >
-            <UIcon
-              name="i-heroicons-shopping-bag"
-              class="w-12 h-12 mx-auto mb-2 text-gray-300"
-            />
-            <p>Aucune commande récente</p>
-          </div>
+          <!-- Commandes réelles -->
+          <template v-else>
+            <div
+              v-for="order in recentOrders"
+              :key="order.id"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              @click="navigateTo(`/dashboard/orders/${order.id}`)"
+            >
+              <div>
+                <p class="font-medium text-gray-900">{{ order.customer }}</p>
+                <p class="text-sm text-gray-500">
+                  {{ new Date(order.date).toLocaleDateString("fr-FR") }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="font-medium text-gray-900">
+                  {{ formatCurrency(order.amount) }}
+                </p>
+                <UBadge
+                  :color="getStatusColor(order.status)"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ getStatusLabel(order.status) }}
+                </UBadge>
+              </div>
+            </div>
+
+            <div
+              v-if="recentOrders.length === 0"
+              class="text-center py-8 text-gray-500"
+            >
+              <UIcon
+                name="i-heroicons-shopping-bag"
+                class="w-12 h-12 mx-auto mb-2 text-gray-300"
+              />
+              <p>Aucune commande récente</p>
+            </div>
+          </template>
         </div>
       </UCard>
 
@@ -466,42 +534,68 @@ function handleAlertAction(alert: any) {
         </template>
 
         <div class="space-y-4">
-          <div
-            v-for="product in recentProducts"
-            :key="product.id"
-            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            @click="navigateTo(`/dashboard/products/${product.id}`)"
-          >
-            <div>
-              <p class="font-medium text-gray-900">{{ product.title }}</p>
-              <p class="text-sm text-gray-500">
-                Stock: {{ product.stock }} unités
-              </p>
+          <!-- Skeletons pendant le chargement -->
+          <template v-if="productsLoading">
+            <div
+              v-for="i in 5"
+              :key="i"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
+              <div class="flex-1">
+                <USkeleton class="h-4 w-40 mb-2" />
+                <USkeleton class="h-3 w-24" />
+              </div>
+              <div class="text-right">
+                <USkeleton class="h-4 w-20 mb-2" />
+                <USkeleton class="h-5 w-12 rounded-full" />
+              </div>
             </div>
-            <div class="text-right">
-              <p class="font-medium text-gray-900">
-                {{ formatCurrency(product.price) }}
-              </p>
-              <UBadge
-                :color="getStatusColor(product.status)"
-                variant="subtle"
-                size="sm"
-              >
-                {{ getStatusLabel(product.status) }}
-              </UBadge>
-            </div>
-          </div>
+          </template>
 
-          <div
-            v-if="recentProducts.length === 0"
-            class="text-center py-8 text-gray-500"
-          >
-            <UIcon
-              name="i-heroicons-cube"
-              class="w-12 h-12 mx-auto mb-2 text-gray-300"
-            />
-            <p>Aucun produit récent</p>
-          </div>
+          <!-- Produits réels -->
+          <template v-else>
+            <div
+              v-for="product in recentProducts"
+              :key="product.id"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              @click="navigateTo(`/dashboard/products/show-${product.id}`)"
+            >
+              <div>
+                <p class="font-medium text-gray-900">{{ product.title }}</p>
+                <p class="text-sm text-gray-500">
+                  Stock: {{ product.stock }} unités
+                  <span v-if="product.review_count > 0" class="ml-2">
+                    • {{ product.review_count }} avis ({{
+                      product.avg_rating
+                    }}/5)
+                  </span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="font-medium text-gray-900">
+                  {{ formatCurrency(product.price) }}
+                </p>
+                <UBadge
+                  :color="getStatusColor(product.status)"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ getStatusLabel(product.status) }}
+                </UBadge>
+              </div>
+            </div>
+
+            <div
+              v-if="recentProducts.length === 0"
+              class="text-center py-8 text-gray-500"
+            >
+              <UIcon
+                name="i-heroicons-cube"
+                class="w-12 h-12 mx-auto mb-2 text-gray-300"
+              />
+              <p>Aucun produit récent</p>
+            </div>
+          </template>
         </div>
       </UCard>
     </div>

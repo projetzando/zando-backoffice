@@ -7,8 +7,8 @@ definePageMeta({
 const orderStore = useOrderStore();
 
 // Charger les commandes
-onMounted(() => {
-  orderStore.getAll();
+onMounted(async () => {
+  await orderStore.getAll();
 });
 
 const { orders, loading } = storeToRefs(orderStore);
@@ -17,6 +17,7 @@ const { orders, loading } = storeToRefs(orderStore);
 const filters = ref({
   search: "",
   status: "",
+  user_id: "",
   date_from: "",
   date_to: "",
 });
@@ -32,7 +33,7 @@ const {
   totalFilteredRows,
   confirmDeleteItem,
 } = useTable(orders, {
-  searchFields: ["id", "buyer.first_name", "buyer.last_name", "buyer.email"],
+  searchFields: ["id", "delivery_name", "buyer.first_name", "buyer.last_name"],
   filtersConfig: {
     status: (item, value) => !value || item.status === value,
     date_from: (item, value) =>
@@ -40,18 +41,17 @@ const {
     date_to: (item, value) =>
       !value || new Date(item.created_at) <= new Date(value),
   },
+  filters,
 });
 
-// Options pour les filtres
+// Options pour les filtres (selon nouveau schéma)
 const statusOptions = [
   { value: "", label: "Tous les statuts" },
   { value: "pending", label: "En attente" },
   { value: "confirmed", label: "Confirmée" },
-  { value: "processing", label: "En cours" },
   { value: "shipped", label: "Expédiée" },
   { value: "delivered", label: "Livrée" },
   { value: "cancelled", label: "Annulée" },
-  { value: "returned", label: "Retournée" },
 ];
 
 // Fonctions utilitaires
@@ -66,11 +66,9 @@ function getStatusColor(status: string) {
   const colors = {
     pending: "orange",
     confirmed: "blue",
-    processing: "yellow",
     shipped: "purple",
     delivered: "green",
     cancelled: "red",
-    returned: "gray",
   };
   return colors[status as keyof typeof colors] || "gray";
 }
@@ -79,11 +77,9 @@ function getStatusLabel(status: string) {
   const labels = {
     pending: "En attente",
     confirmed: "Confirmée",
-    processing: "En cours",
     shipped: "Expédiée",
     delivered: "Livrée",
     cancelled: "Annulée",
-    returned: "Retournée",
   };
   return labels[status as keyof typeof labels] || status;
 }
@@ -100,12 +96,23 @@ const totalOrdersValue = computed(() => {
   );
 });
 
-// Appliquer les filtres
+// Compter les filtres actifs
+const activeFiltersCount = computed(() => {
+  return Object.values(filters.value).filter(value => value && value !== '').length;
+});
+
+// Synchroniser les filtres avec le composant de table
+watchEffect(() => {
+  if (filters.value.status !== (filters.value.status || '')) {
+    // Synchronisation automatique via le système de filtres de useTable
+  }
+});
+
+// Optionnel : Appliquer les filtres côté serveur si l'API le supporte
 watch(
   filters,
   async (newFilters) => {
-    // Si vous avez une méthode pour filtrer côté serveur
-    // await orderStore.getAll(newFilters)
+    // await orderStore.getAll(newFilters); // Décommenté si l'API supporte les filtres côté serveur
   },
   { deep: true }
 );
@@ -121,6 +128,9 @@ watch(
             <div class="flex gap-6 text-sm text-gray-600 mt-2">
               <span>{{ totalFilteredRows }} commandes</span>
               <span>Total: {{ formatPrice(totalOrdersValue) }}</span>
+              <span v-if="activeFiltersCount > 0" class="text-blue-600">
+                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{ activeFiltersCount > 1 ? 's' : '' }}
+              </span>
             </div>
           </div>
         </div>
@@ -155,6 +165,17 @@ watch(
               type="date"
               placeholder="Date fin"
               class="min-w-[140px]"
+            />
+
+            <!-- Bouton pour réinitialiser les filtres -->
+            <UButton
+              v-if="filters.status || filters.date_from || filters.date_to"
+              @click="filters = { search: '', status: '', user_id: '', date_from: '', date_to: '' }"
+              icon="i-heroicons-x-mark"
+              color="gray"
+              variant="ghost"
+              size="sm"
+              title="Réinitialiser les filtres"
             />
           </div>
 
@@ -231,12 +252,25 @@ watch(
             </div>
           </template>
 
-          <!-- Méthode de livraison -->
-          <template #shipping_method-data="{ row }">
+          <!-- Adresse de livraison -->
+          <template #delivery_address-data="{ row }">
             <div class="text-sm">
-              <div class="font-medium">{{ row.shipping_method }}</div>
+              <div class="font-medium">{{ row.delivery_name }}</div>
               <div class="text-gray-500">
-                {{ formatPrice(row.shipping_cost) }}
+                {{ row.delivery_address }}, {{ row.delivery_city }}
+              </div>
+              <div v-if="row.delivery_phone" class="text-xs text-gray-400">
+                {{ row.delivery_phone }}
+              </div>
+            </div>
+          </template>
+
+          <!-- Méthode de paiement -->
+          <template #payment_method-data="{ row }">
+            <div class="text-sm">
+              <div class="font-medium">{{ row.payment_method }}</div>
+              <div v-if="row.shipping_cost" class="text-gray-500">
+                Livraison: {{ formatPrice(row.shipping_cost) }}
               </div>
             </div>
           </template>

@@ -57,26 +57,23 @@ function store() {
 
                     <UFormGroup
                         class="w-full"
-                        label="Slug"
-                        name="slug"
+                        label="Image URL"
+                        name="image"
                     >
                         <UInput
-                            required
-                            v-model="category.slug"
-                            placeholder="Slug"
+                            v-model="category.image"
+                            placeholder="URL de l'image (optionnel)"
                         />
                     </UFormGroup>
 
                     <UFormGroup
                         class="w-full"
-                        label="Niveau"
-                        name="level"
+                        label="Statut"
+                        name="is_active"
                     >
-                        <UInput
-                            required
-                            type="number"
-                            v-model="category.level"
-                            placeholder="Niveau"
+                        <UToggle
+                            v-model="category.is_active"
+                            label="Catégorie active"
                         />
                     </UFormGroup>
 

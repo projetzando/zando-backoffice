@@ -34,24 +34,12 @@ function formatPrice(price: number) {
   }).format(price);
 }
 
-function getStatusColor(status: string) {
-  const colors = {
-    draft: "gray",
-    active: "green",
-    inactive: "orange",
-    archived: "red",
-  };
-  return colors[status as keyof typeof colors] || "gray";
+function getStatusColor(is_active: boolean) {
+  return is_active ? "green" : "red";
 }
 
-function getStatusLabel(status: string) {
-  const labels = {
-    draft: "Brouillon",
-    active: "Actif",
-    inactive: "Inactif",
-    archived: "Archivé",
-  };
-  return labels[status as keyof typeof labels] || status;
+function getStatusLabel(is_active: boolean) {
+  return is_active ? "Actif" : "Inactif";
 }
 
 // Onglets
@@ -68,7 +56,7 @@ const tabs = [
   },
   {
     slot: "variants",
-    label: "Variantes",
+    label: "Variations",
     icon: "i-heroicons-squares-plus",
   },
   {
@@ -99,9 +87,8 @@ async function deleteProduct() {
 async function toggleStatus() {
   if (!currentProduct.value) return;
 
-  const newStatus =
-    currentProduct.value.status === "active" ? "inactive" : "active";
-  await productStore.update(currentProduct.value.id!, { status: newStatus });
+  const newStatus = !currentProduct.value.is_active;
+  await productStore.update(currentProduct.value.id!, { is_active: newStatus });
 }
 </script>
 
@@ -128,17 +115,14 @@ async function toggleStatus() {
           </h1>
           <div class="flex items-center gap-4 mt-2">
             <UBadge
-              :color="getStatusColor(currentProduct.status)"
+              :color="getStatusColor(currentProduct.is_active)"
               variant="subtle"
               size="lg"
             >
-              {{ getStatusLabel(currentProduct.status) }}
+              {{ getStatusLabel(currentProduct.is_active) }}
             </UBadge>
-            <span v-if="currentProduct.sku" class="text-sm text-gray-500">
-              SKU:
-              <code class="bg-gray-100 px-2 py-1 rounded">{{
-                currentProduct.sku
-              }}</code>
+            <span class="text-sm text-gray-500">
+              ID: <code class="bg-gray-100 px-2 py-1 rounded">{{ currentProduct.id?.substring(0, 8) }}</code>
             </span>
           </div>
         </div>
@@ -156,14 +140,14 @@ async function toggleStatus() {
           <UButton
             @click="toggleStatus"
             :icon="
-              currentProduct.status === 'active'
+              currentProduct.is_active
                 ? 'i-heroicons-pause'
                 : 'i-heroicons-play'
             "
-            :color="currentProduct.status === 'active' ? 'orange' : 'green'"
+            :color="currentProduct.is_active ? 'orange' : 'green'"
             variant="outline"
           >
-            {{ currentProduct.status === "active" ? "Désactiver" : "Activer" }}
+            {{ currentProduct.is_active ? "Désactiver" : "Activer" }}
           </UButton>
 
           <!-- <UButton
@@ -191,8 +175,8 @@ async function toggleStatus() {
 
                 <div class="aspect-square">
                   <img
-                    v-if="currentProduct.product_images?.[0]?.url"
-                    :src="currentProduct.product_images[0].url"
+                    v-if="currentProduct.cover_image"
+                    :src="currentProduct.cover_image"
                     :alt="currentProduct.title"
                     class="w-full h-full object-cover rounded-lg"
                   />
@@ -223,7 +207,7 @@ async function toggleStatus() {
                       >Prix</label
                     >
                     <p class="text-lg font-semibold text-green-600 mt-1">
-                      {{ formatPrice(currentProduct.price) }}
+                      {{ formatPrice(currentProduct.base_price) }}
                     </p>
                   </div>
 
@@ -231,35 +215,17 @@ async function toggleStatus() {
                     <label class="text-sm font-medium text-gray-700"
                       >Stock</label
                     >
-                    <p
-                      class="text-lg font-semibold mt-1"
-                      :class="
-                        currentProduct.stock > 0
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      "
-                    >
-                      {{ currentProduct.stock }} unités
+                    <p class="text-lg font-semibold text-gray-600 mt-1">
+                      Géré par variations
                     </p>
                   </div>
 
-                  <div v-if="currentProduct.weight">
+                  <div>
                     <label class="text-sm font-medium text-gray-700"
-                      >Poids</label
+                      >Type de produit</label
                     >
-                    <p class="text-gray-900 mt-1">
-                      {{ currentProduct.weight }} kg
-                    </p>
-                  </div>
-
-                  <div v-if="currentProduct.dimensions">
-                    <label class="text-sm font-medium text-gray-700"
-                      >Dimensions</label
-                    >
-                    <p class="text-gray-900 mt-1">
-                      {{ currentProduct.dimensions.length }}×{{
-                        currentProduct.dimensions.width
-                      }}×{{ currentProduct.dimensions.height }} cm
+                    <p class="text-gray-900 mt-1 capitalize">
+                      {{ currentProduct.product_type || 'Non défini' }}
                     </p>
                   </div>
                 </div>
@@ -347,21 +313,21 @@ async function toggleStatus() {
             </template>
 
             <div
-              v-if="currentProduct.product_images?.length"
+              v-if="currentProduct.images?.length"
               class="grid grid-cols-2 md:grid-cols-4 gap-4"
             >
               <div
-                v-for="(image, index) in currentProduct.product_images"
-                :key="image.id"
+                v-for="(image, index) in currentProduct.images"
+                :key="index"
                 class="relative group"
               >
                 <img
-                  :src="image.url"
+                  :src="image"
                   :alt="`${currentProduct.title} - Image ${index + 1}`"
                   class="w-full h-32 object-cover rounded-lg border"
                 />
                 <div
-                  v-if="image.is_main"
+                  v-if="index === 0"
                   class="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded"
                 >
                   Principal
@@ -369,7 +335,7 @@ async function toggleStatus() {
                 <div
                   class="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded"
                 >
-                  {{ image.position + 1 }}
+                  {{ index + 1 }}
                 </div>
               </div>
             </div>
@@ -381,38 +347,47 @@ async function toggleStatus() {
           </UCard>
         </template>
 
-        <!-- Variantes -->
+        <!-- Variations -->
         <template #variants="{ item }">
           <UCard>
             <template #header>
-              <h3 class="text-lg font-semibold">Variantes du produit</h3>
+              <h3 class="text-lg font-semibold">Variations du produit</h3>
             </template>
 
-            <div v-if="currentProduct.product_variants?.length">
+            <div v-if="currentProduct.product_variations?.length">
               <UTable
-                :rows="currentProduct.product_variants"
+                :rows="currentProduct.product_variations"
                 :columns="[
-                  { key: 'sku', label: 'SKU' },
+                  { key: 'name', label: 'Nom' },
                   { key: 'price', label: 'Prix' },
-                  { key: 'stock', label: 'Stock' },
-                  { key: 'attributes', label: 'Attributs' },
+                  { key: 'stock_quantity', label: 'Stock' },
+                  { key: 'is_default', label: 'Défaut' },
                 ]"
               >
                 <template #price-data="{ row }">
                   {{ formatPrice(row.price) }}
                 </template>
 
-                <template #attributes-data="{ row }">
-                  <div v-if="row.attributes" class="flex flex-wrap gap-1">
-                    <UBadge
-                      v-for="(value, key) in row.attributes"
-                      :key="key"
-                      variant="subtle"
-                      size="sm"
-                    >
-                      {{ key }}: {{ value }}
-                    </UBadge>
-                  </div>
+                <template #is_default-data="{ row }">
+                  <UBadge
+                    :color="row.is_default ? 'green' : 'gray'"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    {{ row.is_default ? 'Défaut' : 'Standard' }}
+                  </UBadge>
+                </template>
+
+                <template #stock_quantity-data="{ row }">
+                  <span
+                    :class="
+                      row.stock_quantity > 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    "
+                  >
+                    {{ row.stock_quantity }} unité{{ row.stock_quantity > 1 ? 's' : '' }}
+                  </span>
                 </template>
               </UTable>
             </div>
@@ -422,7 +397,7 @@ async function toggleStatus() {
                 name="i-heroicons-squares-plus"
                 class="w-12 h-12 mx-auto mb-2"
               />
-              <p>Aucune variante configurée</p>
+              <p>Aucune variation configurée</p>
             </div>
           </UCard>
         </template>
@@ -436,7 +411,7 @@ async function toggleStatus() {
               </template>
               <div class="text-center">
                 <p class="text-3xl font-bold text-primary-600">
-                  {{ currentProduct.product_views?.length || 0 }}
+                  {{ currentProduct.views_count || 0 }}
                 </p>
                 <p class="text-sm text-gray-500 mt-1">vues totales</p>
               </div>
@@ -448,7 +423,7 @@ async function toggleStatus() {
               </template>
               <div class="text-center">
                 <p class="text-3xl font-bold text-green-600">
-                  {{ currentProduct.product_images?.length || 0 }}
+                  {{ currentProduct.images?.length || 0 }}
                 </p>
                 <p class="text-sm text-gray-500 mt-1">images ajoutées</p>
               </div>
@@ -456,13 +431,13 @@ async function toggleStatus() {
 
             <UCard>
               <template #header>
-                <h3 class="text-lg font-semibold">Variantes</h3>
+                <h3 class="text-lg font-semibold">Variations</h3>
               </template>
               <div class="text-center">
                 <p class="text-3xl font-bold text-orange-600">
-                  {{ currentProduct.product_variants?.length || 0 }}
+                  {{ currentProduct.product_variations?.length || 0 }}
                 </p>
-                <p class="text-sm text-gray-500 mt-1">variantes créées</p>
+                <p class="text-sm text-gray-500 mt-1">variations créées</p>
               </div>
             </UCard>
           </div>
