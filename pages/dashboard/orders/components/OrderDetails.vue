@@ -10,11 +10,10 @@
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Articles de la commande</h3>
                 <UBadge
-                  v-if="order.status !== 'delivered'"
-                  color="orange"
+                  :color="getStatusBadgeColor(order.status)"
                   variant="subtle"
                 >
-                  Non livrés
+                  {{ getStatusBadgeLabel(order.status) }}
                 </UBadge>
               </div>
             </template>
@@ -28,8 +27,8 @@
                 <!-- Image du produit -->
                 <div class="flex-shrink-0">
                   <img
-                    v-if="item.product?.product_images?.[0]?.url"
-                    :src="item.product.product_images[0].url"
+                    v-if="item.product?.cover_image || item.product?.images?.[0]"
+                    :src="item.product.cover_image || item.product.images[0]"
                     :alt="item.product.title"
                     class="w-16 h-16 object-cover rounded-lg border"
                   />
@@ -57,19 +56,10 @@
                       >
                         {{ item.product.category.name }}
                       </p>
-                      <div
-                        v-if="item.variant?.attributes"
-                        class="flex gap-2 mt-2"
-                      >
-                        <UBadge
-                          v-for="(value, key) in item.variant.attributes"
-                          :key="key"
-                          variant="subtle"
-                          size="sm"
-                        >
-                          {{ key }}: {{ value }}
-                        </UBadge>
-                      </div>
+                      <!-- Afficher la variation au lieu des attributs -->
+                      <p v-if="item.variation_name" class="text-sm text-gray-500 mt-1">
+                        Variation: {{ item.variation_name }}
+                      </p>
                     </div>
 
                     <div class="text-right">
@@ -78,7 +68,7 @@
                         {{ formatCurrency(item.unit_price) }}
                       </p>
                       <p class="font-semibold">
-                        {{ formatCurrency(item.quantity * item.unit_price) }}
+                        {{ formatCurrency(item.total_price || (item.quantity * item.unit_price)) }}
                       </p>
                     </div>
                   </div>
@@ -117,7 +107,7 @@
                     articles)</span
                   >
                   <span class="font-medium">{{
-                    formatCurrency(calculateSubtotal())
+                    formatCurrency(calculateSubtotal)
                   }}</span>
                 </div>
 
@@ -125,11 +115,11 @@
                   <div>
                     <span class="text-gray-600">Frais de livraison</span>
                     <p class="text-sm text-gray-400">
-                      {{ order.shipping_method }}
+                      {{ order.payment_method || 'Non spécifié' }}
                     </p>
                   </div>
                   <span class="font-medium">{{
-                    formatCurrency(order.shipping_cost)
+                    formatCurrency(order.shipping_cost || 0)
                   }}</span>
                 </div>
 
@@ -138,7 +128,7 @@
                 >
                   <span class="text-lg font-semibold">Total</span>
                   <span class="text-lg font-bold text-primary-600">{{
-                    formatCurrency(calculateTotal())
+                    formatCurrency(calculateTotal)
                   }}</span>
                 </div>
               </div>
@@ -152,7 +142,7 @@
                 <div class="flex justify-between items-center">
                   <span class="text-sm text-gray-600">Montant dû</span>
                   <span class="text-sm font-medium text-red-600">{{
-                    formatCurrency(calculateTotal())
+                    formatCurrency(calculateTotal)
                   }}</span>
                 </div>
               </div>
@@ -296,7 +286,7 @@
           </UCard>
 
           <!-- Adresse de livraison -->
-          <UCard v-if="order.shipping_address">
+          <UCard>
             <template #header>
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Adresse de livraison</h3>
@@ -310,18 +300,13 @@
 
             <div class="space-y-2">
               <p class="font-medium text-gray-900">
-                {{ order.shipping_address.name }}
+                {{ order.delivery_name || 'Nom non spécifié' }}
               </p>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.shipping_address.street }}</p>
-                <p>
-                  {{ order.shipping_address.city }},
-                  {{ order.shipping_address.state }}
-                </p>
-                <p>{{ order.shipping_address.postal_code }}</p>
-                <p>{{ order.shipping_address.country }}</p>
-                <p v-if="order.shipping_address.phone">
-                  {{ order.shipping_address.phone }}
+                <p>{{ order.delivery_address || 'Adresse non spécifiée' }}</p>
+                <p>{{ order.delivery_city || 'Ville non spécifiée' }}</p>
+                <p v-if="order.delivery_phone">
+                  Téléphone: {{ order.delivery_phone }}
                 </p>
               </div>
             </div>
@@ -334,11 +319,11 @@
             </template>
           </UCard>
 
-          <!-- Adresse de facturation -->
-          <UCard v-if="order.billing_address">
+          <!-- Méthode de paiement -->
+          <UCard>
             <template #header>
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold">Adresse de facturation</h3>
+                <h3 class="text-lg font-semibold">Méthode de paiement</h3>
                 <UButton
                   variant="ghost"
                   size="xs"
@@ -347,23 +332,12 @@
               </div>
             </template>
 
-            <div v-if="order.billing_address.id === order.shipping_address?.id">
-              <p class="text-sm text-gray-500">
-                Identique à l'adresse de livraison
-              </p>
-            </div>
-            <div v-else class="space-y-2">
+            <div class="space-y-2">
               <p class="font-medium text-gray-900">
-                {{ order.billing_address.name }}
+                {{ order.payment_method || 'Non spécifié' }}
               </p>
-              <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.billing_address.street }}</p>
-                <p>
-                  {{ order.billing_address.city }},
-                  {{ order.billing_address.state }}
-                </p>
-                <p>{{ order.billing_address.postal_code }}</p>
-                <p>{{ order.billing_address.country }}</p>
+              <div v-if="order.notes" class="text-sm text-gray-600">
+                <p><strong>Notes:</strong> {{ order.notes }}</p>
               </div>
             </div>
           </UCard>
@@ -382,7 +356,10 @@
             </template>
 
             <div>
-              <p class="text-sm text-gray-500">
+              <p v-if="order.notes" class="text-sm text-gray-900">
+                {{ order.notes }}
+              </p>
+              <p v-else class="text-sm text-gray-500">
                 Aucune note pour cette commande
               </p>
             </div>
@@ -420,6 +397,22 @@ const props = defineProps({
   },
 });
 
+// Émissions d'événements pour les actions
+const emit = defineEmits(['orderUpdated', 'statusChanged']);
+
+// Réactivité aux changements d'état de la commande
+const orderStatus = computed(() => props.order?.status);
+const isOrderEditable = computed(() => 
+  props.order?.status && ['pending', 'confirmed'].includes(props.order.status)
+);
+
+// Watcher pour détecter les changements de statut
+watch(() => props.order?.status, (newStatus, oldStatus) => {
+  if (newStatus !== oldStatus && oldStatus) {
+    emit('statusChanged', { newStatus, oldStatus, order: props.order });
+  }
+});
+
 // Fonction pour formater la date
 const formatDate = (dateString: string, shortFormat = false) => {
   const date = new Date(dateString);
@@ -449,16 +442,42 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Fonction pour calculer le sous-total
-const calculateSubtotal = () => {
+// Calculs réactifs
+const calculateSubtotal = computed(() => {
   if (!props.order?.order_items) return 0;
   return props.order.order_items.reduce((total: number, item: any) => {
-    return total + item.unit_price * item.quantity;
+    return total + (item.total_price || (item.unit_price * item.quantity));
   }, 0);
+});
+
+const calculateTotal = computed(() => {
+  return calculateSubtotal.value + (props.order?.shipping_cost || 0);
+});
+
+// Fonctions utilitaires pour les statuts
+const getStatusBadgeColor = (status: string) => {
+  const colors = {
+    pending: 'orange',
+    confirmed: 'blue', 
+    shipped: 'purple',
+    delivered: 'green',
+    cancelled: 'red',
+  };
+  return colors[status as keyof typeof colors] || 'gray';
 };
 
-// Fonction pour calculer le total
-const calculateTotal = () => {
-  return calculateSubtotal() + (props.order?.shipping_cost || 0);
+const getStatusBadgeLabel = (status: string) => {
+  const labels = {
+    pending: 'En attente',
+    confirmed: 'Confirmé',
+    shipped: 'Expédié', 
+    delivered: 'Livré',
+    cancelled: 'Annulé',
+  };
+  return labels[status as keyof typeof labels] || status;
 };
+
+// Fonctions pour templates (backward compatibility)
+const getSubtotal = () => calculateSubtotal.value;
+const getTotal = () => calculateTotal.value;
 </script>

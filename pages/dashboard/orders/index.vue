@@ -7,8 +7,8 @@ definePageMeta({
 const orderStore = useOrderStore();
 
 // Charger les commandes
-onMounted(() => {
-  orderStore.getAll();
+onMounted(async () => {
+  await orderStore.getAll();
 });
 
 const { orders, loading } = storeToRefs(orderStore);
@@ -41,6 +41,7 @@ const {
     date_to: (item, value) =>
       !value || new Date(item.created_at) <= new Date(value),
   },
+  filters,
 });
 
 // Options pour les filtres (selon nouveau schéma)
@@ -95,12 +96,23 @@ const totalOrdersValue = computed(() => {
   );
 });
 
-// Appliquer les filtres
+// Compter les filtres actifs
+const activeFiltersCount = computed(() => {
+  return Object.values(filters.value).filter(value => value && value !== '').length;
+});
+
+// Synchroniser les filtres avec le composant de table
+watchEffect(() => {
+  if (filters.value.status !== (filters.value.status || '')) {
+    // Synchronisation automatique via le système de filtres de useTable
+  }
+});
+
+// Optionnel : Appliquer les filtres côté serveur si l'API le supporte
 watch(
   filters,
   async (newFilters) => {
-    // Si vous avez une méthode pour filtrer côté serveur
-    // await orderStore.getAll(newFilters)
+    // await orderStore.getAll(newFilters); // Décommenté si l'API supporte les filtres côté serveur
   },
   { deep: true }
 );
@@ -116,6 +128,9 @@ watch(
             <div class="flex gap-6 text-sm text-gray-600 mt-2">
               <span>{{ totalFilteredRows }} commandes</span>
               <span>Total: {{ formatPrice(totalOrdersValue) }}</span>
+              <span v-if="activeFiltersCount > 0" class="text-blue-600">
+                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{ activeFiltersCount > 1 ? 's' : '' }}
+              </span>
             </div>
           </div>
         </div>
@@ -150,6 +165,17 @@ watch(
               type="date"
               placeholder="Date fin"
               class="min-w-[140px]"
+            />
+
+            <!-- Bouton pour réinitialiser les filtres -->
+            <UButton
+              v-if="filters.status || filters.date_from || filters.date_to"
+              @click="filters = { search: '', status: '', user_id: '', date_from: '', date_to: '' }"
+              icon="i-heroicons-x-mark"
+              color="gray"
+              variant="ghost"
+              size="sm"
+              title="Réinitialiser les filtres"
             />
           </div>
 

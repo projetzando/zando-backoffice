@@ -261,7 +261,7 @@ function getStatusLabel(status: string) {
             <div>
               <p class="text-sm text-gray-500">Livraison</p>
               <p class="font-semibold text-sm">
-                {{ currentOrder.shipping_method }}
+                {{ currentOrder.delivery_address || 'Adresse non définie' }}
               </p>
             </div>
           </div>
@@ -278,7 +278,7 @@ function getStatusLabel(status: string) {
             <div>
               <p class="text-sm text-gray-500">Paiement</p>
               <p class="font-semibold text-sm">
-                {{ getStatusLabel(currentOrder.status) }}
+                {{ currentOrder.payment_method || 'Non défini' }}
               </p>
             </div>
           </div>
