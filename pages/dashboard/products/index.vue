@@ -22,7 +22,7 @@ const { products, loading } = storeToRefs(productStore);
 // Filtres
 const filters = ref({
   search: "",
-  status: "",
+  is_active: "",
   seller_id: "",
   category_id: "",
 });
@@ -38,9 +38,9 @@ const {
   totalFilteredRows,
   confirmDeleteItem,
 } = useTable(products, {
-  searchFields: ["title", "description", "sku"],
+  searchFields: ["title", "description"],
   filtersConfig: {
-    status: (item, value) => !value || item.status === value,
+    is_active: (item, value) => value === "" || item.is_active === (value === "true"),
     seller_id: (item, value) => !value || item.seller_id === value,
     category_id: (item, value) => !value || item.category_id === value,
   },
@@ -49,10 +49,8 @@ const {
 // Options pour les filtres
 const statusOptions = [
   { value: "", label: "Tous les statuts" },
-  { value: "draft", label: "Brouillon" },
-  { value: "active", label: "Actif" },
-  { value: "inactive", label: "Inactif" },
-  { value: "archived", label: "Archivé" },
+  { value: "true", label: "Actif" },
+  { value: "false", label: "Inactif" },
 ];
 
 // Computed pour les options de vendeurs et catégories
@@ -81,25 +79,23 @@ function formatPrice(price: number) {
 }
 
 // Fonction pour obtenir la couleur du statut
-function getStatusColor(status: string) {
-  const colors = {
-    draft: "gray",
-    active: "green",
-    inactive: "orange",
-    archived: "red",
-  };
-  return colors[status as keyof typeof colors] || "gray";
+function getStatusColor(isActive: boolean) {
+  return isActive ? "green" : "red";
 }
 
 // Fonction pour obtenir le label du statut
-function getStatusLabel(status: string) {
-  const labels = {
-    draft: "Brouillon",
-    active: "Actif",
-    inactive: "Inactif",
-    archived: "Archivé",
-  };
-  return labels[status as keyof typeof labels] || status;
+function getStatusLabel(isActive: boolean) {
+  return isActive ? "Actif" : "Inactif";
+}
+
+// Fonction pour obtenir la couleur du type
+function getTypeColor(type: string) {
+  return type === "variable" ? "purple" : "blue";
+}
+
+// Fonction pour obtenir le label du type
+function getTypeLabel(type: string) {
+  return type === "variable" ? "Variable" : "Simple";
 }
 
 // Actions sur les produits
@@ -118,8 +114,8 @@ async function deleteProduct(product: Product) {
 }
 
 async function toggleProductStatus(product: Product) {
-  const newStatus = product.status === "active" ? "inactive" : "active";
-  await productStore.update(product.id!, { status: newStatus });
+  const newStatus = !product.is_active;
+  await productStore.update(product.id!, { is_active: newStatus });
 }
 
 // Appliquer les filtres
@@ -159,7 +155,7 @@ watch(
 
           <div class="flex gap-2">
             <USelect
-              v-model="filters.status"
+              v-model="filters.is_active"
               :options="statusOptions"
               placeholder="Statut"
             />
@@ -184,9 +180,9 @@ watch(
       <template #content>
         <UTable :loading="loading" :columns="productColumns" :rows="rows">
           <!-- Image du produit -->
-          <template #product_images-data="{ row }">
+          <template #cover_image-data="{ row }">
             <UAvatar
-              :src="row.product_images?.[0]?.url"
+              :src="row.cover_image || row.images?.[0]"
               :alt="row.title"
               size="md"
             />
@@ -202,30 +198,39 @@ watch(
             </div>
           </template>
 
-          <!-- SKU -->
-          <template #sku-data="{ row }">
-            <code v-if="row.sku" class="text-xs bg-gray-100 px-2 py-1 rounded">
-              {{ row.sku }}
-            </code>
-            <span v-else class="text-gray-400">-</span>
-          </template>
-
-          <!-- Prix -->
-          <template #price-data="{ row }">
-            <span class="font-medium">{{ formatPrice(row.price) }}</span>
-          </template>
-
-          <!-- Stock -->
-          <template #stock-data="{ row }">
-            <UBadge :color="row.stock > 0 ? 'green' : 'red'" variant="subtle">
-              {{ row.stock }}
+          <!-- Type de produit -->
+          <template #product_type-data="{ row }">
+            <UBadge :color="getTypeColor(row.product_type || 'simple')" variant="subtle">
+              {{ getTypeLabel(row.product_type || 'simple') }}
             </UBadge>
           </template>
 
+          <!-- Prix (utilise display_price de la vue) -->
+          <template #price-data="{ row }">
+            <div>
+              <span class="font-medium">{{ formatPrice(row.display_price) }}</span>
+              <div v-if="row.sale_price && row.price !== row.sale_price" class="text-xs text-gray-500 line-through">
+                {{ formatPrice(row.price) }}
+              </div>
+            </div>
+          </template>
+
+          <!-- Stock (utilise available_stock de la vue) -->
+          <template #stock-data="{ row }">
+            <div>
+              <UBadge :color="row.available_stock > 0 ? 'green' : 'red'" variant="subtle">
+                {{ row.available_stock || 0 }}
+              </UBadge>
+              <div v-if="row.review_count > 0" class="text-xs text-gray-500 mt-1">
+                {{ row.review_count }} avis ({{ row.avg_rating }}/5)
+              </div>
+            </div>
+          </template>
+
           <!-- Statut -->
-          <template #status-data="{ row }">
-            <UBadge :color="getStatusColor(row.status)" variant="subtle">
-              {{ getStatusLabel(row.status) }}
+          <template #is_active-data="{ row }">
+            <UBadge :color="getStatusColor(row.is_active ?? true)" variant="subtle">
+              {{ getStatusLabel(row.is_active ?? true) }}
             </UBadge>
           </template>
 
@@ -272,14 +277,14 @@ watch(
               <UButton
                 @click="toggleProductStatus(row)"
                 :icon="
-                  row.status === 'active'
+                  row.is_active
                     ? 'i-heroicons-pause'
                     : 'i-heroicons-play'
                 "
                 size="sm"
-                :color="row.status === 'active' ? 'orange' : 'green'"
+                :color="row.is_active ? 'orange' : 'green'"
                 variant="ghost"
-                :title="row.status === 'active' ? 'Désactiver' : 'Activer'"
+                :title="row.is_active ? 'Désactiver' : 'Activer'"
               />
 
               <!-- <UButton

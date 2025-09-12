@@ -1,87 +1,66 @@
 export interface Order extends Timestamps {
   readonly id?: string;
-  buyer_id?: string;
-  status:
-    | "pending"
-    | "confirmed"
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
-    | "returned";
+  user_id: string;
+  status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   total_amount: number;
-  shipping_address_id?: string;
-  billing_address_id?: string;
-  shipping_method: string;
-  shipping_cost: number;
+  shipping_cost?: number;
+  delivery_name: string;
+  delivery_phone?: string;
+  delivery_address: string;
+  delivery_city: string;
+  payment_method: string;
+  notes?: string;
 
   // Relations
   buyer?: Profile;
-  shipping_address?: Address;
-  billing_address?: Address;
   order_items?: OrderItem[];
   payments?: Payment[];
 }
 
 export interface OrderItem extends Timestamps {
   readonly id?: string;
-  order_id?: string;
-  product_id?: string;
-  seller_id?: string;
-  variant_id?: string;
+  order_id: string;
+  product_id: string;
+  variation_id?: string;
+  seller_id: string;
+  product_title: string;
+  variation_name?: string;
   quantity: number;
   unit_price: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+  total_price: number;
 
   // Relations
   product?: Product;
   seller?: Seller;
-  variant?: ProductVariant;
+  variation?: ProductVariation;
 }
 
 export interface Address extends Timestamps {
   readonly id?: string;
-  user_id?: string;
-  type: "billing" | "shipping";
-  name?: string;
-  street: string;
-  city: string;
-  state: string;
-  country: string;
-  postal_code: string;
+  user_id: string;
+  name: string;
   phone?: string;
+  address_line: string;
+  city: string;
   is_default?: boolean;
 }
 
 export interface Payment extends Timestamps {
   readonly id?: string;
-  order_id?: string;
+  order_id: string;
   amount: number;
-  payment_method: string;
-  status:
-    | "pending"
-    | "processing"
-    | "completed"
-    | "failed"
-    | "cancelled"
-    | "refunded";
-  transaction_id?: string;
-  metadata?: object;
+  method: string;
+  status?: 'pending' | 'completed' | 'failed';
+  transaction_ref?: string;
 }
 
 export interface Profile extends Timestamps {
   readonly id?: string;
-  user_id?: string;
   first_name?: string;
   last_name?: string;
-  email?: string;
   phone?: string;
-  role: "buyer" | "seller" | "admin";
-  status: "active" | "inactive" | "suspended";
+  role?: 'buyer' | 'seller' | 'admin';
   avatar_url?: string;
-  bio?: string;
-  preferences?: object;
-  language: string;
 }
 
 // Types pour les filtres et recherches
@@ -111,19 +90,38 @@ export interface OrderAction {
   performed_at?: string;
 }
 
-// Types pour le panier (avant transformation en commande)
-export interface CartItem {
+// Types pour le panier
+export interface CartItem extends Timestamps {
+  readonly id?: string;
+  user_id: string;
+  product_id: string;
+  variant_id?: string;
+  variation_id?: string;
+  quantity: number;
+  
+  // Relations
+  product?: Product;
+  variation?: ProductVariation;
+}
+
+// Interface pour la vue cart_with_details (correspond exactement à la vue SQL)
+export interface CartWithDetails {
+  // Champs de base de cart_items
+  id: string;
+  user_id: string;
   product_id: string;
   variant_id?: string;
   quantity: number;
-  product?: Product;
-  variant?: ProductVariant;
-}
-
-export interface Cart extends Timestamps {
-  readonly id?: string;
-  user_id?: string;
-  cart_items?: CartItem[];
+  created_at: string;
+  variation_id?: string;
+  
+  // Champs calculés par la vue
+  product_title: string;
+  product_image?: string;
+  variation_name: string;
+  variant_name: string;
+  unit_price: number;
+  total_price: number;
 }
 
 // Types pour les méthodes de livraison
