@@ -52,10 +52,7 @@ async function loadDashboardData() {
 
   try {
     // Charger les données de base (utilise les vues optimisées)
-    await Promise.all([
-      orderStore.getAll(),
-      productStore.getAll(),
-    ]);
+    await Promise.all([orderStore.getAll(), productStore.getAll()]);
 
     // Calculer les statistiques
     const { data: stats } = await calculateStats(selectedPeriod.value as any);
@@ -188,7 +185,7 @@ const recentProducts = computed(
       title: product.title,
       price: product.display_price || product.price || 0,
       stock: product.available_stock || product.stock || 0,
-      status: product.is_active ? 'active' : 'inactive',
+      status: product.is_active ? "active" : "inactive",
       date: product.created_at,
       review_count: product.review_count || 0,
       avg_rating: product.avg_rating || 0,
@@ -561,14 +558,16 @@ function handleAlertAction(alert: any) {
               v-for="product in recentProducts"
               :key="product.id"
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              @click="navigateTo(`/dashboard/products/${product.id}`)"
+              @click="navigateTo(`/dashboard/products/show-${product.id}`)"
             >
               <div>
                 <p class="font-medium text-gray-900">{{ product.title }}</p>
                 <p class="text-sm text-gray-500">
                   Stock: {{ product.stock }} unités
                   <span v-if="product.review_count > 0" class="ml-2">
-                    • {{ product.review_count }} avis ({{ product.avg_rating }}/5)
+                    • {{ product.review_count }} avis ({{
+                      product.avg_rating
+                    }}/5)
                   </span>
                 </p>
               </div>
