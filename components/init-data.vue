@@ -84,7 +84,7 @@ watch(timer, () => {
                 :value="timer"
             />
 
-            <span>({{ counter }}/17) - {{ current_load }}</span>
+            <span>{{ currentTask }}</span>
         </div>
     </div>
 </template>
