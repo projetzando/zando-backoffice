@@ -8,4 +8,5 @@ export enum Menu {
     Localisation = 'localisation',
     Settings = 'settings',
     Admin = 'admin',
+    Conversation = 'conversation',
 }

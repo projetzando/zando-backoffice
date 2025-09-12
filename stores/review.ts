@@ -1,3 +1,5 @@
+import type { Review } from '~/utils/models/review'
+
 export const useReviewStore = defineStore('review', () => {
   const reviews = ref<Review[]>([])
   const currentReview = ref<Review | null>(null)
@@ -17,12 +19,7 @@ export const useReviewStore = defineStore('review', () => {
     try {
       let query = supabase
         .from('reviews')
-        .select(`
-          *,
-          product:products(*),
-          user:profiles(*),
-          order:orders(*)
-        `)
+        .select('*, product:products(*), order:orders(*)')
         .order('created_at', { ascending: false })
 
       if (filters?.product_id) {
@@ -35,12 +32,28 @@ export const useReviewStore = defineStore('review', () => {
         query = query.eq('rating', filters.rating)
       }
 
-      const { data, error: supaError } = await query
+      const { data: reviewsData, error: supaError } = await query
 
       if (supaError) throw supaError
 
-      reviews.value = data || []
-      return { success: true, data: data || [] }
+      // Enrichir avec les user profiles
+      const enrichedReviews = await Promise.all(
+        (reviewsData || []).map(async (review) => {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, role, avatar_url')
+            .eq('id', review.user_id)
+            .single()
+
+          return {
+            ...review,
+            user: userProfile
+          }
+        })
+      )
+
+      reviews.value = enrichedReviews
+      return { success: true, data: enrichedReviews }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
@@ -56,18 +69,31 @@ export const useReviewStore = defineStore('review', () => {
     error.value = null
 
     try {
-      const { data, error: supaError } = await supabase
+      const { data: reviewsData, error: supaError } = await supabase
         .from('reviews')
-        .select(`
-          *,
-          user:profiles(*)
-        `)
+        .select('*')
         .eq('product_id', productId)
         .order('created_at', { ascending: false })
 
       if (supaError) throw supaError
 
-      return { success: true, data: data || [] }
+      // Enrichir avec les user profiles
+      const enrichedReviews = await Promise.all(
+        (reviewsData || []).map(async (review) => {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, role, avatar_url')
+            .eq('id', review.user_id)
+            .single()
+
+          return {
+            ...review,
+            user: userProfile
+          }
+        })
+      )
+
+      return { success: true, data: enrichedReviews }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
@@ -86,18 +112,25 @@ export const useReviewStore = defineStore('review', () => {
       const { data, error: supaError } = await supabase
         .from('reviews')
         .insert([review])
-        .select(`
-          *,
-          product:products(*),
-          user:profiles(*),
-          order:orders(*)
-        `)
+        .select('*, product:products(*), order:orders(*)')
         .single()
 
       if (supaError) throw supaError
 
-      reviews.value.unshift(data)
-      return { success: true, data }
+      // Enrichir avec le user profile
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, role, avatar_url')
+        .eq('id', data.user_id)
+        .single()
+
+      const enrichedData = {
+        ...data,
+        user: userProfile
+      }
+
+      reviews.value.unshift(enrichedData)
+      return { success: true, data: enrichedData }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
@@ -117,26 +150,33 @@ export const useReviewStore = defineStore('review', () => {
         .from('reviews')
         .update(updates)
         .eq('id', id)
-        .select(`
-          *,
-          product:products(*),
-          user:profiles(*),
-          order:orders(*)
-        `)
+        .select('*, product:products(*), order:orders(*)')
         .single()
 
       if (supaError) throw supaError
 
+      // Enrichir avec le user profile
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, role, avatar_url')
+        .eq('id', data.user_id)
+        .single()
+
+      const enrichedData = {
+        ...data,
+        user: userProfile
+      }
+
       const index = reviews.value.findIndex(r => r.id === id)
       if (index !== -1) {
-        reviews.value[index] = data
+        reviews.value[index] = enrichedData
       }
 
       if (currentReview.value?.id === id) {
-        currentReview.value = data
+        currentReview.value = enrichedData
       }
 
-      return { success: true, data }
+      return { success: true, data: enrichedData }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }

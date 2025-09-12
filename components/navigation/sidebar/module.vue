@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
   useMenu();
+
+// Import des liens de conversation
+const { conversationLinks } = await import('~/utils/constants/menu');
 </script>
 
 <template>
@@ -37,6 +40,23 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
       <NavigationSidebarLink
         @click="setActiveChild(Menu.Product)"
         v-for="link in productLinks"
+        :key="link.title"
+        :title="link.title"
+        :link="link.route_link"
+      />
+    </NavigationSidebarDropdown>
+
+    <NavigationSidebarButton
+      label="Conversations"
+      :isActive="activeMenu === Menu.Conversation || activeChild === Menu.Conversation"
+      iconLeft="heroicons:chat-bubble-left-right"
+      @click="toggleMenu(Menu.Conversation)"
+    />
+
+    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Conversation">
+      <NavigationSidebarLink
+        @click="setActiveChild(Menu.Conversation)"
+        v-for="link in conversationLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"

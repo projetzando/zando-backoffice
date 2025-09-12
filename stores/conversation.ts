@@ -1,3 +1,5 @@
+import type { Conversation, Message } from '~/utils/models/conversation'
+
 export const useConversationStore = defineStore('conversation', () => {
   const conversations = ref<Conversation[]>([])
   const currentConversation = ref<Conversation | null>(null)
@@ -15,28 +17,41 @@ export const useConversationStore = defineStore('conversation', () => {
     error.value = null
 
     try {
-      let query = supabase
+      // Récupérer les conversations
+      let conversationsQuery = supabase
         .from('conversations')
-        .select(`
-          *,
-          seller:sellers(*),
-          buyer:profiles(*)
-        `)
+        .select('*, seller:sellers(*)')
         .order('last_message_at', { ascending: false })
 
       if (filters?.seller_id) {
-        query = query.eq('seller_id', filters.seller_id)
+        conversationsQuery = conversationsQuery.eq('seller_id', filters.seller_id)
       }
       if (filters?.buyer_id) {
-        query = query.eq('buyer_id', filters.buyer_id)
+        conversationsQuery = conversationsQuery.eq('buyer_id', filters.buyer_id)
       }
 
-      const { data, error: supaError } = await query
+      const { data: conversationsData, error: supaError } = await conversationsQuery
 
       if (supaError) throw supaError
 
-      conversations.value = data || []
-      return { success: true, data: data || [] }
+      // Enrichir avec les données des buyers (profiles)
+      const enrichedConversations = await Promise.all(
+        (conversationsData || []).map(async (conv) => {
+          const { data: buyerProfile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, role, avatar_url')
+            .eq('id', conv.buyer_id)
+            .single()
+
+          return {
+            ...conv,
+            buyer: buyerProfile
+          }
+        })
+      )
+
+      conversations.value = enrichedConversations
+      return { success: true, data: enrichedConversations }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
@@ -55,11 +70,7 @@ export const useConversationStore = defineStore('conversation', () => {
       // Chercher conversation existante
       let { data: conversation, error: findError } = await supabase
         .from('conversations')
-        .select(`
-          *,
-          seller:sellers(*),
-          buyer:profiles(*)
-        `)
+        .select('*, seller:sellers(*)')
         .eq('seller_id', sellerId)
         .eq('buyer_id', buyerId)
         .single()
@@ -76,15 +87,22 @@ export const useConversationStore = defineStore('conversation', () => {
             seller_id: sellerId,
             buyer_id: buyerId
           })
-          .select(`
-            *,
-            seller:sellers(*),
-            buyer:profiles(*)
-          `)
+          .select('*, seller:sellers(*)')
           .single()
 
         if (createError) throw createError
         conversation = newConversation
+      }
+
+      // Enrichir avec le buyer profile si conversation existe
+      if (conversation) {
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, phone, role, avatar_url')
+          .eq('id', conversation.buyer_id)
+          .single()
+
+        conversation.buyer = buyerProfile
       }
 
       currentConversation.value = conversation
@@ -104,20 +122,32 @@ export const useConversationStore = defineStore('conversation', () => {
     error.value = null
 
     try {
-      const { data, error: supaError } = await supabase
+      const { data: messagesData, error: supaError } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:profiles(*),
-          product:products(*)
-        `)
+        .select('*, product:products(*)')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
 
       if (supaError) throw supaError
 
-      messages.value = data || []
-      return { success: true, data: data || [] }
+      // Enrichir avec les sender profiles
+      const enrichedMessages = await Promise.all(
+        (messagesData || []).map(async (msg) => {
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, role, avatar_url')
+            .eq('id', msg.sender_id)
+            .single()
+
+          return {
+            ...msg,
+            sender: senderProfile
+          }
+        })
+      )
+
+      messages.value = enrichedMessages
+      return { success: true, data: enrichedMessages }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
@@ -136,14 +166,22 @@ export const useConversationStore = defineStore('conversation', () => {
       const { data, error: supaError } = await supabase
         .from('messages')
         .insert([message])
-        .select(`
-          *,
-          sender:profiles(*),
-          product:products(*)
-        `)
+        .select('*, product:products(*)')
         .single()
 
       if (supaError) throw supaError
+
+      // Enrichir avec le sender profile
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, role, avatar_url')
+        .eq('id', data.sender_id)
+        .single()
+
+      const enrichedMessage = {
+        ...data,
+        sender: senderProfile
+      }
 
       // Mettre à jour la conversation
       await supabase
@@ -155,9 +193,9 @@ export const useConversationStore = defineStore('conversation', () => {
         .eq('id', message.conversation_id)
 
       // Ajouter le message à la liste
-      messages.value.push(data)
+      messages.value.push(enrichedMessage)
 
-      return { success: true, data }
+      return { success: true, data: enrichedMessage }
     } catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
