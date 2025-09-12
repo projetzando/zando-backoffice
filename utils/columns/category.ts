@@ -1,22 +1,17 @@
 export const categoryColumns = [
     {
-        key: 'id',
-        label: 'ID',
-        sortable: true
-    },
-    {
         key: 'name',
         label: 'Nom',
         sortable: true
     },
     {
-        key: 'slug',
-        label: 'Slug',
-        sortable: true
+        key: 'image',
+        label: 'Image',
+        sortable: false
     },
     {
-        key: 'level',
-        label: 'Niveau',
+        key: 'is_active',
+        label: 'Statut',
         sortable: true
     },
     {

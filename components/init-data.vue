@@ -1,89 +1,77 @@
 <script setup lang="ts">
 const appStore = useAppStore()
-
 const toast = useToast()
 
-const timer = ref(0)
+const loading = ref(false)
+const progress = ref(0)
+const currentTask = ref('')
 
-const counter = ref(0)
+// Tâches d'initialisation
+const tasks = [
+    { name: 'catégories', store: useCategoryStore() },
+    { name: 'enumérations', store: useEnumStore() },
+]
 
-const current_load = ref('Début du chargement')
-
-function update(value: string) {
-    timer.value += 20
-
-    counter.value++
-
-    current_load.value = `Chargement des ${value}`
-}
-
-async function init() {
-    if (!appStore.initData) {
-        const stores = [
-            { store: useCategoryStore(), label: 'Catégories' },
-            { store: useBrandStore(), label: 'Marques' },
-            { store: useCurrencyStore(), label: 'Devise' },
-            { store: useSettingStore(), label: 'Paramètres' },
-        ];
-
-        for (const { store, label } of stores) {
+async function initializeApp() {
+    if (appStore.initData) return
+    
+    loading.value = true
+    progress.value = 0
+    
+    try {
+        for (let i = 0; i < tasks.length; i++) {
+            const task = tasks[i]
+            currentTask.value = `Chargement des ${task.name}`
+            
             try {
-                await store.get();
-
-                update(label);
+                if (task.name === 'enumérations') {
+                    await task.store.fetchEnumTypes()
+                } else {
+                    await task.store.get()
+                }
             } catch (error: any) {
-                if (error.response?.status === 403) {
-                    update(label);
+                // Continuer même en cas d'erreur (ex: permissions)
+                if (error.response?.status !== 403) {
+                    console.warn(`Erreur lors du chargement des ${task.name}:`, error)
                 }
             }
+            
+            progress.value = ((i + 1) / tasks.length) * 100
+            await new Promise(resolve => setTimeout(resolve, 200)) // Petit délai visuel
         }
-
-        try {
-            await useEnumStore().fetchEnumTypes();
-
-            update('Enumérations');
-        } catch (error: any) {
-            if (error.response?.status === 403) {
-                update('Enumérations');
-            }
-        }
+        
+        appStore.initData = true
+        toast.add({ 
+            title: 'Application prête', 
+            description: 'Toutes les données ont été chargées',
+            icon: 'i-heroicons-check-circle' 
+        })
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error)
+        toast.add({ 
+            title: 'Erreur d\'initialisation', 
+            description: 'Certaines données n\'ont pas pu être chargées',
+            color: 'red',
+            icon: 'i-heroicons-exclamation-triangle' 
+        })
+        appStore.initData = true // Permettre l'accès à l'app même en cas d'erreur
+    } finally {
+        loading.value = false
     }
 }
 
-onMounted(() => {
-    init()
-})
-
-watch(timer, () => {
-    if (timer.value > 100) {
-        appStore.initData = true
-
-        toast.add({ title: 'Chargement des données effectués avec succès', icon: "i-heroicons-check-circle" })
-
-        timer.value = 0
-    }
-})
+onMounted(initializeApp)
 </script>
 
 <template>
-    <div
-        v-if="timer < 100 && timer !== 0"
-        class="flex w-full px-4 my-2 space-x-1 text-xs text-center text-black"
-    >
-        <div
-            class="flex items-center justify-center w-full p-1 space-x-1 bg-white border dark:bg-gray-900 dark:text-white dark:border-gray-800 rounded-xl">
-            <UIcon
-                name="heroicons:cloud-arrow-down"
-                size="20"
-            />
-
-            <span>Chargement des données ({{ timer.toFixed(2) }}%)</span>
-
-            <UProgress
-                class="w-1/2"
-                :value="timer"
-            />
-
+    <div v-if="loading" class="flex w-full px-4 my-2 space-x-1 text-xs text-center text-black">
+        <div class="flex items-center justify-center w-full p-1 space-x-1 bg-white border dark:bg-gray-900 dark:text-white dark:border-gray-800 rounded-xl">
+            <UIcon name="i-heroicons-arrow-path" class="animate-spin" size="16" />
+            
+            <span>Initialisation de l'application ({{ progress.toFixed(0) }}%)</span>
+            
+            <UProgress class="w-1/2" :value="progress" />
+            
             <span>{{ currentTask }}</span>
         </div>
     </div>

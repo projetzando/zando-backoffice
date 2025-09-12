@@ -99,9 +99,8 @@ async function deleteProduct() {
 async function toggleStatus() {
   if (!currentProduct.value) return;
 
-  const newStatus =
-    currentProduct.value.status === "active" ? "inactive" : "active";
-  await productStore.update(currentProduct.value.id!, { status: newStatus });
+  const newStatus = !currentProduct.value.is_active;
+  await productStore.update(currentProduct.value.id!, { is_active: newStatus });
 }
 </script>
 

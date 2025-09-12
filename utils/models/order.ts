@@ -66,7 +66,7 @@ export interface Profile extends Timestamps {
 // Types pour les filtres et recherches
 export interface OrderFilters {
   status?: string;
-  buyer_id?: string;
+  // buyer_id supprimé - utiliser user_id à la place
   seller_id?: string;
   date_from?: string;
   date_to?: string;
@@ -95,7 +95,7 @@ export interface CartItem extends Timestamps {
   readonly id?: string;
   user_id: string;
   product_id: string;
-  variant_id?: string;
+  // variant_id obsolète - utiliser variation_id
   variation_id?: string;
   quantity: number;
   
@@ -110,7 +110,7 @@ export interface CartWithDetails {
   id: string;
   user_id: string;
   product_id: string;
-  variant_id?: string;
+  // variant_id obsolète - utiliser variation_id
   quantity: number;
   created_at: string;
   variation_id?: string;

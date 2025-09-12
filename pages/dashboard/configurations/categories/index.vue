@@ -56,6 +56,22 @@ const {
                     :rows="rows"
                 >
 
+                    <template #image-data="{ row }">
+                        <UAvatar
+                            v-if="row.image"
+                            :src="row.image"
+                            :alt="row.name"
+                            size="sm"
+                        />
+                        <span v-else class="text-gray-400">Aucune image</span>
+                    </template>
+
+                    <template #is_active-data="{ row }">
+                        <UBadge :color="row.is_active ? 'green' : 'red'" variant="subtle">
+                            {{ row.is_active ? 'Active' : 'Inactive' }}
+                        </UBadge>
+                    </template>
+
                     <template #created_at-data="{ row }">
                         {{ new Date(row.created_at).toLocaleDateString() }}
                     </template>
@@ -63,7 +79,7 @@ const {
                     <template #actions-data="{ row }">
                         <div class="flex gap-2">
                             <UButton
-                                @click="navigateTo(`/dashboard/configurations/categories/edit-${row.slug}`)"
+                                @click="navigateTo(`/dashboard/configurations/categories/edit-${row.id}`)"
                                 icon="lets-icons:edit-fill"
                                 size="sm"
                                 title="Modifier"

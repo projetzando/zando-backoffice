@@ -51,10 +51,10 @@ async function loadDashboardData() {
   loadingAlerts.value = true;
 
   try {
-    // Charger les données de base
+    // Charger les données de base (utilise les vues optimisées)
     await Promise.all([
-      orderStore.getAll({ limit: 10 }),
-      productStore.getAll({ limit: 10 }),
+      orderStore.getAll(),
+      productStore.getAll(),
     ]);
 
     // Calculer les statistiques
@@ -186,10 +186,12 @@ const recentProducts = computed(
     products.value?.slice(0, 5).map((product) => ({
       id: product.id,
       title: product.title,
-      price: product.price,
-      stock: product.stock,
-      status: product.status,
+      price: product.display_price || product.price || 0,
+      stock: product.available_stock || product.stock || 0,
+      status: product.is_active ? 'active' : 'inactive',
       date: product.created_at,
+      review_count: product.review_count || 0,
+      avg_rating: product.avg_rating || 0,
     })) || []
 );
 
@@ -198,7 +200,6 @@ function getStatusColor(status: string): string {
   const colors = {
     pending: "orange",
     confirmed: "blue",
-    processing: "yellow",
     shipped: "purple",
     delivered: "green",
     cancelled: "red",
@@ -213,7 +214,6 @@ function getStatusLabel(status: string): string {
   const labels = {
     pending: "En attente",
     confirmed: "Confirmée",
-    processing: "En cours",
     shipped: "Expédiée",
     delivered: "Livrée",
     cancelled: "Annulée",
@@ -476,6 +476,9 @@ function handleAlertAction(alert: any) {
               <p class="font-medium text-gray-900">{{ product.title }}</p>
               <p class="text-sm text-gray-500">
                 Stock: {{ product.stock }} unités
+                <span v-if="product.review_count > 0" class="ml-2">
+                  • {{ product.review_count }} avis ({{ product.avg_rating }}/5)
+                </span>
               </p>
             </div>
             <div class="text-right">

@@ -25,26 +25,15 @@ export const productSchema = z.object({
     .min(0, "Le stock ne peut pas être négatif")
     .max(999999, "Le stock ne peut pas dépasser 999 999"),
 
-  status: z.enum(["draft", "active", "inactive", "archived"]).default("draft"),
-
-  sku: z
-    .string()
-    .optional()
-    .refine((val) => !val || /^[A-Z0-9-_]+$/i.test(val), {
-      message:
-        "Le SKU ne peut contenir que des lettres, chiffres, tirets et underscores",
-    }),
-
-  weight: z.number().min(0, "Le poids doit être positif").optional(),
-
-  dimensions: z
-    .object({
-      length: z.number().min(0).optional(),
-      width: z.number().min(0).optional(),
-      height: z.number().min(0).optional(),
-      unit: z.enum(["cm", "m", "mm"]).default("cm"),
-    })
-    .optional(),
+  is_active: z.boolean().default(true),
+  
+  is_featured: z.boolean().default(false),
+  
+  product_type: z.enum(["simple", "variable"]).default("simple"),
+  
+  cover_image: z.string().url("URL invalide").optional(),
+  
+  images: z.array(z.string().url("URL invalide")).optional(),
 
   seller_id: z.string().uuid("ID vendeur invalide").optional(),
   category_id: z.string().uuid("ID catégorie invalide").optional(),
@@ -56,13 +45,24 @@ export const productImageSchema = z.object({
   is_main: z.boolean().default(false),
 });
 
-export const productVariantSchema = z.object({
-  sku: z.string().optional(),
-  price: z.number().min(0, "Le prix doit être positif"),
-  stock: z.number().int().min(0, "Le stock ne peut pas être négatif"),
-  attributes: z.object({}).passthrough().optional(),
+// Nouveau schéma pour les variations de produits
+export const productVariationSchema = z.object({
+  variation_name: z.string().min(1, "Le nom de la variation est requis"),
+  price: z.number().min(0, "Le prix doit être positif").optional(),
+  sale_price: z.number().min(0, "Le prix de vente doit être positif").optional(),
+  stock: z.number().int().min(0, "Le stock ne peut pas être négatif").default(0),
+  attributes: z.record(z.any()),
+  cover_image: z.string().url("URL invalide").optional(),
+  is_active: z.boolean().default(true),
+});
+
+// Schéma pour les attributs de produits
+export const productAttributeSchema = z.object({
+  name: z.string().min(1, "Le nom de l'attribut est requis"),
+  values: z.string().min(1, "Les valeurs sont requises"),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;
 export type ProductImageFormData = z.infer<typeof productImageSchema>;
-export type ProductVariantFormData = z.infer<typeof productVariantSchema>;
+export type ProductVariationFormData = z.infer<typeof productVariationSchema>;
+export type ProductAttributeFormData = z.infer<typeof productAttributeSchema>;

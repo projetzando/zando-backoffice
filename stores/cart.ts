@@ -25,7 +25,7 @@ export const useCartStore = defineStore('cart', () => {
         id: item.id,
         user_id: item.user_id,
         product_id: item.product_id,
-        variant_id: item.variant_id,
+        variant_id: item.variant_id, // Garder pour compatibilité vue
         variation_id: item.variation_id,
         quantity: item.quantity,
         created_at: item.created_at
