@@ -75,14 +75,6 @@ async function loadDashboardData() {
   }
 }
 
-// Fonction de formatage pour les valeurs monétaires
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
-  }).format(amount);
-}
-
 // Fonction de formatage pour les nombres
 function formatNumber(num: number): string {
   return new Intl.NumberFormat("fr-FR").format(num);
@@ -104,7 +96,7 @@ function getTrendColor(growth: number): string {
 const statCards = computed(() => [
   {
     title: "Revenus totaux",
-    value: formatCurrency(statsData.value.revenue.current),
+    value: formatPrice(statsData.value.revenue.current),
     growth: statsData.value.revenue.growth,
     icon: "i-heroicons-currency-dollar",
     iconBg: "bg-green-100",
@@ -365,7 +357,7 @@ function handleAlertAction(alert: any) {
               type="area"
               color="#3b82f6"
               :height="256"
-              :format-value="formatCurrency"
+              :format-value="formatPrice"
             />
             <div
               v-else
@@ -492,7 +484,7 @@ function handleAlertAction(alert: any) {
               </div>
               <div class="text-right">
                 <p class="font-medium text-gray-900">
-                  {{ formatCurrency(order.amount) }}
+                  {{ formatPrice(order.amount) }}
                 </p>
                 <UBadge
                   :color="getStatusColor(order.status)"
@@ -573,7 +565,7 @@ function handleAlertAction(alert: any) {
               </div>
               <div class="text-right">
                 <p class="font-medium text-gray-900">
-                  {{ formatCurrency(product.price) }}
+                  {{ formatPrice(product.price) }}
                 </p>
                 <UBadge
                   :color="getStatusColor(product.status)"

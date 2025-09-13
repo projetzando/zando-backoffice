@@ -25,14 +25,6 @@ function goBack() {
   return navigateTo("/dashboard/products");
 }
 
-// Fonctions utilitaires
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
-  }).format(price);
-}
-
 function getStatusColor(is_active: boolean) {
   return is_active ? "green" : "red";
 }

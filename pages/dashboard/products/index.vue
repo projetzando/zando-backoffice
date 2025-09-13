@@ -40,7 +40,8 @@ const {
 } = useTable(products, {
   searchFields: ["title", "description"],
   filtersConfig: {
-    is_active: (item, value) => value === "" || item.is_active === (value === "true"),
+    is_active: (item, value) =>
+      value === "" || item.is_active === (value === "true"),
     seller_id: (item, value) => !value || item.seller_id === value,
     category_id: (item, value) => !value || item.category_id === value,
   },
@@ -69,14 +70,6 @@ const categoryOptions = computed(() => [
     label: category.name,
   })),
 ]);
-
-// Fonction pour formater le prix
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(price);
-}
 
 // Fonction pour obtenir la couleur du statut
 function getStatusColor(isActive: boolean) {
@@ -200,16 +193,24 @@ watch(
 
           <!-- Type de produit -->
           <template #product_type-data="{ row }">
-            <UBadge :color="getTypeColor(row.product_type || 'simple')" variant="subtle">
-              {{ getTypeLabel(row.product_type || 'simple') }}
+            <UBadge
+              :color="getTypeColor(row.product_type || 'simple')"
+              variant="subtle"
+            >
+              {{ getTypeLabel(row.product_type || "simple") }}
             </UBadge>
           </template>
 
           <!-- Prix (utilise display_price de la vue) -->
           <template #price-data="{ row }">
             <div>
-              <span class="font-medium">{{ formatPrice(row.display_price) }}</span>
-              <div v-if="row.sale_price && row.price !== row.sale_price" class="text-xs text-gray-500 line-through">
+              <span class="font-medium">{{
+                formatPrice(row.display_price)
+              }}</span>
+              <div
+                v-if="row.sale_price && row.price !== row.sale_price"
+                class="text-xs text-gray-500 line-through"
+              >
                 {{ formatPrice(row.price) }}
               </div>
             </div>
@@ -218,10 +219,16 @@ watch(
           <!-- Stock (utilise available_stock de la vue) -->
           <template #stock-data="{ row }">
             <div>
-              <UBadge :color="row.available_stock > 0 ? 'green' : 'red'" variant="subtle">
+              <UBadge
+                :color="row.available_stock > 0 ? 'green' : 'red'"
+                variant="subtle"
+              >
                 {{ row.available_stock || 0 }}
               </UBadge>
-              <div v-if="row.review_count > 0" class="text-xs text-gray-500 mt-1">
+              <div
+                v-if="row.review_count > 0"
+                class="text-xs text-gray-500 mt-1"
+              >
                 {{ row.review_count }} avis ({{ row.avg_rating }}/5)
               </div>
             </div>
@@ -229,7 +236,10 @@ watch(
 
           <!-- Statut -->
           <template #is_active-data="{ row }">
-            <UBadge :color="getStatusColor(row.is_active ?? true)" variant="subtle">
+            <UBadge
+              :color="getStatusColor(row.is_active ?? true)"
+              variant="subtle"
+            >
               {{ getStatusLabel(row.is_active ?? true) }}
             </UBadge>
           </template>
@@ -276,11 +286,7 @@ watch(
 
               <UButton
                 @click="toggleProductStatus(row)"
-                :icon="
-                  row.is_active
-                    ? 'i-heroicons-pause'
-                    : 'i-heroicons-play'
-                "
+                :icon="row.is_active ? 'i-heroicons-pause' : 'i-heroicons-play'"
                 size="sm"
                 :color="row.is_active ? 'orange' : 'green'"
                 variant="ghost"

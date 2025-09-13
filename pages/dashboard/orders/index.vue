@@ -54,14 +54,6 @@ const statusOptions = [
   { value: "cancelled", label: "Annulée" },
 ];
 
-// Fonctions utilitaires
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
-  }).format(price);
-}
-
 function getStatusColor(status: string) {
   const colors = {
     pending: "orange",
@@ -98,12 +90,13 @@ const totalOrdersValue = computed(() => {
 
 // Compter les filtres actifs
 const activeFiltersCount = computed(() => {
-  return Object.values(filters.value).filter(value => value && value !== '').length;
+  return Object.values(filters.value).filter((value) => value && value !== "")
+    .length;
 });
 
 // Synchroniser les filtres avec le composant de table
 watchEffect(() => {
-  if (filters.value.status !== (filters.value.status || '')) {
+  if (filters.value.status !== (filters.value.status || "")) {
     // Synchronisation automatique via le système de filtres de useTable
   }
 });
@@ -129,7 +122,10 @@ watch(
               <span>{{ totalFilteredRows }} commandes</span>
               <span>Total: {{ formatPrice(totalOrdersValue) }}</span>
               <span v-if="activeFiltersCount > 0" class="text-blue-600">
-                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{ activeFiltersCount > 1 ? 's' : '' }}
+                {{ activeFiltersCount }} filtre{{
+                  activeFiltersCount > 1 ? "s" : ""
+                }}
+                actif{{ activeFiltersCount > 1 ? "s" : "" }}
               </span>
             </div>
           </div>
@@ -170,7 +166,15 @@ watch(
             <!-- Bouton pour réinitialiser les filtres -->
             <UButton
               v-if="filters.status || filters.date_from || filters.date_to"
-              @click="filters = { search: '', status: '', user_id: '', date_from: '', date_to: '' }"
+              @click="
+                filters = {
+                  search: '',
+                  status: '',
+                  user_id: '',
+                  date_from: '',
+                  date_to: '',
+                }
+              "
               icon="i-heroicons-x-mark"
               color="gray"
               variant="ghost"

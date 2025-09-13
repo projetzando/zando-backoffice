@@ -20,71 +20,67 @@ const sellerStats = ref({
   products: 0,
   orders: 0,
   revenue: 0,
-  reviews: 0
+  reviews: 0,
 });
 
 // Fonction pour charger les statistiques
 async function loadSellerStats() {
   if (!currentSeller.value?.id) return;
-  
+
   try {
     const supabase = useSupabaseClient();
-    
+
     // Récupérer les produits du vendeur
     const { data: products, error: productsError } = await supabase
-      .from('products')
-      .select('id')
-      .eq('seller_id', currentSeller.value.id);
-    
+      .from("products")
+      .select("id")
+      .eq("seller_id", currentSeller.value.id);
+
     if (productsError) throw productsError;
-    
+
     // Récupérer les commandes liées aux produits du vendeur
     const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id, total_amount, status, order_items!inner(product_id)')
-      .in('order_items.product_id', products?.map(p => p.id) || []);
-    
+      .from("orders")
+      .select("id, total_amount, status, order_items!inner(product_id)")
+      .in("order_items.product_id", products?.map((p) => p.id) || []);
+
     if (ordersError) throw ordersError;
-    
+
     // Récupérer les avis pour les produits du vendeur
     const { data: reviews, error: reviewsError } = await supabase
-      .from('reviews')
-      .select('id')
-      .in('product_id', products?.map(p => p.id) || []);
-    
+      .from("reviews")
+      .select("id")
+      .in("product_id", products?.map((p) => p.id) || []);
+
     if (reviewsError) throw reviewsError;
-    
+
     // Calculer le chiffre d'affaires
-    const revenue = orders?.reduce((sum, order) => {
-      return sum + (parseFloat(order.total_amount) || 0);
-    }, 0) || 0;
-    
+    const revenue =
+      orders?.reduce((sum, order) => {
+        return sum + (parseFloat(order.total_amount) || 0);
+      }, 0) || 0;
+
     sellerStats.value = {
       products: products?.length || 0,
       orders: orders?.length || 0,
       revenue,
-      reviews: reviews?.length || 0
+      reviews: reviews?.length || 0,
     };
-    
   } catch (error) {
-    console.error('Erreur lors du chargement des statistiques:', error);
+    console.error("Erreur lors du chargement des statistiques:", error);
   }
 }
 
 // Charger les stats quand le vendeur change
-watch(currentSeller, (newSeller) => {
-  if (newSeller?.id) {
-    loadSellerStats();
-  }
-}, { immediate: true });
-
-// Fonction utilitaire pour formater les montants
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount);
-}
+watch(
+  currentSeller,
+  (newSeller) => {
+    if (newSeller?.id) {
+      loadSellerStats();
+    }
+  },
+  { immediate: true }
+);
 
 function goBack() {
   return navigateTo("/dashboard/accounts/sellers");
@@ -97,13 +93,13 @@ const showEditModal = ref(false);
 // Actions
 async function toggleApproval() {
   if (!currentSeller.value) return;
-  
+
   const newStatus = !currentSeller.value.is_approved;
   const result = await sellerStore.updateApprovalStatus(
     currentSeller.value.id,
     newStatus
   );
-  
+
   if (result.success) {
     currentSeller.value.is_approved = newStatus;
   }
@@ -113,7 +109,7 @@ async function toggleApproval() {
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("fr-FR", {
     day: "2-digit",
-    month: "2-digit", 
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -121,12 +117,14 @@ function formatDate(date: string) {
 }
 
 function getCompanyInitials(companyName: string) {
-  return companyName
-    ?.split(" ")
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase()
-    .substring(0, 2) || "??";
+  return (
+    companyName
+      ?.split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .substring(0, 2) || "??"
+  );
 }
 
 function getStatusColor(isApproved: boolean) {
@@ -165,17 +163,29 @@ function getStatusLabel(isApproved: boolean) {
     <!-- Loading state -->
     <div v-if="pending" class="flex justify-center items-center py-20">
       <div class="flex flex-col items-center space-y-4">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
+        ></div>
         <p class="text-gray-500">Chargement du vendeur...</p>
       </div>
     </div>
 
     <!-- Seller not found -->
-    <div v-else-if="!currentSeller" class="flex justify-center items-center py-20">
+    <div
+      v-else-if="!currentSeller"
+      class="flex justify-center items-center py-20"
+    >
       <div class="text-center">
-        <UIcon name="i-heroicons-exclamation-triangle" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Vendeur non trouvé</h3>
-        <p class="text-gray-500">Le vendeur demandé n'existe pas ou a été supprimé.</p>
+        <UIcon
+          name="i-heroicons-exclamation-triangle"
+          class="w-16 h-16 text-gray-400 mx-auto mb-4"
+        />
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          Vendeur non trouvé
+        </h3>
+        <p class="text-gray-500">
+          Le vendeur demandé n'existe pas ou a été supprimé.
+        </p>
         <UButton @click="goBack" class="mt-4" variant="outline">
           Retour à la liste
         </UButton>
@@ -191,7 +201,9 @@ function getStatusLabel(isApproved: boolean) {
             <!-- Company logo -->
             <div class="flex-shrink-0 mb-6 lg:mb-0">
               <div class="relative">
-                <div class="w-32 h-32 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                <div
+                  class="w-32 h-32 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center"
+                >
                   <img
                     v-if="currentSeller.company_logo"
                     :src="currentSeller.company_logo"
@@ -229,7 +241,7 @@ function getStatusLabel(isApproved: boolean) {
                     {{ getStatusLabel(currentSeller.is_approved) }}
                   </UBadge>
                 </div>
-                
+
                 <div class="flex space-x-3">
                   <UButton
                     @click="showEditModal = true"
@@ -241,18 +253,27 @@ function getStatusLabel(isApproved: boolean) {
                   </UButton>
                   <UButton
                     @click="toggleApproval"
-                    :icon="currentSeller.is_approved ? 'i-heroicons-x-mark' : 'i-heroicons-check'"
+                    :icon="
+                      currentSeller.is_approved
+                        ? 'i-heroicons-x-mark'
+                        : 'i-heroicons-check'
+                    "
                     :color="currentSeller.is_approved ? 'red' : 'green'"
                     variant="outline"
                     :loading="sellerStore.loading"
                   >
-                    {{ currentSeller.is_approved ? "Désapprouver" : "Approuver" }}
+                    {{
+                      currentSeller.is_approved ? "Désapprouver" : "Approuver"
+                    }}
                   </UButton>
                 </div>
               </div>
 
               <!-- Company description -->
-              <div v-if="currentSeller.company_description" class="prose max-w-none mb-6">
+              <div
+                v-if="currentSeller.company_description"
+                class="prose max-w-none mb-6"
+              >
                 <p class="text-gray-700 leading-relaxed">
                   {{ currentSeller.company_description }}
                 </p>
@@ -260,18 +281,36 @@ function getStatusLabel(isApproved: boolean) {
 
               <!-- Contact info -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-if="currentSeller.email" class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-envelope" class="w-5 h-5 text-gray-400" />
+                <div
+                  v-if="currentSeller.email"
+                  class="flex items-center space-x-3"
+                >
+                  <UIcon
+                    name="i-heroicons-envelope"
+                    class="w-5 h-5 text-gray-400"
+                  />
                   <span class="text-gray-900">{{ currentSeller.email }}</span>
                 </div>
-                <div v-if="currentSeller.phone" class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-phone" class="w-5 h-5 text-gray-400" />
+                <div
+                  v-if="currentSeller.phone"
+                  class="flex items-center space-x-3"
+                >
+                  <UIcon
+                    name="i-heroicons-phone"
+                    class="w-5 h-5 text-gray-400"
+                  />
                   <span class="text-gray-900">{{ currentSeller.phone }}</span>
                 </div>
-                <div v-if="currentSeller.website" class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-globe-alt" class="w-5 h-5 text-gray-400" />
-                  <a 
-                    :href="currentSeller.website" 
+                <div
+                  v-if="currentSeller.website"
+                  class="flex items-center space-x-3"
+                >
+                  <UIcon
+                    name="i-heroicons-globe-alt"
+                    class="w-5 h-5 text-gray-400"
+                  />
+                  <a
+                    :href="currentSeller.website"
                     target="_blank"
                     class="text-primary-600 hover:text-primary-700"
                   >
@@ -279,7 +318,10 @@ function getStatusLabel(isApproved: boolean) {
                   </a>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
+                  <UIcon
+                    name="i-heroicons-calendar"
+                    class="w-5 h-5 text-gray-400"
+                  />
                   <span class="text-gray-900">
                     Inscrit le {{ formatDate(currentSeller.created_at) }}
                   </span>
@@ -300,7 +342,9 @@ function getStatusLabel(isApproved: boolean) {
             </h3>
             <dl class="space-y-4">
               <div>
-                <dt class="text-sm font-medium text-gray-500">Nom de l'entreprise</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Nom de l'entreprise
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   {{ currentSeller.company_name }}
                 </dd>
@@ -346,8 +390,8 @@ function getStatusLabel(isApproved: boolean) {
               <div v-if="currentSeller.website">
                 <dt class="text-sm font-medium text-gray-500">Site web</dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  <a 
-                    :href="currentSeller.website" 
+                  <a
+                    :href="currentSeller.website"
                     target="_blank"
                     class="text-primary-600 hover:text-primary-700"
                   >
@@ -363,22 +407,32 @@ function getStatusLabel(isApproved: boolean) {
         <div class="space-y-6">
           <!-- Quick Stats -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistiques</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Statistiques
+            </h3>
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-blue-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-blue-600">{{ sellerStats.products }}</div>
+                <div class="text-2xl font-bold text-blue-600">
+                  {{ sellerStats.products }}
+                </div>
                 <div class="text-sm text-blue-600">Produits</div>
               </div>
               <div class="bg-green-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-green-600">{{ sellerStats.orders }}</div>
+                <div class="text-2xl font-bold text-green-600">
+                  {{ sellerStats.orders }}
+                </div>
                 <div class="text-sm text-green-600">Commandes</div>
               </div>
               <div class="bg-purple-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-purple-600">{{ formatCurrency(sellerStats.revenue) }}</div>
+                <div class="text-2xl font-bold text-purple-600">
+                  {{ formatPrice(sellerStats.revenue) }}
+                </div>
                 <div class="text-sm text-purple-600">Chiffre d'affaires</div>
               </div>
               <div class="bg-orange-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-orange-600">{{ sellerStats.reviews }}</div>
+                <div class="text-2xl font-bold text-orange-600">
+                  {{ sellerStats.reviews }}
+                </div>
                 <div class="text-sm text-orange-600">Avis</div>
               </div>
             </div>
@@ -413,10 +467,16 @@ function getStatusLabel(isApproved: boolean) {
 
           <!-- Quick Actions -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Actions rapides
+            </h3>
             <div class="space-y-3">
               <UButton
-                @click="navigateTo(`/dashboard/products?seller_id=${currentSeller.id}`)"
+                @click="
+                  navigateTo(
+                    `/dashboard/products?seller_id=${currentSeller.id}`
+                  )
+                "
                 icon="i-heroicons-cube"
                 variant="outline"
                 block
@@ -424,7 +484,9 @@ function getStatusLabel(isApproved: boolean) {
                 Voir les produits
               </UButton>
               <UButton
-                @click="navigateTo(`/dashboard/orders?seller_id=${currentSeller.id}`)"
+                @click="
+                  navigateTo(`/dashboard/orders?seller_id=${currentSeller.id}`)
+                "
                 icon="i-heroicons-shopping-bag"
                 variant="outline"
                 block
