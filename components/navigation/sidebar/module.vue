@@ -43,6 +43,25 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
       />
     </NavigationSidebarDropdown>
 
+    <NavigationSidebarButton
+      label="Conversations"
+      :isActive="
+        activeMenu === Menu.Conversation || activeChild === Menu.Conversation
+      "
+      iconLeft="heroicons:chat-bubble-left-right"
+      @click="toggleMenu(Menu.Conversation)"
+    />
+
+    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Conversation">
+      <NavigationSidebarLink
+        @click="setActiveChild(Menu.Conversation)"
+        v-for="link in conversationLinks"
+        :key="link.title"
+        :title="link.title"
+        :link="link.route_link"
+      />
+    </NavigationSidebarDropdown>
+
     <!-- <NavigationSidebarButton
             label="Paiements"
             :isActive="activeMenu === Menu.Payment || activeChild === Menu.Payment"

@@ -17,9 +17,8 @@ const { currentProduct } = storeToRefs(productStore);
 
 // Enregistrer la vue du produit
 onMounted(() => {
-  if (currentProduct.value) {
-    productStore.recordView(currentProduct.value.id!);
-  }
+  // La fonction recordView n'existe pas encore dans le store
+  // TODO: Implémenter le tracking des vues si nécessaire
 });
 
 function goBack() {
@@ -42,407 +41,339 @@ function getStatusLabel(is_active: boolean) {
   return is_active ? "Actif" : "Inactif";
 }
 
-// Onglets
-const tabs = [
-  {
-    slot: "overview",
-    label: "Vue d'ensemble",
-    icon: "i-heroicons-information-circle",
-  },
-  {
-    slot: "images",
-    label: "Images",
-    icon: "i-heroicons-photo",
-  },
-  {
-    slot: "variants",
-    label: "Variations",
-    icon: "i-heroicons-squares-plus",
-  },
-  {
-    slot: "analytics",
-    label: "Statistiques",
-    icon: "i-heroicons-chart-bar",
-  },
-];
-
-const selectedTab = ref(0);
-
 // Actions
-async function deleteProduct() {
-  if (!currentProduct.value) return;
-
-  if (
-    confirm(
-      `Êtes-vous sûr de vouloir supprimer le produit "${currentProduct.value.title}" ?`
-    )
-  ) {
-    const { success } = await productStore.remove(currentProduct.value.id!);
-    if (success) {
-      await navigateTo("/dashboard/products");
-    }
-  }
-}
-
 async function toggleStatus() {
   if (!currentProduct.value) return;
 
   const newStatus = !currentProduct.value.is_active;
-  await productStore.update(currentProduct.value.id!, { is_active: newStatus });
+  const result = await productStore.update(currentProduct.value.id!, { is_active: newStatus });
+  
+  if (result.success) {
+    // Le store met automatiquement à jour currentProduct
+    console.log(`Produit ${newStatus ? 'activé' : 'désactivé'} avec succès`);
+  }
+}
+
+// Calculer le stock total
+const totalStock = computed(() => {
+  if (!currentProduct.value?.product_variations?.length) {
+    return currentProduct.value?.stock || 0;
+  }
+  return currentProduct.value.product_variations.reduce((total, variant) => {
+    return total + (variant.stock_quantity || 0);
+  }, 0);
+});
+
+// Calculer le prix à afficher
+const displayPrice = computed(() => {
+  if (currentProduct.value?.base_price) {
+    return formatPrice(currentProduct.value.base_price);
+  }
+  
+  if (currentProduct.value?.product_variations?.length) {
+    const prices = currentProduct.value.product_variations
+      .map(v => v.price)
+      .filter(p => p && p > 0);
+    
+    if (prices.length > 0) {
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      
+      if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+      } else {
+        return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+      }
+    }
+  }
+  
+  return 'Prix non défini';
+});
+
+// Formater la description avec le style approprié
+function formatDescription(description: string | undefined) {
+  if (!description) {
+    return '<p class="text-gray-500 italic">Aucune description disponible</p>';
+  }
+  
+  let formatted = description
+    // Gestion des sauts de ligne
+    .replace(/\n/g, '<br>')
+    // Sections principales (texte suivi de \n)
+    .replace(/^([A-Z][^.\n]*)\n/gm, '<h4 class="font-semibold text-gray-900 mt-4 mb-2">$1</h4>')
+    // Puces avec *
+    .replace(/\*([^*\n]+)\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
+    // Listes avec — ou -
+    .replace(/^[—-]\s*(.+)$/gm, '<li class="ml-4">$1</li>')
+    // Sections Features & details
+    .replace(/(Features & details|Caractéristiques)/gi, '<h4 class="font-semibold text-gray-900 mt-6 mb-3 text-lg">$1</h4>')
+    // Sections WHY [PRODUCT]
+    .replace(/(WHY [A-Z\s]+)/g, '<h4 class="font-semibold text-primary-600 mt-6 mb-3">$1</h4>')
+    // Sections en MAJUSCULES
+    .replace(/^([A-Z\s]{10,})\s*—/gm, '<h4 class="font-semibold text-gray-900 mt-6 mb-3">$1</h4>')
+    // Nettoyer les br multiples
+    .replace(/(<br\s*\/?>){3,}/g, '<br><br>');
+  
+  // Wrapper les listes
+  formatted = formatted.replace(/((<li[^>]*>.*?<\/li>\s*)+)/gs, '<ul class="list-none space-y-1 mt-2 mb-4">$1</ul>');
+  
+  return `<div class="space-y-2">${formatted}</div>`;
 }
 </script>
 
 <template>
-  <div>
-    <ButtonList @return="goBack" />
-
-    <div v-if="pending" class="flex justify-center py-8">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin" />
-    </div>
-
-    <div v-else-if="!currentProduct" class="text-center py-8">
-      <p class="text-gray-500">Produit non trouvé</p>
-    </div>
-
-    <div v-else class="space-y-6">
-      <!-- En-tête -->
-      <div
-        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-      >
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">
-            {{ currentProduct.title }}
-          </h1>
-          <div class="flex items-center gap-4 mt-2">
-            <UBadge
-              :color="getStatusColor(currentProduct.is_active)"
-              variant="subtle"
-              size="lg"
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-4">
+            <UButton
+              @click="goBack"
+              icon="i-heroicons-arrow-left"
+              variant="ghost"
+              size="sm"
             >
-              {{ getStatusLabel(currentProduct.is_active) }}
-            </UBadge>
-            <span class="text-sm text-gray-500">
-              ID: <code class="bg-gray-100 px-2 py-1 rounded">{{ currentProduct.id?.substring(0, 8) }}</code>
-            </span>
+              Retour
+            </UButton>
+            <div class="h-6 border-l border-gray-300"></div>
+            <h1 class="text-xl font-semibold text-gray-900">
+              Détails du produit
+            </h1>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="flex gap-2">
-          <!-- <UButton
-            @click="navigateTo(`/dashboard/products/${currentProduct.id}/edit`)"
-            icon="i-heroicons-pencil-square"
-            color="orange"
-            variant="outline"
-          >
-            Modifier
-          </UButton> -->
+    <!-- Loading state -->
+    <div v-if="pending" class="flex justify-center items-center py-20">
+      <div class="flex flex-col items-center space-y-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <p class="text-gray-500">Chargement du produit...</p>
+      </div>
+    </div>
 
-          <UButton
-            @click="toggleStatus"
-            :icon="
-              currentProduct.is_active
-                ? 'i-heroicons-pause'
-                : 'i-heroicons-play'
-            "
-            :color="currentProduct.is_active ? 'orange' : 'green'"
-            variant="outline"
-          >
-            {{ currentProduct.is_active ? "Désactiver" : "Activer" }}
-          </UButton>
+    <!-- Product not found -->
+    <div v-else-if="!currentProduct" class="flex justify-center items-center py-20">
+      <div class="text-center">
+        <UIcon name="i-heroicons-exclamation-triangle" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Produit non trouvé</h3>
+        <p class="text-gray-500">Le produit demandé n'existe pas ou a été supprimé.</p>
+        <UButton @click="goBack" class="mt-4" variant="outline">
+          Retour à la liste
+        </UButton>
+      </div>
+    </div>
 
-          <!-- <UButton
-            @click="deleteProduct"
-            icon="i-heroicons-trash"
-            color="red"
-            variant="outline"
-          >
-            Supprimer
-          </UButton> -->
+    <!-- Product details -->
+    <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Hero section -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+        <div class="p-6 sm:p-8">
+          <div class="flex flex-col lg:flex-row lg:items-start lg:space-x-8">
+            <!-- Product image -->
+            <div class="flex-shrink-0 mb-6 lg:mb-0">
+              <div class="w-full lg:w-80 h-80 rounded-lg overflow-hidden bg-gray-100">
+                <img
+                  v-if="currentProduct.cover_image"
+                  :src="currentProduct.cover_image"
+                  :alt="currentProduct.title"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <UIcon name="i-heroicons-photo" class="w-20 h-20 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Product info -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                  <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                    {{ currentProduct.title }}
+                  </h1>
+                  <div class="flex items-center space-x-4">
+                    <UBadge
+                      :color="getStatusColor(currentProduct.is_active)"
+                      variant="subtle"
+                      size="lg"
+                    >
+                      {{ getStatusLabel(currentProduct.is_active) }}
+                    </UBadge>
+                    <span class="text-sm text-gray-500">
+                      ID: {{ currentProduct.id?.substring(0, 8) }}...
+                    </span>
+                  </div>
+                </div>
+                
+                <UButton
+                  @click="toggleStatus"
+                  :icon="currentProduct.is_active ? 'i-heroicons-pause' : 'i-heroicons-play'"
+                  :color="currentProduct.is_active ? 'orange' : 'green'"
+                  variant="outline"
+                  :loading="productStore.loading"
+                >
+                  {{ currentProduct.is_active ? "Désactiver" : "Activer" }}
+                </UButton>
+              </div>
+
+              <!-- Key metrics -->
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-green-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-green-600">
+                    {{ displayPrice }}
+                  </div>
+                  <div class="text-sm text-green-600 font-medium">Prix</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-blue-600">
+                    {{ totalStock }}
+                  </div>
+                  <div class="text-sm text-blue-600 font-medium">Stock total</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-purple-600">
+                    {{ currentProduct.views_count || 0 }}
+                  </div>
+                  <div class="text-sm text-purple-600 font-medium">Vues</div>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4">
+                  <div class="text-2xl font-bold text-orange-600">
+                    {{ currentProduct.product_variations?.length || 0 }}
+                  </div>
+                  <div class="text-sm text-orange-600 font-medium">Variations</div>
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                <div 
+                  class="text-gray-700 leading-relaxed formatted-description"
+                  v-html="formatDescription(currentProduct.description)"
+                >
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Onglets -->
-      <UTabs v-model="selectedTab" :items="tabs">
-        <!-- Vue d'ensemble -->
-        <template #overview="{ item }">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Image principale -->
-            <div class="lg:col-span-1">
-              <UCard>
-                <template #header>
-                  <h3 class="text-lg font-semibold">Image principale</h3>
-                </template>
-
-                <div class="aspect-square">
-                  <img
-                    v-if="currentProduct.cover_image"
-                    :src="currentProduct.cover_image"
-                    :alt="currentProduct.title"
-                    class="w-full h-full object-cover rounded-lg"
-                  />
-                  <div
-                    v-else
-                    class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center"
-                  >
-                    <UIcon
-                      name="i-heroicons-photo"
-                      class="w-12 h-12 text-gray-400"
-                    />
-                  </div>
-                </div>
-              </UCard>
-            </div>
-
-            <!-- Informations détaillées -->
-            <div class="lg:col-span-2 space-y-6">
-              <!-- Informations de base -->
-              <UCard>
-                <template #header>
-                  <h3 class="text-lg font-semibold">Informations de base</h3>
-                </template>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="text-sm font-medium text-gray-700"
-                      >Prix</label
-                    >
-                    <p class="text-lg font-semibold text-green-600 mt-1">
-                      {{ formatPrice(currentProduct.base_price) }}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label class="text-sm font-medium text-gray-700"
-                      >Stock</label
-                    >
-                    <p class="text-lg font-semibold text-gray-600 mt-1">
-                      Géré par variations
-                    </p>
-                  </div>
-
-                  <div>
-                    <label class="text-sm font-medium text-gray-700"
-                      >Type de produit</label
-                    >
-                    <p class="text-gray-900 mt-1 capitalize">
-                      {{ currentProduct.product_type || 'Non défini' }}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="mt-4">
-                  <label class="text-sm font-medium text-gray-700"
-                    >Description</label
-                  >
-                  <p class="text-gray-900 mt-1 whitespace-pre-line">
-                    {{ currentProduct.description }}
-                  </p>
-                </div>
-              </UCard>
-
-              <!-- Organisation -->
-              <UCard>
-                <template #header>
-                  <h3 class="text-lg font-semibold">Organisation</h3>
-                </template>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div v-if="currentProduct.seller">
-                    <label class="text-sm font-medium text-gray-700"
-                      >Vendeur</label
-                    >
-                    <p class="text-gray-900 mt-1">
-                      {{ currentProduct.seller.company_name }}
-                    </p>
-                  </div>
-
-                  <div v-if="currentProduct.category">
-                    <label class="text-sm font-medium text-gray-700"
-                      >Catégorie</label
-                    >
-                    <p class="text-gray-900 mt-1">
-                      {{ currentProduct.category.name }}
-                    </p>
-                  </div>
-                </div>
-              </UCard>
-
-              <!-- Métadonnées -->
-              <UCard>
-                <template #header>
-                  <h3 class="text-lg font-semibold">Métadonnées</h3>
-                </template>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <label class="text-gray-700 font-medium"
-                      >Date de création</label
-                    >
-                    <p class="text-gray-900 mt-1">
-                      {{
-                        new Date(currentProduct.created_at).toLocaleString(
-                          "fr-FR"
-                        )
-                      }}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label class="text-gray-700 font-medium"
-                      >Dernière modification</label
-                    >
-                    <p class="text-gray-900 mt-1">
-                      {{
-                        new Date(currentProduct.updated_at).toLocaleString(
-                          "fr-FR"
-                        )
-                      }}
-                    </p>
-                  </div>
-                </div>
-              </UCard>
-            </div>
+      <!-- Details grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Product information -->
+        <div class="space-y-6">
+          <!-- Basic info -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations produit</h3>
+            <dl class="space-y-4">
+              <div>
+                <dt class="text-sm font-medium text-gray-500">Type de produit</dt>
+                <dd class="mt-1 text-sm text-gray-900 capitalize">
+                  {{ currentProduct.product_type || 'Non défini' }}
+                </dd>
+              </div>
+              <div v-if="currentProduct.category">
+                <dt class="text-sm font-medium text-gray-500">Catégorie</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  {{ currentProduct.category.name }}
+                </dd>
+              </div>
+              <div v-if="currentProduct.seller">
+                <dt class="text-sm font-medium text-gray-500">Vendeur</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                  {{ currentProduct.seller.company_name }}
+                </dd>
+              </div>
+            </dl>
           </div>
-        </template>
 
-        <!-- Images -->
-        <template #images="{ item }">
-          <UCard>
-            <template #header>
-              <h3 class="text-lg font-semibold">Galerie d'images</h3>
-            </template>
-
-            <div
-              v-if="currentProduct.images?.length"
-              class="grid grid-cols-2 md:grid-cols-4 gap-4"
-            >
+          <!-- Images gallery -->
+          <div v-if="currentProduct.images?.length" class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Galerie ({{ currentProduct.images.length }} images)
+            </h3>
+            <div class="grid grid-cols-3 gap-3">
               <div
                 v-for="(image, index) in currentProduct.images"
                 :key="index"
-                class="relative group"
+                class="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
               >
                 <img
                   :src="image"
-                  :alt="`${currentProduct.title} - Image ${index + 1}`"
-                  class="w-full h-32 object-cover rounded-lg border"
+                  :alt="`Image ${index + 1}`"
+                  class="w-full h-full object-cover"
                 />
                 <div
                   v-if="index === 0"
-                  class="absolute top-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded"
+                  class="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded"
                 >
                   Principal
                 </div>
-                <div
-                  class="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded"
-                >
-                  {{ index + 1 }}
-                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div v-else class="text-center py-8 text-gray-500">
-              <UIcon name="i-heroicons-photo" class="w-12 h-12 mx-auto mb-2" />
-              <p>Aucune image disponible</p>
-            </div>
-          </UCard>
-        </template>
-
-        <!-- Variations -->
-        <template #variants="{ item }">
-          <UCard>
-            <template #header>
-              <h3 class="text-lg font-semibold">Variations du produit</h3>
-            </template>
-
-            <div v-if="currentProduct.product_variations?.length">
-              <UTable
-                :rows="currentProduct.product_variations"
-                :columns="[
-                  { key: 'name', label: 'Nom' },
-                  { key: 'price', label: 'Prix' },
-                  { key: 'stock_quantity', label: 'Stock' },
-                  { key: 'is_default', label: 'Défaut' },
-                ]"
+        <!-- Variations and metadata -->
+        <div class="space-y-6">
+          <!-- Variations -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Variations ({{ currentProduct.product_variations?.length || 0 }})
+            </h3>
+            
+            <div v-if="currentProduct.product_variations?.length" class="space-y-3">
+              <div
+                v-for="variant in currentProduct.product_variations"
+                :key="variant.id"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
-                <template #price-data="{ row }">
-                  {{ formatPrice(row.price) }}
-                </template>
-
-                <template #is_default-data="{ row }">
-                  <UBadge
-                    :color="row.is_default ? 'green' : 'gray'"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    {{ row.is_default ? 'Défaut' : 'Standard' }}
-                  </UBadge>
-                </template>
-
-                <template #stock_quantity-data="{ row }">
-                  <span
-                    :class="
-                      row.stock_quantity > 0
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                    "
-                  >
-                    {{ row.stock_quantity }} unité{{ row.stock_quantity > 1 ? 's' : '' }}
-                  </span>
-                </template>
-              </UTable>
+                <div class="flex-1">
+                  <div class="font-medium text-gray-900">{{ variant.name }}</div>
+                  <div class="text-sm text-gray-500">
+                    {{ formatPrice(variant.price) }} • 
+                    {{ variant.stock_quantity }} en stock
+                  </div>
+                </div>
+                <UBadge
+                  v-if="variant.is_default"
+                  color="primary"
+                  variant="subtle"
+                  size="sm"
+                >
+                  Défaut
+                </UBadge>
+              </div>
             </div>
-
+            
             <div v-else class="text-center py-8 text-gray-500">
-              <UIcon
-                name="i-heroicons-squares-plus"
-                class="w-12 h-12 mx-auto mb-2"
-              />
+              <UIcon name="i-heroicons-squares-plus" class="w-12 h-12 mx-auto mb-2" />
               <p>Aucune variation configurée</p>
             </div>
-          </UCard>
-        </template>
-
-        <!-- Statistiques -->
-        <template #analytics="{ item }">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <UCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Vues du produit</h3>
-              </template>
-              <div class="text-center">
-                <p class="text-3xl font-bold text-primary-600">
-                  {{ currentProduct.views_count || 0 }}
-                </p>
-                <p class="text-sm text-gray-500 mt-1">vues totales</p>
-              </div>
-            </UCard>
-
-            <UCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Images</h3>
-              </template>
-              <div class="text-center">
-                <p class="text-3xl font-bold text-green-600">
-                  {{ currentProduct.images?.length || 0 }}
-                </p>
-                <p class="text-sm text-gray-500 mt-1">images ajoutées</p>
-              </div>
-            </UCard>
-
-            <UCard>
-              <template #header>
-                <h3 class="text-lg font-semibold">Variations</h3>
-              </template>
-              <div class="text-center">
-                <p class="text-3xl font-bold text-orange-600">
-                  {{ currentProduct.product_variations?.length || 0 }}
-                </p>
-                <p class="text-sm text-gray-500 mt-1">variations créées</p>
-              </div>
-            </UCard>
           </div>
-        </template>
-      </UTabs>
+
+          <!-- Metadata -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Métadonnées</h3>
+            <dl class="space-y-4 text-sm">
+              <div>
+                <dt class="font-medium text-gray-500">Date de création</dt>
+                <dd class="mt-1 text-gray-900">
+                  {{ new Date(currentProduct.created_at).toLocaleString("fr-FR") }}
+                </dd>
+              </div>
+              <div>
+                <dt class="font-medium text-gray-500">Dernière modification</dt>
+                <dd class="mt-1 text-gray-900">
+                  {{ new Date(currentProduct.updated_at).toLocaleString("fr-FR") }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
