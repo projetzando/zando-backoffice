@@ -29,7 +29,7 @@ function goBack() {
 function formatPrice(price: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
-    currency: "EUR",
+    currency: "XAF",
   }).format(price);
 }
 
@@ -46,11 +46,13 @@ async function toggleStatus() {
   if (!currentProduct.value) return;
 
   const newStatus = !currentProduct.value.is_active;
-  const result = await productStore.update(currentProduct.value.id!, { is_active: newStatus });
-  
+  const result = await productStore.update(currentProduct.value.id!, {
+    is_active: newStatus,
+  });
+
   if (result.success) {
     // Le store met automatiquement à jour currentProduct
-    console.log(`Produit ${newStatus ? 'activé' : 'désactivé'} avec succès`);
+    console.log(`Produit ${newStatus ? "activé" : "désactivé"} avec succès`);
   }
 }
 
@@ -69,16 +71,16 @@ const displayPrice = computed(() => {
   if (currentProduct.value?.base_price) {
     return formatPrice(currentProduct.value.base_price);
   }
-  
+
   if (currentProduct.value?.product_variations?.length) {
     const prices = currentProduct.value.product_variations
-      .map(v => v.price)
-      .filter(p => p && p > 0);
-    
+      .map((v) => v.price)
+      .filter((p) => p && p > 0);
+
     if (prices.length > 0) {
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
-      
+
       if (minPrice === maxPrice) {
         return formatPrice(minPrice);
       } else {
@@ -86,8 +88,8 @@ const displayPrice = computed(() => {
       }
     }
   }
-  
-  return 'Prix non défini';
+
+  return "Prix non défini";
 });
 
 // Formater la description avec le style approprié
@@ -95,28 +97,46 @@ function formatDescription(description: string | undefined) {
   if (!description) {
     return '<p class="text-gray-500 italic">Aucune description disponible</p>';
   }
-  
+
   let formatted = description
     // Gestion des sauts de ligne
-    .replace(/\n/g, '<br>')
+    .replace(/\n/g, "<br>")
     // Sections principales (texte suivi de \n)
-    .replace(/^([A-Z][^.\n]*)\n/gm, '<h4 class="font-semibold text-gray-900 mt-4 mb-2">$1</h4>')
+    .replace(
+      /^([A-Z][^.\n]*)\n/gm,
+      '<h4 class="font-semibold text-gray-900 mt-4 mb-2">$1</h4>'
+    )
     // Puces avec *
-    .replace(/\*([^*\n]+)\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
+    .replace(
+      /\*([^*\n]+)\*/g,
+      '<strong class="font-medium text-gray-900">$1</strong>'
+    )
     // Listes avec — ou -
     .replace(/^[—-]\s*(.+)$/gm, '<li class="ml-4">$1</li>')
     // Sections Features & details
-    .replace(/(Features & details|Caractéristiques)/gi, '<h4 class="font-semibold text-gray-900 mt-6 mb-3 text-lg">$1</h4>')
+    .replace(
+      /(Features & details|Caractéristiques)/gi,
+      '<h4 class="font-semibold text-gray-900 mt-6 mb-3 text-lg">$1</h4>'
+    )
     // Sections WHY [PRODUCT]
-    .replace(/(WHY [A-Z\s]+)/g, '<h4 class="font-semibold text-primary-600 mt-6 mb-3">$1</h4>')
+    .replace(
+      /(WHY [A-Z\s]+)/g,
+      '<h4 class="font-semibold text-primary-600 mt-6 mb-3">$1</h4>'
+    )
     // Sections en MAJUSCULES
-    .replace(/^([A-Z\s]{10,})\s*—/gm, '<h4 class="font-semibold text-gray-900 mt-6 mb-3">$1</h4>')
+    .replace(
+      /^([A-Z\s]{10,})\s*—/gm,
+      '<h4 class="font-semibold text-gray-900 mt-6 mb-3">$1</h4>'
+    )
     // Nettoyer les br multiples
-    .replace(/(<br\s*\/?>){3,}/g, '<br><br>');
-  
+    .replace(/(<br\s*\/?>){3,}/g, "<br><br>");
+
   // Wrapper les listes
-  formatted = formatted.replace(/((<li[^>]*>.*?<\/li>\s*)+)/gs, '<ul class="list-none space-y-1 mt-2 mb-4">$1</ul>');
-  
+  formatted = formatted.replace(
+    /((<li[^>]*>.*?<\/li>\s*)+)/gs,
+    '<ul class="list-none space-y-1 mt-2 mb-4">$1</ul>'
+  );
+
   return `<div class="space-y-2">${formatted}</div>`;
 }
 </script>
@@ -148,17 +168,29 @@ function formatDescription(description: string | undefined) {
     <!-- Loading state -->
     <div v-if="pending" class="flex justify-center items-center py-20">
       <div class="flex flex-col items-center space-y-4">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
+        ></div>
         <p class="text-gray-500">Chargement du produit...</p>
       </div>
     </div>
 
     <!-- Product not found -->
-    <div v-else-if="!currentProduct" class="flex justify-center items-center py-20">
+    <div
+      v-else-if="!currentProduct"
+      class="flex justify-center items-center py-20"
+    >
       <div class="text-center">
-        <UIcon name="i-heroicons-exclamation-triangle" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Produit non trouvé</h3>
-        <p class="text-gray-500">Le produit demandé n'existe pas ou a été supprimé.</p>
+        <UIcon
+          name="i-heroicons-exclamation-triangle"
+          class="w-16 h-16 text-gray-400 mx-auto mb-4"
+        />
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          Produit non trouvé
+        </h3>
+        <p class="text-gray-500">
+          Le produit demandé n'existe pas ou a été supprimé.
+        </p>
         <UButton @click="goBack" class="mt-4" variant="outline">
           Retour à la liste
         </UButton>
@@ -173,15 +205,23 @@ function formatDescription(description: string | undefined) {
           <div class="flex flex-col lg:flex-row lg:items-start lg:space-x-8">
             <!-- Product image -->
             <div class="flex-shrink-0 mb-6 lg:mb-0">
-              <div class="w-full lg:w-80 h-80 rounded-lg overflow-hidden bg-gray-100">
+              <div
+                class="w-full lg:w-80 h-80 rounded-lg overflow-hidden bg-gray-100"
+              >
                 <img
                   v-if="currentProduct.cover_image"
                   :src="currentProduct.cover_image"
                   :alt="currentProduct.title"
                   class="w-full h-full object-cover"
                 />
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <UIcon name="i-heroicons-photo" class="w-20 h-20 text-gray-400" />
+                <div
+                  v-else
+                  class="w-full h-full flex items-center justify-center"
+                >
+                  <UIcon
+                    name="i-heroicons-photo"
+                    class="w-20 h-20 text-gray-400"
+                  />
                 </div>
               </div>
             </div>
@@ -206,10 +246,14 @@ function formatDescription(description: string | undefined) {
                     </span>
                   </div>
                 </div>
-                
+
                 <UButton
                   @click="toggleStatus"
-                  :icon="currentProduct.is_active ? 'i-heroicons-pause' : 'i-heroicons-play'"
+                  :icon="
+                    currentProduct.is_active
+                      ? 'i-heroicons-pause'
+                      : 'i-heroicons-play'
+                  "
                   :color="currentProduct.is_active ? 'orange' : 'green'"
                   variant="outline"
                   :loading="productStore.loading"
@@ -230,7 +274,9 @@ function formatDescription(description: string | undefined) {
                   <div class="text-2xl font-bold text-blue-600">
                     {{ totalStock }}
                   </div>
-                  <div class="text-sm text-blue-600 font-medium">Stock total</div>
+                  <div class="text-sm text-blue-600 font-medium">
+                    Stock total
+                  </div>
                 </div>
                 <div class="bg-purple-50 rounded-lg p-4">
                   <div class="text-2xl font-bold text-purple-600">
@@ -242,18 +288,21 @@ function formatDescription(description: string | undefined) {
                   <div class="text-2xl font-bold text-orange-600">
                     {{ currentProduct.product_variations?.length || 0 }}
                   </div>
-                  <div class="text-sm text-orange-600 font-medium">Variations</div>
+                  <div class="text-sm text-orange-600 font-medium">
+                    Variations
+                  </div>
                 </div>
               </div>
 
               <!-- Description -->
               <div class="bg-gray-50 rounded-lg p-4 mt-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                <div 
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                  Description
+                </h3>
+                <div
                   class="text-gray-700 leading-relaxed formatted-description"
                   v-html="formatDescription(currentProduct.description)"
-                >
-                </div>
+                ></div>
               </div>
             </div>
           </div>
@@ -266,12 +315,16 @@ function formatDescription(description: string | undefined) {
         <div class="space-y-6">
           <!-- Basic info -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations produit</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Informations produit
+            </h3>
             <dl class="space-y-4">
               <div>
-                <dt class="text-sm font-medium text-gray-500">Type de produit</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Type de produit
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900 capitalize">
-                  {{ currentProduct.product_type || 'Non défini' }}
+                  {{ currentProduct.product_type || "Non défini" }}
                 </dd>
               </div>
               <div v-if="currentProduct.category">
@@ -290,7 +343,10 @@ function formatDescription(description: string | undefined) {
           </div>
 
           <!-- Images gallery -->
-          <div v-if="currentProduct.images?.length" class="bg-white rounded-xl shadow-sm p-6">
+          <div
+            v-if="currentProduct.images?.length"
+            class="bg-white rounded-xl shadow-sm p-6"
+          >
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               Galerie ({{ currentProduct.images.length }} images)
             </h3>
@@ -323,17 +379,22 @@ function formatDescription(description: string | undefined) {
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               Variations ({{ currentProduct.product_variations?.length || 0 }})
             </h3>
-            
-            <div v-if="currentProduct.product_variations?.length" class="space-y-3">
+
+            <div
+              v-if="currentProduct.product_variations?.length"
+              class="space-y-3"
+            >
               <div
                 v-for="variant in currentProduct.product_variations"
                 :key="variant.id"
                 class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 <div class="flex-1">
-                  <div class="font-medium text-gray-900">{{ variant.name }}</div>
+                  <div class="font-medium text-gray-900">
+                    {{ variant.name }}
+                  </div>
                   <div class="text-sm text-gray-500">
-                    {{ formatPrice(variant.price) }} • 
+                    {{ formatPrice(variant.price) }} •
                     {{ variant.stock_quantity }} en stock
                   </div>
                 </div>
@@ -347,27 +408,36 @@ function formatDescription(description: string | undefined) {
                 </UBadge>
               </div>
             </div>
-            
+
             <div v-else class="text-center py-8 text-gray-500">
-              <UIcon name="i-heroicons-squares-plus" class="w-12 h-12 mx-auto mb-2" />
+              <UIcon
+                name="i-heroicons-squares-plus"
+                class="w-12 h-12 mx-auto mb-2"
+              />
               <p>Aucune variation configurée</p>
             </div>
           </div>
 
           <!-- Metadata -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Métadonnées</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Métadonnées
+            </h3>
             <dl class="space-y-4 text-sm">
               <div>
                 <dt class="font-medium text-gray-500">Date de création</dt>
                 <dd class="mt-1 text-gray-900">
-                  {{ new Date(currentProduct.created_at).toLocaleString("fr-FR") }}
+                  {{
+                    new Date(currentProduct.created_at).toLocaleString("fr-FR")
+                  }}
                 </dd>
               </div>
               <div>
                 <dt class="font-medium text-gray-500">Dernière modification</dt>
                 <dd class="mt-1 text-gray-900">
-                  {{ new Date(currentProduct.updated_at).toLocaleString("fr-FR") }}
+                  {{
+                    new Date(currentProduct.updated_at).toLocaleString("fr-FR")
+                  }}
                 </dd>
               </div>
             </dl>
