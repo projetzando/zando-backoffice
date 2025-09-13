@@ -15,6 +15,77 @@ const { data: seller, pending } = await useLazyAsyncData(
 
 const { currentSeller } = storeToRefs(sellerStore);
 
+// Charger les statistiques du vendeur
+const sellerStats = ref({
+  products: 0,
+  orders: 0,
+  revenue: 0,
+  reviews: 0
+});
+
+// Fonction pour charger les statistiques
+async function loadSellerStats() {
+  if (!currentSeller.value?.id) return;
+  
+  try {
+    const supabase = useSupabaseClient();
+    
+    // Récupérer les produits du vendeur
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('seller_id', currentSeller.value.id);
+    
+    if (productsError) throw productsError;
+    
+    // Récupérer les commandes liées aux produits du vendeur
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('id, total_amount, status, order_items!inner(product_id)')
+      .in('order_items.product_id', products?.map(p => p.id) || []);
+    
+    if (ordersError) throw ordersError;
+    
+    // Récupérer les avis pour les produits du vendeur
+    const { data: reviews, error: reviewsError } = await supabase
+      .from('reviews')
+      .select('id')
+      .in('product_id', products?.map(p => p.id) || []);
+    
+    if (reviewsError) throw reviewsError;
+    
+    // Calculer le chiffre d'affaires
+    const revenue = orders?.reduce((sum, order) => {
+      return sum + (parseFloat(order.total_amount) || 0);
+    }, 0) || 0;
+    
+    sellerStats.value = {
+      products: products?.length || 0,
+      orders: orders?.length || 0,
+      revenue,
+      reviews: reviews?.length || 0
+    };
+    
+  } catch (error) {
+    console.error('Erreur lors du chargement des statistiques:', error);
+  }
+}
+
+// Charger les stats quand le vendeur change
+watch(currentSeller, (newSeller) => {
+  if (newSeller?.id) {
+    loadSellerStats();
+  }
+}, { immediate: true });
+
+// Fonction utilitaire pour formater les montants
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(amount);
+}
+
 function goBack() {
   return navigateTo("/dashboard/accounts/sellers");
 }
@@ -295,19 +366,19 @@ function getStatusLabel(isApproved: boolean) {
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistiques</h3>
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-blue-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-blue-600">0</div>
+                <div class="text-2xl font-bold text-blue-600">{{ sellerStats.products }}</div>
                 <div class="text-sm text-blue-600">Produits</div>
               </div>
               <div class="bg-green-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-green-600">0</div>
+                <div class="text-2xl font-bold text-green-600">{{ sellerStats.orders }}</div>
                 <div class="text-sm text-green-600">Commandes</div>
               </div>
               <div class="bg-purple-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-purple-600">0€</div>
+                <div class="text-2xl font-bold text-purple-600">{{ formatCurrency(sellerStats.revenue) }}</div>
                 <div class="text-sm text-purple-600">Chiffre d'affaires</div>
               </div>
               <div class="bg-orange-50 rounded-lg p-4 text-center">
-                <div class="text-2xl font-bold text-orange-600">0</div>
+                <div class="text-2xl font-bold text-orange-600">{{ sellerStats.reviews }}</div>
                 <div class="text-sm text-orange-600">Avis</div>
               </div>
             </div>
