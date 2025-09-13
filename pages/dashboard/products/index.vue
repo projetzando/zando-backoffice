@@ -126,14 +126,23 @@ watch(
     <TableWrapper>
       <template #header>
         <div class="table-header">
-          <h5 class="table-title">
-            Liste des produits
-            <span class="text-sm font-normal text-gray-500 ml-2">
-              ({{ totalFilteredRows }} produits)
-            </span>
-          </h5>
+          <div class="flex items-center justify-between">
+            <h5 class="table-title">
+              Liste des produits
+              <span class="text-sm font-normal text-gray-500 ml-2">
+                ({{ totalFilteredRows }} produits)
+              </span>
+            </h5>
 
-          <!-- <ButtonCreate @new="() => navigateTo(`/dashboard/products/create`)" /> -->
+            <UButton
+              @click="navigateTo('/dashboard/products/create')"
+              icon="i-heroicons-plus"
+              color="primary"
+              size="lg"
+            >
+              Nouveau produit
+            </UButton>
+          </div>
         </div>
 
         <!-- Filtres -->
