@@ -85,6 +85,10 @@ function openConversation(conversation: any) {
   navigateTo(`/dashboard/conversations/${conversation.id}`);
 }
 
+function openChat(conversation: any) {
+  navigateTo(`/dashboard/conversations/${conversation.id}`);
+}
+
 // Appliquer les filtres dynamiquement
 watch(
   filters,
@@ -226,12 +230,12 @@ watch(
               />
 
               <UButton
-                @click="openConversation(row)"
+                @click="openChat(row)"
                 icon="i-heroicons-chat-bubble-left-right"
                 size="sm"
                 color="blue"
                 variant="ghost"
-                title="Répondre"
+                title="Ouvrir le chat"
               />
             </div>
           </template>

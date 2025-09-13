@@ -262,6 +262,43 @@ export const useConversationStore = defineStore('conversation', () => {
     error.value = null
   }
 
+  // Obtenir une conversation par ID
+  async function getById(id: string) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
+
+    try {
+      const { data: conversationData, error: supaError } = await supabase
+        .from('conversations')
+        .select('*, seller:sellers(*)')
+        .eq('id', id)
+        .single()
+
+      if (supaError) throw supaError
+
+      // Enrichir avec le buyer profile
+      const { data: buyerProfile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, role, avatar_url')
+        .eq('id', conversationData.buyer_id)
+        .single()
+
+      const enrichedConversation = {
+        ...conversationData,
+        buyer: buyerProfile
+      }
+
+      currentConversation.value = enrichedConversation
+      return { success: true, data: enrichedConversation }
+    } catch (err: any) {
+      error.value = err.message
+      return { success: false, error: err }
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     conversations: readonly(conversations),
@@ -272,6 +309,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     // Actions
     getAll,
+    getById,
     getOrCreateConversation,
     getMessages,
     sendMessage,

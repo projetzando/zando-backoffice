@@ -1,9 +1,6 @@
 <script setup lang="ts">
 const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
   useMenu();
-
-// Import des liens de conversation
-const { conversationLinks } = await import('~/utils/constants/menu');
 </script>
 
 <template>
@@ -48,7 +45,9 @@ const { conversationLinks } = await import('~/utils/constants/menu');
 
     <NavigationSidebarButton
       label="Conversations"
-      :isActive="activeMenu === Menu.Conversation || activeChild === Menu.Conversation"
+      :isActive="
+        activeMenu === Menu.Conversation || activeChild === Menu.Conversation
+      "
       iconLeft="heroicons:chat-bubble-left-right"
       @click="toggleMenu(Menu.Conversation)"
     />
