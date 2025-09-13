@@ -20,62 +20,66 @@ const customerStats = ref({
   orders: 0,
   totalSpent: 0,
   reviews: 0,
-  recentOrders: []
+  recentOrders: [],
 });
 
 // Fonction pour charger les statistiques
 async function loadCustomerStats() {
   if (!currentCustomer.value?.id) return;
-  
+
   try {
     const supabase = useSupabaseClient();
-    
+
     // Récupérer les commandes du client
     const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id, total_amount, status, created_at, items:order_items(*)')
-      .eq('user_id', currentCustomer.value.id)
-      .order('created_at', { ascending: false });
-    
+      .from("orders")
+      .select("id, total_amount, status, created_at, items:order_items(*)")
+      .eq("user_id", currentCustomer.value.id)
+      .order("created_at", { ascending: false });
+
     if (ordersError) throw ordersError;
-    
+
     // Récupérer les avis du client
     const { data: reviews, error: reviewsError } = await supabase
-      .from('reviews')
-      .select('id')
-      .eq('user_id', currentCustomer.value.id);
-    
+      .from("reviews")
+      .select("id")
+      .eq("user_id", currentCustomer.value.id);
+
     if (reviewsError) throw reviewsError;
-    
+
     // Calculer les statistiques
-    const totalSpent = orders?.reduce((sum, order) => {
-      return sum + (parseFloat(order.total_amount) || 0);
-    }, 0) || 0;
-    
+    const totalSpent =
+      orders?.reduce((sum, order) => {
+        return sum + (parseFloat(order.total_amount) || 0);
+      }, 0) || 0;
+
     customerStats.value = {
       orders: orders?.length || 0,
       totalSpent,
       reviews: reviews?.length || 0,
-      recentOrders: orders?.slice(0, 5) || []
+      recentOrders: orders?.slice(0, 5) || [],
     };
-    
   } catch (error) {
-    console.error('Erreur lors du chargement des statistiques:', error);
+    console.error("Erreur lors du chargement des statistiques:", error);
   }
 }
 
 // Charger les stats quand le client change
-watch(currentCustomer, (newCustomer) => {
-  if (newCustomer?.id) {
-    loadCustomerStats();
-  }
-}, { immediate: true });
+watch(
+  currentCustomer,
+  (newCustomer) => {
+    if (newCustomer?.id) {
+      loadCustomerStats();
+    }
+  },
+  { immediate: true }
+);
 
 // Fonction utilitaire pour formater les montants
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR'
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "XAF",
   }).format(amount);
 }
 
@@ -90,7 +94,7 @@ const showEditModal = ref(false);
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("fr-FR", {
     day: "2-digit",
-    month: "2-digit", 
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -155,17 +159,29 @@ function getRoleLabel(role: string) {
     <!-- Loading state -->
     <div v-if="pending" class="flex justify-center items-center py-20">
       <div class="flex flex-col items-center space-y-4">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
+        ></div>
         <p class="text-gray-500">Chargement du client...</p>
       </div>
     </div>
 
     <!-- Customer not found -->
-    <div v-else-if="!currentCustomer" class="flex justify-center items-center py-20">
+    <div
+      v-else-if="!currentCustomer"
+      class="flex justify-center items-center py-20"
+    >
       <div class="text-center">
-        <UIcon name="i-heroicons-exclamation-triangle" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Client non trouvé</h3>
-        <p class="text-gray-500">Le client demandé n'existe pas ou a été supprimé.</p>
+        <UIcon
+          name="i-heroicons-exclamation-triangle"
+          class="w-16 h-16 text-gray-400 mx-auto mb-4"
+        />
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          Client non trouvé
+        </h3>
+        <p class="text-gray-500">
+          Le client demandé n'existe pas ou a été supprimé.
+        </p>
         <UButton @click="goBack" class="mt-4" variant="outline">
           Retour à la liste
         </UButton>
@@ -209,7 +225,8 @@ function getRoleLabel(role: string) {
               <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
                   <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-                    {{ currentCustomer.first_name }} {{ currentCustomer.last_name }}
+                    {{ currentCustomer.first_name }}
+                    {{ currentCustomer.last_name }}
                   </h1>
                   <UBadge
                     :color="getRoleColor(currentCustomer.role)"
@@ -220,7 +237,7 @@ function getRoleLabel(role: string) {
                     {{ getRoleLabel(currentCustomer.role || "buyer") }}
                   </UBadge>
                 </div>
-                
+
                 <div class="flex space-x-3">
                   <UButton
                     @click="showEditModal = true"
@@ -243,12 +260,21 @@ function getRoleLabel(role: string) {
 
               <!-- Contact info -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-if="currentCustomer.phone" class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-phone" class="w-5 h-5 text-gray-400" />
+                <div
+                  v-if="currentCustomer.phone"
+                  class="flex items-center space-x-3"
+                >
+                  <UIcon
+                    name="i-heroicons-phone"
+                    class="w-5 h-5 text-gray-400"
+                  />
                   <span class="text-gray-900">{{ currentCustomer.phone }}</span>
                 </div>
                 <div class="flex items-center space-x-3">
-                  <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-gray-400" />
+                  <UIcon
+                    name="i-heroicons-calendar"
+                    class="w-5 h-5 text-gray-400"
+                  />
                   <span class="text-gray-900">
                     Inscrit le {{ formatDate(currentCustomer.created_at) }}
                   </span>
@@ -309,28 +335,43 @@ function getRoleLabel(role: string) {
               <div class="bg-blue-50 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <div class="text-2xl font-bold text-blue-600">{{ customerStats.orders }}</div>
+                    <div class="text-2xl font-bold text-blue-600">
+                      {{ customerStats.orders }}
+                    </div>
                     <div class="text-sm text-blue-600">Commandes passées</div>
                   </div>
-                  <UIcon name="i-heroicons-shopping-bag" class="w-8 h-8 text-blue-400" />
+                  <UIcon
+                    name="i-heroicons-shopping-bag"
+                    class="w-8 h-8 text-blue-400"
+                  />
                 </div>
               </div>
               <div class="bg-green-50 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <div class="text-2xl font-bold text-green-600">{{ formatCurrency(customerStats.totalSpent) }}</div>
+                    <div class="text-2xl font-bold text-green-600">
+                      {{ formatCurrency(customerStats.totalSpent) }}
+                    </div>
                     <div class="text-sm text-green-600">Total dépensé</div>
                   </div>
-                  <UIcon name="i-heroicons-banknotes" class="w-8 h-8 text-green-400" />
+                  <UIcon
+                    name="i-heroicons-banknotes"
+                    class="w-8 h-8 text-green-400"
+                  />
                 </div>
               </div>
               <div class="bg-purple-50 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <div class="text-2xl font-bold text-purple-600">{{ customerStats.reviews }}</div>
+                    <div class="text-2xl font-bold text-purple-600">
+                      {{ customerStats.reviews }}
+                    </div>
                     <div class="text-sm text-purple-600">Avis laissés</div>
                   </div>
-                  <UIcon name="i-heroicons-star" class="w-8 h-8 text-purple-400" />
+                  <UIcon
+                    name="i-heroicons-star"
+                    class="w-8 h-8 text-purple-400"
+                  />
                 </div>
               </div>
             </div>
@@ -360,9 +401,7 @@ function getRoleLabel(role: string) {
               <div>
                 <dt class="font-medium text-gray-500">Statut du compte</dt>
                 <dd class="mt-1">
-                  <UBadge color="green" variant="subtle">
-                    Actif
-                  </UBadge>
+                  <UBadge color="green" variant="subtle"> Actif </UBadge>
                 </dd>
               </div>
             </dl>
@@ -370,10 +409,16 @@ function getRoleLabel(role: string) {
 
           <!-- Quick Actions -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Actions rapides
+            </h3>
             <div class="space-y-3">
               <UButton
-                @click="navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)"
+                @click="
+                  navigateTo(
+                    `/dashboard/orders?customer_id=${currentCustomer.id}`
+                  )
+                "
                 icon="i-heroicons-shopping-bag"
                 variant="outline"
                 block
@@ -381,7 +426,11 @@ function getRoleLabel(role: string) {
                 Voir les commandes
               </UButton>
               <UButton
-                @click="navigateTo(`/dashboard/reviews?customer_id=${currentCustomer.id}`)"
+                @click="
+                  navigateTo(
+                    `/dashboard/reviews?customer_id=${currentCustomer.id}`
+                  )
+                "
                 icon="i-heroicons-star"
                 variant="outline"
                 block
@@ -389,7 +438,11 @@ function getRoleLabel(role: string) {
                 Voir les avis
               </UButton>
               <UButton
-                @click="navigateTo(`/dashboard/conversations?user_id=${currentCustomer.id}`)"
+                @click="
+                  navigateTo(
+                    `/dashboard/conversations?user_id=${currentCustomer.id}`
+                  )
+                "
                 icon="i-heroicons-chat-bubble-left-right"
                 variant="outline"
                 block
@@ -410,9 +463,14 @@ function getRoleLabel(role: string) {
 
           <!-- Recent Activity -->
           <div class="bg-white rounded-xl shadow-sm p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Activité récente</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              Activité récente
+            </h3>
             <div class="text-center py-8">
-              <UIcon name="i-heroicons-clock" class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <UIcon
+                name="i-heroicons-clock"
+                class="w-12 h-12 text-gray-400 mx-auto mb-3"
+              />
               <p class="text-sm text-gray-500">Aucune activité récente</p>
             </div>
           </div>
@@ -422,24 +480,36 @@ function getRoleLabel(role: string) {
       <!-- Recent Orders Section -->
       <div class="mt-8 bg-white rounded-xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Commandes récentes</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            Commandes récentes
+          </h3>
           <UButton
-            @click="navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)"
+            @click="
+              navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)
+            "
             variant="ghost"
             size="sm"
           >
             Voir toutes
           </UButton>
         </div>
-        
-        <div v-if="customerStats.recentOrders.length === 0" class="text-center py-12">
-          <UIcon name="i-heroicons-shopping-bag" class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h4 class="text-lg font-medium text-gray-900 mb-2">Aucune commande</h4>
+
+        <div
+          v-if="customerStats.recentOrders.length === 0"
+          class="text-center py-12"
+        >
+          <UIcon
+            name="i-heroicons-shopping-bag"
+            class="w-16 h-16 text-gray-400 mx-auto mb-4"
+          />
+          <h4 class="text-lg font-medium text-gray-900 mb-2">
+            Aucune commande
+          </h4>
           <p class="text-gray-500">
             Ce client n'a pas encore passé de commande.
           </p>
         </div>
-        
+
         <!-- Liste des commandes récentes -->
         <div v-else class="space-y-4">
           <div
@@ -454,16 +524,28 @@ function getRoleLabel(role: string) {
                   Commande #{{ order.id.substring(0, 8) }}
                 </div>
                 <UBadge
-                  :color="order.status === 'delivered' ? 'green' : order.status === 'shipped' ? 'blue' : order.status === 'confirmed' ? 'yellow' : 'gray'"
+                  :color="
+                    order.status === 'delivered'
+                      ? 'green'
+                      : order.status === 'shipped'
+                      ? 'blue'
+                      : order.status === 'confirmed'
+                      ? 'yellow'
+                      : 'gray'
+                  "
                   variant="subtle"
                   size="xs"
                 >
-                  {{ 
-                    order.status === 'delivered' ? 'Livrée' :
-                    order.status === 'shipped' ? 'Expédiée' :
-                    order.status === 'confirmed' ? 'Confirmée' :
-                    order.status === 'pending' ? 'En attente' :
-                    'Annulée'
+                  {{
+                    order.status === "delivered"
+                      ? "Livrée"
+                      : order.status === "shipped"
+                      ? "Expédiée"
+                      : order.status === "confirmed"
+                      ? "Confirmée"
+                      : order.status === "pending"
+                      ? "En attente"
+                      : "Annulée"
                   }}
                 </UBadge>
               </div>
@@ -476,7 +558,9 @@ function getRoleLabel(role: string) {
                 {{ formatCurrency(parseFloat(order.total_amount) || 0) }}
               </div>
               <div class="text-xs text-gray-500">
-                {{ order.items?.length || 0 }} article{{ (order.items?.length || 0) > 1 ? 's' : '' }}
+                {{ order.items?.length || 0 }} article{{
+                  (order.items?.length || 0) > 1 ? "s" : ""
+                }}
               </div>
             </div>
           </div>
