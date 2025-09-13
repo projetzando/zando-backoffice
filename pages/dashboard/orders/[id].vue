@@ -103,14 +103,6 @@ const availableActions = computed(() => {
   return actions;
 });
 
-// Fonction pour formater les devises
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
-  }).format(price);
-}
-
 // Fonction pour obtenir la couleur du statut
 function getStatusColor(status: string) {
   const colors = {
@@ -261,7 +253,7 @@ function getStatusLabel(status: string) {
             <div>
               <p class="text-sm text-gray-500">Livraison</p>
               <p class="font-semibold text-sm">
-                {{ currentOrder.delivery_address || 'Adresse non définie' }}
+                {{ currentOrder.delivery_address || "Adresse non définie" }}
               </p>
             </div>
           </div>
@@ -278,7 +270,7 @@ function getStatusLabel(status: string) {
             <div>
               <p class="text-sm text-gray-500">Paiement</p>
               <p class="font-semibold text-sm">
-                {{ currentOrder.payment_method || 'Non défini' }}
+                {{ currentOrder.payment_method || "Non défini" }}
               </p>
             </div>
           </div>

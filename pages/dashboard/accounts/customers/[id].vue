@@ -75,14 +75,6 @@ watch(
   { immediate: true }
 );
 
-// Fonction utilitaire pour formater les montants
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
-  }).format(amount);
-}
-
 function goBack() {
   return navigateTo("/dashboard/accounts/customers");
 }
@@ -350,7 +342,7 @@ function getRoleLabel(role: string) {
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-2xl font-bold text-green-600">
-                      {{ formatCurrency(customerStats.totalSpent) }}
+                      {{ formatPrice(customerStats.totalSpent) }}
                     </div>
                     <div class="text-sm text-green-600">Total dépensé</div>
                   </div>
@@ -555,7 +547,7 @@ function getRoleLabel(role: string) {
             </div>
             <div class="text-right">
               <div class="text-sm font-semibold text-gray-900">
-                {{ formatCurrency(parseFloat(order.total_amount) || 0) }}
+                {{ formatPrice(parseFloat(order.total_amount) || 0) }}
               </div>
               <div class="text-xs text-gray-500">
                 {{ order.items?.length || 0 }} article{{

@@ -27,7 +27,9 @@
                 <!-- Image du produit -->
                 <div class="flex-shrink-0">
                   <img
-                    v-if="item.product?.cover_image || item.product?.images?.[0]"
+                    v-if="
+                      item.product?.cover_image || item.product?.images?.[0]
+                    "
                     :src="item.product.cover_image || item.product.images[0]"
                     :alt="item.product.title"
                     class="w-16 h-16 object-cover rounded-lg border"
@@ -57,7 +59,10 @@
                         {{ item.product.category.name }}
                       </p>
                       <!-- Afficher la variation au lieu des attributs -->
-                      <p v-if="item.variation_name" class="text-sm text-gray-500 mt-1">
+                      <p
+                        v-if="item.variation_name"
+                        class="text-sm text-gray-500 mt-1"
+                      >
                         Variation: {{ item.variation_name }}
                       </p>
                     </div>
@@ -65,10 +70,14 @@
                     <div class="text-right">
                       <p class="text-sm text-gray-500">
                         {{ item.quantity }} ×
-                        {{ formatCurrency(item.unit_price) }}
+                        {{ formatPrice(item.unit_price) }}
                       </p>
                       <p class="font-semibold">
-                        {{ formatCurrency(item.total_price || (item.quantity * item.unit_price)) }}
+                        {{
+                          formatPrice(
+                            item.total_price || item.quantity * item.unit_price
+                          )
+                        }}
                       </p>
                     </div>
                   </div>
@@ -107,7 +116,7 @@
                     articles)</span
                   >
                   <span class="font-medium">{{
-                    formatCurrency(calculateSubtotal)
+                    formatPrice(calculateSubtotal)
                   }}</span>
                 </div>
 
@@ -115,11 +124,11 @@
                   <div>
                     <span class="text-gray-600">Frais de livraison</span>
                     <p class="text-sm text-gray-400">
-                      {{ order.payment_method || 'Non spécifié' }}
+                      {{ order.payment_method || "Non spécifié" }}
                     </p>
                   </div>
                   <span class="font-medium">{{
-                    formatCurrency(order.shipping_cost || 0)
+                    formatPrice(order.shipping_cost || 0)
                   }}</span>
                 </div>
 
@@ -128,7 +137,7 @@
                 >
                   <span class="text-lg font-semibold">Total</span>
                   <span class="text-lg font-bold text-primary-600">{{
-                    formatCurrency(calculateTotal)
+                    formatPrice(calculateTotal)
                   }}</span>
                 </div>
               </div>
@@ -142,7 +151,7 @@
                 <div class="flex justify-between items-center">
                   <span class="text-sm text-gray-600">Montant dû</span>
                   <span class="text-sm font-medium text-red-600">{{
-                    formatCurrency(calculateTotal)
+                    formatPrice(calculateTotal)
                   }}</span>
                 </div>
               </div>
@@ -300,11 +309,11 @@
 
             <div class="space-y-2">
               <p class="font-medium text-gray-900">
-                {{ order.delivery_name || 'Nom non spécifié' }}
+                {{ order.delivery_name || "Nom non spécifié" }}
               </p>
               <div class="text-sm text-gray-600 space-y-1">
-                <p>{{ order.delivery_address || 'Adresse non spécifiée' }}</p>
-                <p>{{ order.delivery_city || 'Ville non spécifiée' }}</p>
+                <p>{{ order.delivery_address || "Adresse non spécifiée" }}</p>
+                <p>{{ order.delivery_city || "Ville non spécifiée" }}</p>
                 <p v-if="order.delivery_phone">
                   Téléphone: {{ order.delivery_phone }}
                 </p>
@@ -334,7 +343,7 @@
 
             <div class="space-y-2">
               <p class="font-medium text-gray-900">
-                {{ order.payment_method || 'Non spécifié' }}
+                {{ order.payment_method || "Non spécifié" }}
               </p>
               <div v-if="order.notes" class="text-sm text-gray-600">
                 <p><strong>Notes:</strong> {{ order.notes }}</p>
@@ -398,20 +407,24 @@ const props = defineProps({
 });
 
 // Émissions d'événements pour les actions
-const emit = defineEmits(['orderUpdated', 'statusChanged']);
+const emit = defineEmits(["orderUpdated", "statusChanged"]);
 
 // Réactivité aux changements d'état de la commande
 const orderStatus = computed(() => props.order?.status);
-const isOrderEditable = computed(() => 
-  props.order?.status && ['pending', 'confirmed'].includes(props.order.status)
+const isOrderEditable = computed(
+  () =>
+    props.order?.status && ["pending", "confirmed"].includes(props.order.status)
 );
 
 // Watcher pour détecter les changements de statut
-watch(() => props.order?.status, (newStatus, oldStatus) => {
-  if (newStatus !== oldStatus && oldStatus) {
-    emit('statusChanged', { newStatus, oldStatus, order: props.order });
+watch(
+  () => props.order?.status,
+  (newStatus, oldStatus) => {
+    if (newStatus !== oldStatus && oldStatus) {
+      emit("statusChanged", { newStatus, oldStatus, order: props.order });
+    }
   }
-});
+);
 
 // Fonction pour formater la date
 const formatDate = (dateString: string, shortFormat = false) => {
@@ -435,7 +448,7 @@ const formatDate = (dateString: string, shortFormat = false) => {
 };
 
 // Fonction pour formater la devise
-const formatCurrency = (amount: number) => {
+const formatPrice = (amount: number) => {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "XAF",
@@ -446,7 +459,7 @@ const formatCurrency = (amount: number) => {
 const calculateSubtotal = computed(() => {
   if (!props.order?.order_items) return 0;
   return props.order.order_items.reduce((total: number, item: any) => {
-    return total + (item.total_price || (item.unit_price * item.quantity));
+    return total + (item.total_price || item.unit_price * item.quantity);
   }, 0);
 });
 
@@ -457,22 +470,22 @@ const calculateTotal = computed(() => {
 // Fonctions utilitaires pour les statuts
 const getStatusBadgeColor = (status: string) => {
   const colors = {
-    pending: 'orange',
-    confirmed: 'blue', 
-    shipped: 'purple',
-    delivered: 'green',
-    cancelled: 'red',
+    pending: "orange",
+    confirmed: "blue",
+    shipped: "purple",
+    delivered: "green",
+    cancelled: "red",
   };
-  return colors[status as keyof typeof colors] || 'gray';
+  return colors[status as keyof typeof colors] || "gray";
 };
 
 const getStatusBadgeLabel = (status: string) => {
   const labels = {
-    pending: 'En attente',
-    confirmed: 'Confirmé',
-    shipped: 'Expédié', 
-    delivered: 'Livré',
-    cancelled: 'Annulé',
+    pending: "En attente",
+    confirmed: "Confirmé",
+    shipped: "Expédié",
+    delivered: "Livré",
+    cancelled: "Annulé",
   };
   return labels[status as keyof typeof labels] || status;
 };

@@ -237,21 +237,26 @@ function formatMessageTime(timestamp: string) {
       minute: "2-digit",
     });
   }
-  
+
   // Vérifier si c'est hier
   if (messageDate.toDateString() === yesterday.toDateString()) {
-    return "Hier " + messageDate.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return (
+      "Hier " +
+      messageDate.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
   }
-  
+
   // Pour les autres jours
-  const diffDays = Math.floor((today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24));
-  
+  const diffDays = Math.floor(
+    (today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
   if (diffDays < 7) {
     // Cette semaine : afficher le jour
-    return messageDate.toLocaleDateString("fr-FR", { 
+    return messageDate.toLocaleDateString("fr-FR", {
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
@@ -265,13 +270,6 @@ function formatMessageTime(timestamp: string) {
       minute: "2-digit",
     });
   }
-}
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(price);
 }
 
 function scrollToBottom() {
