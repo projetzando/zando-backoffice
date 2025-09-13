@@ -17,9 +17,8 @@ const { currentProduct } = storeToRefs(productStore);
 
 // Enregistrer la vue du produit
 onMounted(() => {
-  if (currentProduct.value) {
-    productStore.recordView(currentProduct.value.id!);
-  }
+  // La fonction recordView n'existe pas encore dans le store
+  // TODO: Implémenter le tracking des vues si nécessaire
 });
 
 function goBack() {
@@ -90,6 +89,36 @@ const displayPrice = computed(() => {
   
   return 'Prix non défini';
 });
+
+// Formater la description avec le style approprié
+function formatDescription(description: string | undefined) {
+  if (!description) {
+    return '<p class="text-gray-500 italic">Aucune description disponible</p>';
+  }
+  
+  let formatted = description
+    // Gestion des sauts de ligne
+    .replace(/\n/g, '<br>')
+    // Sections principales (texte suivi de \n)
+    .replace(/^([A-Z][^.\n]*)\n/gm, '<h4 class="font-semibold text-gray-900 mt-4 mb-2">$1</h4>')
+    // Puces avec *
+    .replace(/\*([^*\n]+)\*/g, '<strong class="font-medium text-gray-900">$1</strong>')
+    // Listes avec — ou -
+    .replace(/^[—-]\s*(.+)$/gm, '<li class="ml-4">$1</li>')
+    // Sections Features & details
+    .replace(/(Features & details|Caractéristiques)/gi, '<h4 class="font-semibold text-gray-900 mt-6 mb-3 text-lg">$1</h4>')
+    // Sections WHY [PRODUCT]
+    .replace(/(WHY [A-Z\s]+)/g, '<h4 class="font-semibold text-primary-600 mt-6 mb-3">$1</h4>')
+    // Sections en MAJUSCULES
+    .replace(/^([A-Z\s]{10,})\s*—/gm, '<h4 class="font-semibold text-gray-900 mt-6 mb-3">$1</h4>')
+    // Nettoyer les br multiples
+    .replace(/(<br\s*\/?>){3,}/g, '<br><br>');
+  
+  // Wrapper les listes
+  formatted = formatted.replace(/((<li[^>]*>.*?<\/li>\s*)+)/gs, '<ul class="list-none space-y-1 mt-2 mb-4">$1</ul>');
+  
+  return `<div class="space-y-2">${formatted}</div>`;
+}
 </script>
 
 <template>
@@ -218,8 +247,8 @@ const displayPrice = computed(() => {
               </div>
 
               <!-- Description -->
-              <div class="prose max-w-none">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+              <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
                 <div 
                   class="text-gray-700 leading-relaxed formatted-description"
                   v-html="formatDescription(currentProduct.description)"

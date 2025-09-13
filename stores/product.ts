@@ -117,10 +117,17 @@ export const useProductStore = defineStore("product", () => {
     error.value = null;
 
     try {
-      const { data, error: supaError } = await supabase
+      // Première requête : mise à jour simple
+      const { error: updateError } = await supabase
         .from("products")
         .update(updates)
-        .eq("id", id)
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      // Deuxième requête : récupération des données enrichies
+      const { data, error: selectError } = await supabase
+        .from("products")
         .select(
           `
                     *,
@@ -129,9 +136,10 @@ export const useProductStore = defineStore("product", () => {
                     product_variations(*)
                 `
         )
+        .eq("id", id)
         .single();
 
-      if (supaError) throw supaError;
+      if (selectError) throw selectError;
 
       // Mettre à jour dans la liste
       const index = products.value.findIndex((p) => p.id === id);
