@@ -125,7 +125,8 @@ export const useProductStore = defineStore("product", () => {
           `
                     *,
                     seller:sellers(*),
-                    category:categories(*)
+                    category:categories(*),
+                    product_variations(*)
                 `
         )
         .single();
