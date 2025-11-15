@@ -1,7 +1,8 @@
 export interface Auth {
-    readonly id?: number
+    readonly id?: string
     name: string
     email?: string
+    role?: 'buyer' | 'seller' | 'admin' | 'superadmin'
     // roles?: Group[]
     password?: string
     telephone?: string

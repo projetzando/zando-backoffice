@@ -24,14 +24,26 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             }
 
-            connected_user.value = {
-                name: data.user?.user_metadata?.name || '',
-                email: data.user?.email,
-                id: data.user?.id
+            // Récupérer le profil depuis la table profiles pour avoir le rôle à jour
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', data.user.id)
+                .single()
+
+            if (profileError) {
+                console.error('Erreur récupération profil:', profileError)
             }
-            
+
+            connected_user.value = {
+                name: data.user?.user_metadata?.name || profileData?.first_name || '',
+                email: data.user?.email,
+                id: data.user?.id,
+                role: profileData?.role || 'buyer' // Utiliser le rôle depuis profiles
+            }
+
             token.value = data.session?.access_token || ''
-            
+
             return { data: { user: user.value }, success: true }
         } catch (error) {
             return { error: error.message, success: false }
@@ -88,7 +100,8 @@ export const useAuthStore = defineStore('auth', () => {
             connected_user.value = {
                 name: data.user.user_metadata.name,
                 email: data.user.email,
-                id: data.user.id
+                id: data.user.id,
+                role: data.user.user_metadata?.role || data.user.app_metadata?.role
             }
 
             return { success: true, data: [] }
@@ -114,10 +127,22 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             }
 
+            // Récupérer le profil depuis la table profiles
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser?.id)
+                .single()
+
+            if (profileError) {
+                console.error('Erreur récupération profil:', profileError)
+            }
+
             connected_user.value = {
-                name: currentUser?.user_metadata?.name || '',
+                name: currentUser?.user_metadata?.name || profileData?.first_name || '',
                 email: currentUser?.email,
-                id: currentUser?.id
+                id: currentUser?.id,
+                role: profileData?.role || 'buyer' // Utiliser le rôle depuis profiles
             }
 
             return { success: true }

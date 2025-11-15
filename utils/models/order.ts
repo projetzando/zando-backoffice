@@ -59,7 +59,7 @@ export interface Profile extends Timestamps {
   first_name?: string;
   last_name?: string;
   phone?: string;
-  role?: 'buyer' | 'seller' | 'admin';
+  role?: 'buyer' | 'seller' | 'admin' | 'superadmin';
   avatar_url?: string;
 }
 
