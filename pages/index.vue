@@ -3,6 +3,9 @@ definePageMeta({
   name: "Connexion",
 });
 
+const route = useRoute();
+const toast = useToast();
+
 const user = ref<Auth>({
   name: "",
 });
@@ -21,6 +24,29 @@ const tokenCookie = useCookie<string>("nkuna_token", {
 
 const authStore = useAuthStore();
 
+// Vérifier si un paramètre d'erreur est présent dans l'URL
+onMounted(() => {
+  const errorParam = route.query.error;
+
+  if (errorParam === 'unauthorized') {
+    toast.add({
+      title: 'Accès refusé',
+      description: 'Vous n\'avez pas l\'autorisation d\'accéder au backoffice. Cette interface est réservée aux vendeurs et administrateurs.',
+      color: 'red',
+      icon: 'i-heroicons-shield-exclamation',
+      timeout: 8000
+    });
+  } else if (errorParam === 'role_error') {
+    toast.add({
+      title: 'Erreur de rôle',
+      description: 'Impossible de récupérer vos permissions. Veuillez contacter l\'administrateur.',
+      color: 'red',
+      icon: 'i-heroicons-exclamation-triangle',
+      timeout: 6000
+    });
+  }
+});
+
 async function Login() {
   display_error.value = "";
 
@@ -32,7 +58,25 @@ async function Login() {
   });
 
   if (result.success) {
-    // Connexion réussie
+    // Vérifier si l'utilisateur a un rôle autorisé
+    const userRole = authStore.connected_user?.role;
+
+    if (userRole === 'buyer' || !userRole) {
+      // L'utilisateur n'a pas accès au backoffice
+      toast.add({
+        title: 'Accès non autorisé',
+        description: 'Votre compte n\'a pas accès au backoffice. Seuls les vendeurs et administrateurs peuvent se connecter.',
+        color: 'red',
+        icon: 'i-heroicons-shield-exclamation',
+        timeout: 8000
+      });
+
+      // Déconnecter l'utilisateur
+      await authStore.logout();
+      return;
+    }
+
+    // Connexion réussie - rediriger vers le dashboard
     navigateTo("/dashboard", {
       replace: true,
     });
