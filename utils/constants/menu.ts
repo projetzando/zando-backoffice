@@ -40,12 +40,16 @@ export const testLinks = ref<sidebarLink[]>([
 
 export const userLinks = ref<sidebarLink[]>([
   {
-    title: "Tous les clients",
+    title: "Acheteurs",
     route_link: "/dashboard/accounts/customers",
   },
   {
-    title: "Tous les vendeurs",
+    title: "Vendeurs",
     route_link: "/dashboard/accounts/sellers",
+  },
+  {
+    title: "Administrateurs",
+    route_link: "/dashboard/accounts/admins",
   },
 ]);
 
