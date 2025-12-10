@@ -63,12 +63,7 @@ export const userLinks = ref<sidebarLink[]>([
 
 export const paymentLinks = ref<sidebarLink[]>([
   {
-    title: "Paiements en attente",
-    route_link: "/dashboard/payments",
-    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
-  },
-  {
-    title: "Paiements validés",
+    title: "Paiements",
     route_link: "/dashboard/payments",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },

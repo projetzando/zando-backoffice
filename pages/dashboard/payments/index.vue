@@ -30,7 +30,7 @@ const filteredPayments = computed(() => {
 
     if (searchQuery.value) {
         filtered = filtered.filter(payment =>
-            payment.order?.reference?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            payment.order?.id?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             payment.transaction_ref?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             payment.safe_reference?.toLowerCase().includes(searchQuery.value.toLowerCase())
         )
@@ -41,10 +41,10 @@ const filteredPayments = computed(() => {
 
 const statusOptions = [
     { label: 'Tous les statuts', value: null },
+    { label: 'Non payé', value: 'unpaid' },
     { label: 'En attente', value: 'pending' },
     { label: 'Complété', value: 'completed' },
-    { label: 'Échoué', value: 'failed' },
-    { label: 'Annulé', value: 'cancelled' }
+    { label: 'Échoué', value: 'failed' }
 ]
 
 const methodOptions = computed(() => {
@@ -59,9 +59,15 @@ async function updatePaymentStatus(payment: Payment, newStatus: Payment['status'
     const result = await paymentStore.updateStatus(payment.id!, newStatus)
 
     if (result.success) {
+        const statusMessages = {
+            unpaid: 'marqué comme non payé',
+            pending: 'mis en attente',
+            completed: 'validé',
+            failed: 'marqué comme échoué'
+        }
         toast.add({
             title: 'Succès',
-            description: `Paiement ${newStatus === 'completed' ? 'validé' : newStatus === 'failed' ? 'marqué comme échoué' : newStatus === 'cancelled' ? 'annulé' : 'mis à jour'}`,
+            description: `Paiement ${statusMessages[newStatus as keyof typeof statusMessages] || 'mis à jour'}`,
             color: 'green'
         })
         await paymentStore.get()
@@ -96,20 +102,20 @@ async function deletePayment(payment: Payment) {
 
 function getStatusColor(status?: string) {
     switch (status) {
+        case 'unpaid': return 'orange'
         case 'pending': return 'yellow'
         case 'completed': return 'green'
         case 'failed': return 'red'
-        case 'cancelled': return 'gray'
         default: return 'gray'
     }
 }
 
 function getStatusLabel(status?: string) {
     switch (status) {
+        case 'unpaid': return 'Non payé'
         case 'pending': return 'En attente'
         case 'completed': return 'Complété'
         case 'failed': return 'Échoué'
-        case 'cancelled': return 'Annulé'
         default: return status
     }
 }
@@ -168,14 +174,13 @@ function formatAmount(amount?: number) {
         ]" :loading="paymentStore.loading">
             <template #order_ref-data="{ row }">
                 <div>
-                    <p class="font-medium">{{ row.order?.reference }}</p>
-                    <p class="text-xs text-gray-500">{{ formatAmount(row.order?.total_price) }}</p>
+                    <p class="font-medium font-mono text-sm">{{ row.order?.id?.substring(0, 8) }}...</p>
                 </div>
             </template>
 
             <template #buyer-data="{ row }">
-                <div v-if="row.order?.buyer">
-                    <p class="font-medium">{{ row.order.buyer.first_name }} {{ row.order.buyer.last_name }}</p>
+                <div v-if="row.order?.user_id">
+                    <p class="font-mono text-sm">{{ row.order.user_id.substring(0, 8) }}...</p>
                 </div>
                 <span v-else class="text-gray-400">-</span>
             </template>
@@ -213,41 +218,42 @@ function formatAmount(amount?: number) {
 
             <template #actions-data="{ row }">
                 <div class="flex gap-2">
-                    <UButton
-                        v-if="row.status === 'pending'"
-                        @click="updatePaymentStatus(row, 'completed')"
-                        icon="i-heroicons-check-circle"
-                        size="sm"
-                        color="green"
-                        variant="ghost"
-                        title="Valider"
-                    />
-                    <UButton
-                        v-if="row.status === 'pending'"
-                        @click="updatePaymentStatus(row, 'failed')"
-                        icon="i-heroicons-x-circle"
-                        size="sm"
-                        color="red"
-                        variant="ghost"
-                        title="Marquer comme échoué"
-                    />
-                    <UButton
-                        v-if="row.status === 'pending'"
-                        @click="updatePaymentStatus(row, 'cancelled')"
-                        icon="i-heroicons-no-symbol"
-                        size="sm"
-                        color="gray"
-                        variant="ghost"
-                        title="Annuler"
-                    />
-                    <UButton
-                        @click="deletePayment(row)"
-                        icon="i-heroicons-trash"
-                        size="sm"
-                        color="red"
-                        variant="ghost"
-                        title="Supprimer"
-                    />
+                    <UTooltip v-if="row.status === 'unpaid' || row.status === 'pending'" text="Valider le paiement">
+                        <UButton
+                            @click="updatePaymentStatus(row, 'completed')"
+                            icon="i-heroicons-check-circle"
+                            size="sm"
+                            color="green"
+                            variant="ghost"
+                        />
+                    </UTooltip>
+                    <UTooltip v-if="row.status === 'unpaid' || row.status === 'pending'" text="Marquer comme échoué">
+                        <UButton
+                            @click="updatePaymentStatus(row, 'failed')"
+                            icon="i-heroicons-x-circle"
+                            size="sm"
+                            color="red"
+                            variant="ghost"
+                        />
+                    </UTooltip>
+                    <UTooltip v-if="row.status === 'completed' || row.status === 'failed'" text="Remettre en attente">
+                        <UButton
+                            @click="updatePaymentStatus(row, 'pending')"
+                            icon="i-heroicons-arrow-path"
+                            size="sm"
+                            color="yellow"
+                            variant="ghost"
+                        />
+                    </UTooltip>
+                    <UTooltip text="Supprimer le paiement">
+                        <UButton
+                            @click="deletePayment(row)"
+                            icon="i-heroicons-trash"
+                            size="sm"
+                            color="red"
+                            variant="ghost"
+                        />
+                    </UTooltip>
                 </div>
             </template>
         </UTable>

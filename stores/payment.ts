@@ -18,9 +18,7 @@ export const usePaymentStore = defineStore('payment', () => {
                     *,
                     order:orders(
                         id,
-                        reference,
-                        total_price,
-                        buyer:profiles!orders_buyer_id_fkey(id, first_name, last_name)
+                        user_id
                     )
                 `)
                 .order('created_at', { ascending: false })
@@ -55,9 +53,7 @@ export const usePaymentStore = defineStore('payment', () => {
                     *,
                     order:orders(
                         id,
-                        reference,
-                        total_price,
-                        buyer:profiles!orders_buyer_id_fkey(id, first_name, last_name)
+                        user_id
                     )
                 `)
                 .eq('id', id)
@@ -89,10 +85,7 @@ export const usePaymentStore = defineStore('payment', () => {
         try {
             const { data, error: supaError } = await supabase
                 .from('payments')
-                .update({
-                    status,
-                    updated_at: new Date().toISOString()
-                })
+                .update({ status })
                 .eq('id', id)
                 .select()
 
