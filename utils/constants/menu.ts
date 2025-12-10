@@ -75,6 +75,11 @@ export const localisationLinks = ref<sidebarLink[]>([
     route_link: "/dashboard/configurations/categories",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
+  {
+    title: "Villes",
+    route_link: "/dashboard/configurations/cities",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
+  },
 ]);
 
 export const editionLinks = ref<sidebarLink[]>([
