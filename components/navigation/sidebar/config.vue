@@ -13,6 +13,7 @@ const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu();
       "
       iconLeft="heroicons:cog"
       @click="toggleMenu(Menu.Localisation)"
+      v-role="['admin', 'superadmin']"
     />
 
     <NavigationSidebarDropdown :isActive="activeMenu === Menu.Localisation">
@@ -26,7 +27,7 @@ const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu();
       />
     </NavigationSidebarDropdown>
 
-    <div v-role="['superadmin']">
+    <div v-role="['admin', 'superadmin']">
       <NavigationSidebarButton
         label="Admin"
         :isActive="activeMenu === Menu.Admin || activeChild === Menu.Admin"

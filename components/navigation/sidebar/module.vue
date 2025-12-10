@@ -84,6 +84,7 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
       :isActive="activeMenu === Menu.User || activeChild === Menu.User"
       iconLeft="heroicons:users"
       @click="toggleMenu(Menu.User)"
+      v-role="['admin', 'superadmin']"
     />
 
     <NavigationSidebarDropdown :isActive="activeMenu === Menu.User">

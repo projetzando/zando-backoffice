@@ -27,7 +27,7 @@ const { resetMenuState } = useMenu();
 
             <NavigationSidebarModule />
 
-            <NavigationSidebarConfig />
+            <NavigationSidebarConfig v-role="['admin', 'superadmin']" />
         </nav>
     </aside>
 </template>
