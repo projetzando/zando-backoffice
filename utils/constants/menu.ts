@@ -95,6 +95,11 @@ export const localisationLinks = ref<sidebarLink[]>([
     route_link: "/dashboard/configurations/fees",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
+  {
+    title: "Termes bannis",
+    route_link: "/dashboard/configurations/banned-terms",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
+  },
 ]);
 
 export const editionLinks = ref<sidebarLink[]>([
