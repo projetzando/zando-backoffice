@@ -42,14 +42,17 @@ export const userLinks = ref<sidebarLink[]>([
   {
     title: "Acheteurs",
     route_link: "/dashboard/accounts/customers",
+    permission: "seller,admin,superadmin", // Accessible par seller, admin, superadmin
   },
   {
     title: "Vendeurs",
     route_link: "/dashboard/accounts/sellers",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
   {
     title: "Administrateurs",
     route_link: "/dashboard/accounts/admins",
+    permission: "superadmin", // Accessible uniquement par superadmin
   },
 ]);
 
@@ -57,10 +60,12 @@ export const paymentLinks = ref<sidebarLink[]>([
   {
     title: "Paiements en attente",
     route_link: "/dashboard/payments",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
   {
     title: "Paiements validés",
     route_link: "/dashboard/payments",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
 ]);
 
@@ -68,6 +73,7 @@ export const localisationLinks = ref<sidebarLink[]>([
   {
     title: "Catégories",
     route_link: "/dashboard/configurations/categories",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
 ]);
 
@@ -75,6 +81,7 @@ export const editionLinks = ref<sidebarLink[]>([
   {
     title: "Liste",
     route_link: "/dashboard/edition",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
 ]);
 
@@ -82,9 +89,11 @@ export const adminLinks = ref<sidebarLink[]>([
   {
     title: "Permissions",
     route_link: "/dashboard/admin/permissions",
+    permission: "superadmin", // Accessible uniquement par superadmin
   },
   {
     title: "Rôles",
     route_link: "/dashboard/admin/roles",
+    permission: "superadmin", // Accessible uniquement par superadmin
   },
 ]);

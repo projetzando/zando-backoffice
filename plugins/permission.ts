@@ -53,7 +53,25 @@ export default defineNuxtPlugin((nuxtApp) => {
 function useHasPermission(permission: string): boolean {
     const auth = useAuthStore();
 
-    return !!auth.connected_user.roles?.some((role) =>
-        role.permissions?.some((p) => p.name === permission)
-    );
+    // Si pas de permission spécifiée, on autorise
+    if (!permission) {
+        return true;
+    }
+
+    // Récupérer le rôle de l'utilisateur connecté
+    const userRole = auth.connected_user?.role;
+
+    if (!userRole) {
+        return false;
+    }
+
+    // Si la permission contient plusieurs rôles séparés par des virgules
+    // Exemple: "seller,admin,superadmin"
+    if (permission.includes(',')) {
+        const allowedRoles = permission.split(',').map(r => r.trim());
+        return allowedRoles.includes(userRole);
+    }
+
+    // Vérification simple du rôle
+    return userRole === permission;
 }
