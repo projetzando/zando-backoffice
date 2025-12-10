@@ -29,6 +29,11 @@ export const conversationLinks = ref<sidebarLink[]>([
     title: "Avis clients",
     route_link: "/dashboard/reviews",
   },
+  {
+    title: "Alertes de sécurité",
+    route_link: "/dashboard/alerts",
+    permission: "admin,superadmin",
+  },
 ]);
 
 export const testLinks = ref<sidebarLink[]>([
@@ -67,17 +72,27 @@ export const paymentLinks = ref<sidebarLink[]>([
     route_link: "/dashboard/payments",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
+  {
+    title: "Demandes de retrait",
+    route_link: "/dashboard/payouts",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
+  },
 ]);
 
 export const localisationLinks = ref<sidebarLink[]>([
   {
-    title: "Catégories",
+    title: "Catégories & Domaines",
     route_link: "/dashboard/configurations/categories",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
   {
     title: "Livraison",
     route_link: "/dashboard/configurations/delivery",
+    permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
+  },
+  {
+    title: "Frais",
+    route_link: "/dashboard/configurations/fees",
     permission: "admin,superadmin", // Accessible uniquement par admin et superadmin
   },
 ]);

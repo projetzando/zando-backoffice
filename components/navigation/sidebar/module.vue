@@ -62,22 +62,24 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
       />
     </NavigationSidebarDropdown>
 
-    <!-- <NavigationSidebarButton
-            label="Paiements"
-            :isActive="activeMenu === Menu.Payment || activeChild === Menu.Payment"
-            iconLeft="heroicons:banknotes"
-            @click="toggleMenu(Menu.Payment)"
-        />
+    <NavigationSidebarButton
+      label="Paiements"
+      :isActive="activeMenu === Menu.Payment || activeChild === Menu.Payment"
+      iconLeft="heroicons:banknotes"
+      @click="toggleMenu(Menu.Payment)"
+      v-role="['admin', 'superadmin']"
+    />
 
-        <NavigationSidebarDropdown :isActive="activeMenu === Menu.Payment">
-            <NavigationSidebarLink
-                @click="setActiveChild(Menu.Payment)"
-                v-for="link in paymentLinks"
-                :key="link.title"
-                :title="link.title"
-                :link="link.route_link"
-            />
-        </NavigationSidebarDropdown> -->
+    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Payment">
+      <NavigationSidebarLink
+        @click="setActiveChild(Menu.Payment)"
+        v-for="link in paymentLinks"
+        :key="link.title"
+        :title="link.title"
+        :link="link.route_link"
+        :permission="link.permission"
+      />
+    </NavigationSidebarDropdown>
 
     <NavigationSidebarButton
       label="Comptes"
