@@ -158,6 +158,58 @@ export const useSellerStore = defineStore('seller', () => {
         }
     }
 
+    async function updateApprovalStatus(id: string, isApproved: boolean) {
+        const supabase = useSupabaseClient()
+        loading.value = true
+        error.value = null
+
+        try {
+            // Mettre à jour sans utiliser .single() pour éviter l'erreur PGRST116
+            const { data, error: supaError } = await supabase
+                .from('sellers')
+                .update({ is_approved: isApproved })
+                .eq('id', id)
+                .select()
+
+            if (supaError) {
+                return {
+                    success: false,
+                    error: supaError,
+                    data: null
+                }
+            }
+
+            // Vérifier si la mise à jour a affecté une ligne
+            if (!data || data.length === 0) {
+                return {
+                    success: false,
+                    error: { message: 'Vendeur introuvable ou non autorisé' },
+                    data: null
+                }
+            }
+
+            const updatedSeller = data[0]
+
+            // Mettre à jour le vendeur courant si c'est celui-ci
+            if (currentSeller.value?.id === id) {
+                currentSeller.value = { ...currentSeller.value, is_approved: isApproved }
+            }
+
+            // Mettre à jour dans la liste
+            const index = sellers.value.findIndex(s => s.id === id)
+            if (index !== -1) {
+                sellers.value[index] = { ...sellers.value[index], is_approved: isApproved }
+            }
+
+            return { success: true, data: updatedSeller }
+        } catch (err: any) {
+            error.value = err.message
+            return { success: false, error: err.message }
+        } finally {
+            loading.value = false
+        }
+    }
+
     function $reset() {
         sellers.value = []
         currentSeller.value = null
@@ -171,13 +223,14 @@ export const useSellerStore = defineStore('seller', () => {
         currentSeller,
         loading,
         error,
-        
+
         // Actions
         get,
         store,
         update,
         destroy,
         show,
+        updateApprovalStatus,
         $reset
     }
 }, {

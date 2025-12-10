@@ -73,7 +73,9 @@ const filteredAdmins = computed(() => {
 
 // Pagination
 const totalAdmins = computed(() => filteredAdmins.value.length);
-const totalPages = computed(() => Math.ceil(totalAdmins.value / pageSize.value));
+const totalPages = computed(() =>
+  Math.ceil(totalAdmins.value / pageSize.value)
+);
 const paginatedAdmins = computed(() => {
   const start = (page.value - 1) * pageSize.value;
   const end = start + pageSize.value;
@@ -83,9 +85,9 @@ const paginatedAdmins = computed(() => {
 // Stats
 const stats = computed(() => ({
   total: admins.value.length,
-  active: admins.value.filter(a => a.is_active).length,
-  superadmins: admins.value.filter(a => a.role === 'superadmin').length,
-  regularAdmins: admins.value.filter(a => a.role === 'admin').length,
+  active: admins.value.filter((a) => a.is_active).length,
+  superadmins: admins.value.filter((a) => a.role === "superadmin").length,
+  regularAdmins: admins.value.filter((a) => a.role === "admin").length,
 }));
 
 // Actions
@@ -97,10 +99,10 @@ async function toggleAdminStatus(admin: Admin) {
   // Empêcher de désactiver son propre compte
   if (admin.id === authStore.connected_user?.id) {
     toast.add({
-      title: 'Action interdite',
-      description: 'Vous ne pouvez pas désactiver votre propre compte.',
-      color: 'red',
-      icon: 'i-heroicons-shield-exclamation',
+      title: "Action interdite",
+      description: "Vous ne pouvez pas désactiver votre propre compte.",
+      color: "red",
+      icon: "i-heroicons-shield-exclamation",
     });
     return;
   }
@@ -109,17 +111,19 @@ async function toggleAdminStatus(admin: Admin) {
 
   if (result.success) {
     toast.add({
-      title: 'Statut mis à jour',
-      description: `L'administrateur a été ${admin.is_active ? 'désactivé' : 'activé'}.`,
-      color: 'green',
-      icon: 'i-heroicons-check-circle',
+      title: "Statut mis à jour",
+      description: `L'administrateur a été ${
+        admin.is_active ? "désactivé" : "activé"
+      }.`,
+      color: "green",
+      icon: "i-heroicons-check-circle",
     });
   } else {
     toast.add({
-      title: 'Erreur',
-      description: 'Impossible de mettre à jour le statut.',
-      color: 'red',
-      icon: 'i-heroicons-exclamation-triangle',
+      title: "Erreur",
+      description: "Impossible de mettre à jour le statut.",
+      color: "red",
+      icon: "i-heroicons-exclamation-triangle",
     });
   }
 }
@@ -139,11 +143,11 @@ function getInitials(admin: any) {
 }
 
 function getRoleBadgeColor(role: string) {
-  return role === 'superadmin' ? 'red' : 'blue';
+  return role === "superadmin" ? "red" : "blue";
 }
 
 function getRoleLabel(role: string) {
-  return role === 'superadmin' ? 'Super Admin' : 'Admin';
+  return role === "superadmin" ? "Super Admin" : "Admin";
 }
 
 // Reset des filtres
@@ -160,7 +164,9 @@ function resetFilters() {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+    >
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Administrateurs</h1>
         <p class="text-sm text-gray-600 mt-1">
@@ -181,7 +187,10 @@ function resetFilters() {
       <UCard>
         <div class="flex items-center gap-3">
           <div class="p-3 bg-blue-100 rounded-lg">
-            <UIcon name="i-heroicons-user-group" class="w-6 h-6 text-blue-600" />
+            <UIcon
+              name="i-heroicons-user-group"
+              class="w-6 h-6 text-blue-600"
+            />
           </div>
           <div>
             <p class="text-sm text-gray-600">Total</p>
@@ -193,7 +202,10 @@ function resetFilters() {
       <UCard>
         <div class="flex items-center gap-3">
           <div class="p-3 bg-green-100 rounded-lg">
-            <UIcon name="i-heroicons-check-circle" class="w-6 h-6 text-green-600" />
+            <UIcon
+              name="i-heroicons-check-circle"
+              class="w-6 h-6 text-green-600"
+            />
           </div>
           <div>
             <p class="text-sm text-gray-600">Actifs</p>
@@ -205,11 +217,16 @@ function resetFilters() {
       <UCard>
         <div class="flex items-center gap-3">
           <div class="p-3 bg-red-100 rounded-lg">
-            <UIcon name="i-heroicons-shield-check" class="w-6 h-6 text-red-600" />
+            <UIcon
+              name="i-heroicons-shield-check"
+              class="w-6 h-6 text-red-600"
+            />
           </div>
           <div>
             <p class="text-sm text-gray-600">Super Admins</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.superadmins }}</p>
+            <p class="text-2xl font-bold text-gray-900">
+              {{ stats.superadmins }}
+            </p>
           </div>
         </div>
       </UCard>
@@ -217,11 +234,16 @@ function resetFilters() {
       <UCard>
         <div class="flex items-center gap-3">
           <div class="p-3 bg-purple-100 rounded-lg">
-            <UIcon name="i-heroicons-user-circle" class="w-6 h-6 text-purple-600" />
+            <UIcon
+              name="i-heroicons-user-circle"
+              class="w-6 h-6 text-purple-600"
+            />
           </div>
           <div>
             <p class="text-sm text-gray-600">Admins</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.regularAdmins }}</p>
+            <p class="text-2xl font-bold text-gray-900">
+              {{ stats.regularAdmins }}
+            </p>
           </div>
         </div>
       </UCard>
@@ -242,7 +264,7 @@ function resetFilters() {
           :options="[
             { label: 'Tous les rôles', value: 'all' },
             { label: 'Super Admin', value: 'superadmin' },
-            { label: 'Admin', value: 'admin' }
+            { label: 'Admin', value: 'admin' },
           ]"
           value-attribute="value"
           option-attribute="label"
@@ -255,7 +277,7 @@ function resetFilters() {
           :options="[
             { label: 'Tous les statuts', value: 'all' },
             { label: 'Actifs', value: 'active' },
-            { label: 'Inactifs', value: 'inactive' }
+            { label: 'Inactifs', value: 'inactive' },
           ]"
           value-attribute="value"
           option-attribute="label"
@@ -277,14 +299,26 @@ function resetFilters() {
     <!-- Tableau des admins -->
     <UCard>
       <div v-if="adminStore.loading" class="flex justify-center py-12">
-        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+        <UIcon
+          name="i-heroicons-arrow-path"
+          class="w-8 h-8 animate-spin text-primary"
+        />
       </div>
 
       <div v-else-if="paginatedAdmins.length === 0" class="text-center py-12">
-        <UIcon name="i-heroicons-user-group" class="w-12 h-12 mx-auto text-gray-400" />
-        <h3 class="mt-2 text-sm font-semibold text-gray-900">Aucun administrateur</h3>
+        <UIcon
+          name="i-heroicons-user-group"
+          class="w-12 h-12 mx-auto text-gray-400"
+        />
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">
+          Aucun administrateur
+        </h3>
         <p class="mt-1 text-sm text-gray-500">
-          {{ searchQuery ? "Aucun résultat trouvé" : "Commencez par ajouter un administrateur" }}
+          {{
+            searchQuery
+              ? "Aucun résultat trouvé"
+              : "Commencez par ajouter un administrateur"
+          }}
         </p>
       </div>
 
@@ -292,22 +326,34 @@ function resetFilters() {
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Administrateur
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Email & Téléphone
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Rôle
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Statut
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Date création
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Actions
               </th>
             </tr>
@@ -347,7 +393,9 @@ function resetFilters() {
 
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-900">{{ admin.email }}</div>
-                <div class="text-sm text-gray-500">{{ admin.phone || '-' }}</div>
+                <div class="text-sm text-gray-500">
+                  {{ admin.phone || "-" }}
+                </div>
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
@@ -366,7 +414,7 @@ function resetFilters() {
                   variant="subtle"
                   size="sm"
                 >
-                  {{ admin.is_active ? 'Actif' : 'Inactif' }}
+                  {{ admin.is_active ? "Actif" : "Inactif" }}
                 </UBadge>
               </td>
 
@@ -374,7 +422,9 @@ function resetFilters() {
                 {{ formatDate(admin.created_at!) }}
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+              >
                 <div class="flex justify-end gap-2" @click.stop>
                   <UButton
                     icon="i-heroicons-eye"
@@ -385,7 +435,11 @@ function resetFilters() {
                   />
                   <UButton
                     v-role="'superadmin'"
-                    :icon="admin.is_active ? 'i-heroicons-no-symbol' : 'i-heroicons-check'"
+                    :icon="
+                      admin.is_active
+                        ? 'i-heroicons-no-symbol'
+                        : 'i-heroicons-check'
+                    "
                     size="sm"
                     :color="admin.is_active ? 'red' : 'green'"
                     variant="ghost"
@@ -399,26 +453,29 @@ function resetFilters() {
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4">
+      <div
+        v-if="totalPages > 1"
+        class="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6 mt-4"
+      >
         <div class="flex flex-1 justify-between sm:hidden">
-          <UButton
-            :disabled="page === 1"
-            @click="page--"
-            label="Précédent"
-          />
+          <UButton :disabled="page === 1" @click="page--" label="Précédent" />
           <UButton
             :disabled="page === totalPages"
             @click="page++"
             label="Suivant"
           />
         </div>
-        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+        <div
+          class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between"
+        >
           <div>
             <p class="text-sm text-gray-700">
               Affichage de
               <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
               à
-              <span class="font-medium">{{ Math.min(page * pageSize, totalAdmins) }}</span>
+              <span class="font-medium">{{
+                Math.min(page * pageSize, totalAdmins)
+              }}</span>
               sur
               <span class="font-medium">{{ totalAdmins }}</span>
               résultats

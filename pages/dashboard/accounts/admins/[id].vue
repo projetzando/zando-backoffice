@@ -17,17 +17,7 @@ const { data: admin, pending } = await useLazyAsyncData(
 
 const { currentAdmin } = storeToRefs(adminStore);
 
-// États pour le modal de modification
-const showEditModal = ref(false);
-const showRoleModal = ref(false);
-const showDeleteModal = ref(false);
-
-const editForm = ref({
-  first_name: '',
-  last_name: '',
-  phone: '',
-  avatar_url: '',
-});
+// Plus besoin de ces états car on utilise les composants
 
 // Statistiques de l'admin (activités)
 const adminStats = ref({
@@ -67,13 +57,6 @@ watch(
   (newAdmin) => {
     if (newAdmin?.id) {
       loadAdminStats();
-      // Remplir le formulaire d'édition
-      editForm.value = {
-        first_name: newAdmin.first_name || '',
-        last_name: newAdmin.last_name || '',
-        phone: newAdmin.phone || '',
-        avatar_url: newAdmin.avatar_url || '',
-      };
     }
   },
   { immediate: true }
@@ -106,117 +89,6 @@ function getRoleBadgeColor(role: string) {
 
 function getRoleLabel(role: string) {
   return role === 'superadmin' ? 'Super Admin' : 'Admin';
-}
-
-// Mettre à jour les informations
-async function updateAdminInfo() {
-  if (!currentAdmin.value?.id) return;
-
-  const result = await adminStore.update(currentAdmin.value.id, editForm.value);
-
-  if (result.success) {
-    toast.add({
-      title: 'Succès',
-      description: 'Les informations ont été mises à jour.',
-      color: 'green',
-      icon: 'i-heroicons-check-circle',
-    });
-    showEditModal.value = false;
-  } else {
-    toast.add({
-      title: 'Erreur',
-      description: 'Impossible de mettre à jour les informations.',
-      color: 'red',
-      icon: 'i-heroicons-exclamation-triangle',
-    });
-  }
-}
-
-// Changer le rôle
-async function updateRole(newRole: 'admin' | 'superadmin') {
-  if (!currentAdmin.value?.id) return;
-
-  // Vérifier que ce n'est pas le dernier superadmin
-  if (currentAdmin.value.role === 'superadmin') {
-    const superadminsCount = adminStore.admins.filter(a => a.role === 'superadmin').length;
-    if (superadminsCount <= 1) {
-      toast.add({
-        title: 'Action interdite',
-        description: 'Il doit rester au moins un super administrateur.',
-        color: 'red',
-        icon: 'i-heroicons-shield-exclamation',
-      });
-      return;
-    }
-  }
-
-  const result = await adminStore.updateRole(currentAdmin.value.id, newRole);
-
-  if (result.success) {
-    toast.add({
-      title: 'Rôle modifié',
-      description: `Le rôle a été changé en ${getRoleLabel(newRole)}.`,
-      color: 'green',
-      icon: 'i-heroicons-check-circle',
-    });
-    showRoleModal.value = false;
-  } else {
-    toast.add({
-      title: 'Erreur',
-      description: 'Impossible de modifier le rôle.',
-      color: 'red',
-      icon: 'i-heroicons-exclamation-triangle',
-    });
-  }
-}
-
-// Supprimer l'admin
-async function deleteAdmin() {
-  if (!currentAdmin.value?.id) return;
-
-  // Empêcher de supprimer son propre compte
-  if (currentAdmin.value.id === authStore.connected_user?.id) {
-    toast.add({
-      title: 'Action interdite',
-      description: 'Vous ne pouvez pas supprimer votre propre compte.',
-      color: 'red',
-      icon: 'i-heroicons-shield-exclamation',
-    });
-    return;
-  }
-
-  // Vérifier que ce n'est pas le dernier superadmin
-  if (currentAdmin.value.role === 'superadmin') {
-    const superadminsCount = adminStore.admins.filter(a => a.role === 'superadmin').length;
-    if (superadminsCount <= 1) {
-      toast.add({
-        title: 'Action interdite',
-        description: 'Vous ne pouvez pas supprimer le dernier super administrateur.',
-        color: 'red',
-        icon: 'i-heroicons-shield-exclamation',
-      });
-      return;
-    }
-  }
-
-  const result = await adminStore.destroy(currentAdmin.value.id);
-
-  if (result.success) {
-    toast.add({
-      title: 'Supprimé',
-      description: 'L\'administrateur a été supprimé.',
-      color: 'green',
-      icon: 'i-heroicons-check-circle',
-    });
-    navigateTo('/dashboard/accounts/admins');
-  } else {
-    toast.add({
-      title: 'Erreur',
-      description: 'Impossible de supprimer l\'administrateur.',
-      color: 'red',
-      icon: 'i-heroicons-exclamation-triangle',
-    });
-  }
 }
 
 // Activer/Désactiver
@@ -270,12 +142,7 @@ async function toggleStatus() {
       </div>
 
       <div class="flex gap-2">
-        <UButton
-          v-role="'superadmin'"
-          icon="i-heroicons-pencil"
-          label="Modifier"
-          @click="showEditModal = true"
-        />
+        <AdminUpdate v-if="currentAdmin" v-role="'superadmin'" :admin="currentAdmin" />
       </div>
     </div>
 
@@ -382,11 +249,7 @@ async function toggleStatus() {
                     Modifier les permissions de cet administrateur
                   </p>
                 </div>
-                <UButton
-                  color="orange"
-                  label="Modifier le rôle"
-                  @click="showRoleModal = true"
-                />
+                <AdminRoleChange v-if="currentAdmin" :admin="currentAdmin" />
               </div>
 
               <div class="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
@@ -396,10 +259,10 @@ async function toggleStatus() {
                     Cette action est irréversible
                   </p>
                 </div>
-                <UButton
-                  color="red"
-                  label="Supprimer"
-                  @click="showDeleteModal = true"
+                <AdminDelete
+                  v-if="currentAdmin"
+                  :admin="currentAdmin"
+                  @deleted="navigateTo('/dashboard/accounts/admins')"
                 />
               </div>
             </div>
@@ -462,99 +325,5 @@ async function toggleStatus() {
       </div>
     </template>
 
-    <!-- Modal de modification -->
-    <UModal v-model="showEditModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">Modifier les informations</h3>
-        </template>
-
-        <div class="space-y-4">
-          <UFormGroup label="Prénom">
-            <UInput v-model="editForm.first_name" />
-          </UFormGroup>
-
-          <UFormGroup label="Nom">
-            <UInput v-model="editForm.last_name" />
-          </UFormGroup>
-
-          <UFormGroup label="Téléphone">
-            <UInput v-model="editForm.phone" />
-          </UFormGroup>
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton label="Annuler" color="gray" @click="showEditModal = false" />
-            <UButton label="Enregistrer" @click="updateAdminInfo" />
-          </div>
-        </template>
-      </UCard>
-    </UModal>
-
-    <!-- Modal de changement de rôle -->
-    <UModal v-model="showRoleModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold">Changer le rôle</h3>
-        </template>
-
-        <div class="space-y-4">
-          <p class="text-sm text-gray-600">
-            Sélectionnez le nouveau rôle pour cet administrateur
-          </p>
-
-          <div class="space-y-2">
-            <UButton
-              block
-              :color="currentAdmin?.role === 'admin' ? 'primary' : 'gray'"
-              @click="updateRole('admin')"
-            >
-              <div class="text-left">
-                <div class="font-semibold">Admin</div>
-                <div class="text-xs opacity-75">Accès limité aux fonctionnalités</div>
-              </div>
-            </UButton>
-
-            <UButton
-              block
-              :color="currentAdmin?.role === 'superadmin' ? 'primary' : 'gray'"
-              @click="updateRole('superadmin')"
-            >
-              <div class="text-left">
-                <div class="font-semibold">Super Admin</div>
-                <div class="text-xs opacity-75">Accès complet à toutes les fonctionnalités</div>
-              </div>
-            </UButton>
-          </div>
-        </div>
-
-        <template #footer>
-          <UButton label="Fermer" color="gray" @click="showRoleModal = false" />
-        </template>
-      </UCard>
-    </UModal>
-
-    <!-- Modal de confirmation de suppression -->
-    <UModal v-model="showDeleteModal">
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-red-600">Confirmer la suppression</h3>
-        </template>
-
-        <p class="text-sm text-gray-600">
-          Êtes-vous sûr de vouloir supprimer l'administrateur
-          <strong>{{ currentAdmin?.first_name }} {{ currentAdmin?.last_name }}</strong> ?
-          Cette action est irréversible.
-        </p>
-
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton label="Annuler" color="gray" @click="showDeleteModal = false" />
-            <UButton label="Supprimer" color="red" @click="deleteAdmin" />
-          </div>
-        </template>
-      </UCard>
-    </UModal>
   </div>
 </template>
