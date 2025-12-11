@@ -12,8 +12,12 @@ const supabase = useSupabaseClient()
 const { calculateStats, getTrendData, getAlerts } = useDashboardStats()
 
 // États réactifs
-const { orders, loading: ordersLoading } = storeToRefs(orderStore)
-const { products, loading: productsLoading } = storeToRefs(productStore)
+const { loading: ordersLoading } = storeToRefs(orderStore)
+const { loading: productsLoading } = storeToRefs(productStore)
+
+// Données récentes pour le dashboard (optimisé - on ne charge pas toutes les données)
+const recentOrdersData = ref<any[]>([])
+const recentProductsData = ref<any[]>([])
 
 // Récupérer le seller_id si l'utilisateur est un vendeur
 const currentSellerId = ref<string | null>(null)
@@ -69,41 +73,49 @@ async function loadDashboardData() {
       await walletStore.getSystemWallet()
     }
 
-    // Si l'utilisateur est un vendeur, récupérer ses informations complètes
+    // Si l'utilisateur est un vendeur, récupérer ses informations complètes + wallet en une seule requête
     if (isSellerUser.value && !currentSellerId.value) {
       const { data: sellerData } = await supabase
         .from('sellers')
-        .select('*')
+        .select(`
+          *,
+          wallet:wallets!wallets_owner_id_fkey(*)
+        `)
         .eq('user_id', authStore.connected_user.id)
+        .eq('wallets.owner_type', 'seller')
         .single()
 
       if (sellerData) {
         currentSellerId.value = sellerData.id
         sellerInfo.value = sellerData
 
-        // Récupérer le wallet du vendeur
-        const { data: wallet } = await supabase
-          .from('wallets')
-          .select('*')
-          .eq('owner_id', sellerData.id)
-          .eq('owner_type', 'seller')
-          .single()
-
-        if (wallet) {
-          walletInfo.value = wallet
+        // Le wallet est déjà inclus dans sellerData
+        if (sellerData.wallet && Array.isArray(sellerData.wallet) && sellerData.wallet.length > 0) {
+          walletInfo.value = sellerData.wallet[0]
+        }
+        else if (sellerData.wallet && !Array.isArray(sellerData.wallet)) {
+          walletInfo.value = sellerData.wallet
         }
       }
     }
 
-    // Charger les données de base avec filtre vendeur si nécessaire
-    const filters
-      = isSellerUser.value && currentSellerId.value ? { seller_id: currentSellerId.value } : {}
-
-    await Promise.all([orderStore.getAll(), productStore.getAll(filters)])
-
-    // Calculer les statistiques avec filtre vendeur si nécessaire
+    // Charger uniquement les données récentes nécessaires pour le dashboard (optimisé)
     const sellerId = isSellerUser.value ? currentSellerId.value : undefined
 
+    const [ordersResult, productsResult] = await Promise.all([
+      orderStore.getRecent(5, sellerId),
+      productStore.getRecent(5, sellerId),
+    ])
+
+    // Stocker les résultats dans les refs locales
+    if (ordersResult.success && ordersResult.data) {
+      recentOrdersData.value = ordersResult.data
+    }
+    if (productsResult.success && productsResult.data) {
+      recentProductsData.value = productsResult.data
+    }
+
+    // Calculer les statistiques avec filtre vendeur si nécessaire
     const { data: stats } = await calculateStats(selectedPeriod.value as any, sellerId)
     if (stats) {
       statsData.value = stats
@@ -213,10 +225,10 @@ const quickActions = [
   },
 ]
 
-// Données récentes pour les tableaux
+// Données récentes pour les tableaux (utilise les données locales au lieu du store)
 const recentOrders = computed(
   () =>
-    orders.value?.slice(0, 5).map(order => ({
+    recentOrdersData.value?.map(order => ({
       id: order.id,
       customer: order.buyer ? `${order.buyer.first_name} ${order.buyer.last_name}` : 'Anonyme',
       amount: order.total_amount,
@@ -227,7 +239,7 @@ const recentOrders = computed(
 
 const recentProducts = computed(
   () =>
-    products.value?.slice(0, 5).map(product => ({
+    recentProductsData.value?.map(product => ({
       id: product.id,
       title: product.title,
       price: product.display_price || product.price || 0,
@@ -716,10 +728,10 @@ function handleAlertAction(alert: any) {
           <!-- Graphique réel -->
           <template v-else>
             <SimpleChart
-              v-if="orders && orders.length > 0"
+              v-if="recentOrdersData && recentOrdersData.length > 0"
               :data="
                 Object.values(
-                  orders.reduce(
+                  recentOrdersData.reduce(
                     (acc, order) => {
                       acc[order.status] = (acc[order.status] || 0) + 1
                       return acc
@@ -730,7 +742,7 @@ function handleAlertAction(alert: any) {
               "
               :labels="
                 Object.keys(
-                  orders.reduce(
+                  recentOrdersData.reduce(
                     (acc, order) => {
                       acc[order.status] = (acc[order.status] || 0) + 1
                       return acc

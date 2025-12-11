@@ -301,6 +301,68 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
+  // Obtenir les commandes récentes (optimisé pour le dashboard)
+  async function getRecent(limit = 5, sellerId?: string) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
+
+    try {
+      let query = supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      // Filtrer par vendeur si nécessaire (via order_items)
+      if (sellerId) {
+        const { data: sellerOrders } = await supabase
+          .from('order_items')
+          .select('order_id')
+          .eq('seller_id', sellerId)
+
+        if (sellerOrders && sellerOrders.length > 0) {
+          const orderIds = [...new Set(sellerOrders.map((item: any) => item.order_id))]
+          query = query.in('id', orderIds)
+        }
+        else {
+          // Pas de commandes pour ce vendeur
+          return { success: true, data: [] }
+        }
+      }
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      // Enrichir avec les relations buyer (sans order_items pour le dashboard)
+      const enrichedOrders = await Promise.all(
+        (data || []).map(async (order: any) => {
+          const { data: buyer } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, avatar_url, created_at')
+            .eq('id', order.user_id)
+            .single()
+
+          return {
+            ...order,
+            buyer: buyer || undefined,
+          } as Order
+        }),
+      )
+
+      return { success: true, data: enrichedOrders }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de chargement', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
   // Reset du store
   function $reset() {
     orders.value = []
@@ -328,6 +390,7 @@ export const useOrderStore = defineStore('order', () => {
     // Actions
     getAll,
     getById,
+    getRecent,
     create,
     update,
     updateStatus,

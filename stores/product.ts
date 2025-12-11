@@ -446,6 +446,43 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
+  // Obtenir les produits récents (optimisé pour le dashboard)
+  async function getRecent(limit = 5, sellerId?: string) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
+
+    try {
+      let query = supabase
+        .from('products_with_price')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      // Filtrer par vendeur si nécessaire
+      if (sellerId) {
+        query = query.eq('seller_id', sellerId)
+      }
+
+      // Filtrer uniquement les produits actifs pour le dashboard
+      query = query.eq('is_active', true)
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      return { success: true, data: (data || []) as ProductWithPrice[] }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de chargement', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
   // Reset du store
   function $reset() {
     products.value = []
@@ -473,6 +510,7 @@ export const useProductStore = defineStore('product', () => {
     // Actions
     getAll,
     getById,
+    getRecent,
     create,
     update,
     remove,
