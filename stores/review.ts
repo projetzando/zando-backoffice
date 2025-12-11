@@ -1,4 +1,6 @@
 import type { Review } from '~/utils/models/review'
+import type { PaginationOptions } from '~/utils/models/filter'
+import { CACHE_CONFIG } from '~/utils/constants/api'
 
 export const useReviewStore = defineStore('review', () => {
   const reviews = ref<Review[]>([])
@@ -6,8 +8,31 @@ export const useReviewStore = defineStore('review', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Obtenir toutes les avis
-  async function getAll(filters?: { product_id?: string, user_id?: string, rating?: number }) {
+  // Pagination info
+  const paginationInfo = ref({
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
+
+  // Composables
+  const { get: getFromCache, invalidatePattern } = useCache()
+  const { fetchPaginated } = usePagination()
+  const notification = useNotification()
+
+  // Obtenir tous les avis avec pagination
+  async function getAll(
+    options: PaginationOptions = {},
+    filters?: {
+      product_id?: string
+      user_id?: string
+      rating?: number
+      search?: string
+    },
+  ) {
     const supabase = useSupabaseClient()
     const authStore = useAuthStore()
     loading.value = true
@@ -19,7 +44,6 @@ export const useReviewStore = defineStore('review', () => {
       let sellerProductIds: string[] = []
 
       if (isSellerUser) {
-        // Récupérer l'ID du vendeur
         const { data: sellerData } = await supabase
           .from('sellers')
           .select('id')
@@ -27,7 +51,6 @@ export const useReviewStore = defineStore('review', () => {
           .single()
 
         if (sellerData) {
-          // Récupérer les IDs des produits du vendeur
           const { data: productsData } = await supabase
             .from('products')
             .select('id')
@@ -37,40 +60,56 @@ export const useReviewStore = defineStore('review', () => {
             sellerProductIds = productsData.map(p => p.id!)
           }
           else {
-            // Aucun produit, donc aucun avis
             reviews.value = []
-            return { success: true, data: [] }
+            paginationInfo.value = { total: 0, page: 1, pageSize: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false }
+            return { success: true, data: [], pagination: paginationInfo.value }
           }
         }
       }
 
-      let query = supabase
-        .from('reviews')
-        .select('*, product:products(*), order:orders(*)')
-        .order('created_at', { ascending: false })
+      const cacheKey = `reviews:${JSON.stringify({ ...options, ...filters, isSellerUser, sellerProductIds })}`
 
-      // Si c'est un vendeur, filtrer par ses produits
-      if (isSellerUser && sellerProductIds.length > 0) {
-        query = query.in('product_id', sellerProductIds)
-      }
+      const result = await getFromCache(
+        cacheKey,
+        async () => {
+          return await fetchPaginated<Review>(
+            'reviews',
+            {
+              page: options.page || 1,
+              pageSize: options.pageSize || 10,
+              sortBy: options.sortBy || 'created_at',
+              sortOrder: options.sortOrder || 'desc',
+            },
+            '*, product:products(*), order:orders(*)',
+            (query) => {
+              let filteredQuery = query
 
-      if (filters?.product_id) {
-        query = query.eq('product_id', filters.product_id)
-      }
-      if (filters?.user_id) {
-        query = query.eq('user_id', filters.user_id)
-      }
-      if (filters?.rating) {
-        query = query.eq('rating', filters.rating)
-      }
+              if (isSellerUser && sellerProductIds.length > 0) {
+                filteredQuery = filteredQuery.in('product_id', sellerProductIds)
+              }
+              if (filters?.product_id) {
+                filteredQuery = filteredQuery.eq('product_id', filters.product_id)
+              }
+              if (filters?.user_id) {
+                filteredQuery = filteredQuery.eq('user_id', filters.user_id)
+              }
+              if (filters?.rating) {
+                filteredQuery = filteredQuery.eq('rating', filters.rating)
+              }
+              if (filters?.search) {
+                filteredQuery = filteredQuery.ilike('comment', `%${filters.search}%`)
+              }
 
-      const { data: reviewsData, error: supaError } = await query
-
-      if (supaError) throw supaError
+              return filteredQuery
+            },
+          )
+        },
+        CACHE_CONFIG.DEFAULT_TTL,
+      )
 
       // Enrichir avec les user profiles
       const enrichedReviews = await Promise.all(
-        (reviewsData || []).map(async (review) => {
+        result.data.map(async (review) => {
           const { data: userProfile } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, phone, role, avatar_url')
@@ -84,11 +123,21 @@ export const useReviewStore = defineStore('review', () => {
         }),
       )
 
+      paginationInfo.value = {
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: result.hasPreviousPage,
+      }
+
       reviews.value = enrichedReviews
-      return { success: true, data: enrichedReviews }
+      return { success: true, data: enrichedReviews, pagination: paginationInfo.value }
     }
     catch (err: any) {
       error.value = err.message
+      notification.error('Erreur de chargement', err.message)
       return { success: false, error: err }
     }
     finally {
@@ -303,6 +352,7 @@ export const useReviewStore = defineStore('review', () => {
     currentReview: readonly(currentReview),
     loading: readonly(loading),
     error: readonly(error),
+    paginationInfo,
 
     // Actions
     getAll,

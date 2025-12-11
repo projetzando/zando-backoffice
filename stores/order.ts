@@ -51,7 +51,7 @@ export const useOrderStore = defineStore('order', () => {
               page: options.page || 1,
               pageSize: options.pageSize || 10,
             },
-            '*',
+            `*`,
             (query) => {
               let filteredQuery = query.order('created_at', { ascending: false })
 
@@ -78,6 +78,36 @@ export const useOrderStore = defineStore('order', () => {
         CACHE_CONFIG.DEFAULT_TTL,
       )
 
+      // Enrichir avec les relations buyer et order_items
+      const enrichedOrders = await Promise.all(
+        result.data.map(async (order) => {
+          // Récupérer le buyer (profile de l'utilisateur)
+          const { data: buyer } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, avatar_url')
+            .eq('id', order.user_id)
+            .single()
+
+          // Récupérer les order_items avec les produits
+          const { data: orderItems } = await supabase
+            .from('order_items')
+            .select(`
+              id,
+              quantity,
+              unit_price,
+              total_price,
+              product:products(id, title, cover_image)
+            `)
+            .eq('order_id', order.id || '')
+
+          return {
+            ...order,
+            buyer: buyer || undefined,
+            order_items: orderItems || [],
+          } as Order
+        }),
+      )
+
       paginationInfo.value = {
         total: result.total,
         page: result.page,
@@ -87,8 +117,8 @@ export const useOrderStore = defineStore('order', () => {
         hasPreviousPage: result.hasPreviousPage,
       }
 
-      orders.value = result.data
-      return { success: true, data: result.data, pagination: paginationInfo.value }
+      orders.value = enrichedOrders
+      return { success: true, data: enrichedOrders, pagination: paginationInfo.value }
     }
     catch (err: any) {
       error.value = err.message
@@ -121,7 +151,7 @@ export const useOrderStore = defineStore('order', () => {
           return result.data
         },
         CACHE_CONFIG.DEFAULT_TTL,
-      )
+      ) as Order
 
       currentOrder.value = data
       return { success: true, data }

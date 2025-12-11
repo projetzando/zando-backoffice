@@ -1,3 +1,6 @@
+import type { PaginationOptions } from '~/utils/models/filter'
+import { CACHE_CONFIG } from '~/utils/constants/api'
+
 export const useAdminStore = defineStore(
   'admin',
   () => {
@@ -6,6 +9,93 @@ export const useAdminStore = defineStore(
     const currentAdmin = ref<Admin | null>(null)
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
+
+    // Pagination info
+    const paginationInfo = ref({
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    })
+
+    // Composables
+    const { get: getFromCache, invalidatePattern } = useCache()
+    const { fetchPaginated } = usePagination()
+    const notification = useNotification()
+
+    // Obtenir tous les admins avec pagination et cache
+    async function getAll(
+      options: PaginationOptions = {},
+      filters?: {
+        search?: string
+        role?: string
+        is_active?: boolean
+      },
+    ) {
+      const supabase = useSupabaseClient()
+      loading.value = true
+      error.value = null
+
+      try {
+        const cacheKey = `admins:${JSON.stringify({ ...options, ...filters })}`
+
+        const result = await getFromCache(
+          cacheKey,
+          async () => {
+            return await fetchPaginated<Admin>(
+              'profiles',
+              {
+                page: options.page || 1,
+                pageSize: options.pageSize || 10,
+                sortBy: options.sortBy || 'created_at',
+                sortOrder: options.sortOrder || 'desc',
+              },
+              '*',
+              (query) => {
+                let filteredQuery = query.in('role', ['admin', 'superadmin'])
+
+                if (filters?.role && filters.role !== 'all') {
+                  filteredQuery = filteredQuery.eq('role', filters.role)
+                }
+                if (filters?.is_active !== undefined) {
+                  filteredQuery = filteredQuery.eq('is_active', filters.is_active)
+                }
+                if (filters?.search) {
+                  filteredQuery = filteredQuery.or(
+                    `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`,
+                  )
+                }
+
+                return filteredQuery
+              },
+            )
+          },
+          CACHE_CONFIG.DEFAULT_TTL,
+        )
+
+        paginationInfo.value = {
+          total: result.total,
+          page: result.page,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages,
+          hasNextPage: result.hasNextPage,
+          hasPreviousPage: result.hasPreviousPage,
+        }
+
+        admins.value = result.data
+        return { success: true, data: result.data, pagination: paginationInfo.value }
+      }
+      catch (err: any) {
+        error.value = err.message
+        notification.error('Erreur de chargement', err.message)
+        return { success: false, error: err }
+      }
+      finally {
+        loading.value = false
+      }
+    }
 
     // Actions
     async function get() {
@@ -215,8 +305,10 @@ export const useAdminStore = defineStore(
       currentAdmin,
       loading,
       error,
+      paginationInfo,
 
       // Actions
+      getAll,
       get,
       store,
       update,

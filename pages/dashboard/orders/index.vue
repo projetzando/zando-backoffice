@@ -166,6 +166,19 @@ const totalOrdersValue = computed(() => {
 const activeFiltersCount = computed(() => {
   return Object.values(filters.value).filter(value => value && value !== '').length
 })
+
+// Colonnes du tableau
+const orderColumns = [
+  { key: 'id', label: 'N° Commande' },
+  { key: 'buyer', label: 'Acheteur' },
+  { key: 'status', label: 'Statut' },
+  { key: 'total_amount', label: 'Montant' },
+  { key: 'order_items', label: 'Articles' },
+  { key: 'delivery_address', label: 'Livraison' },
+  { key: 'payment_method', label: 'Paiement' },
+  { key: 'created_at', label: 'Date' },
+  { key: 'actions', label: 'Actions' },
+]
 </script>
 
 <template>
@@ -281,8 +294,11 @@ const activeFiltersCount = computed(() => {
                 <p class="font-medium text-gray-900">
                   {{ row.buyer.first_name }} {{ row.buyer.last_name }}
                 </p>
-                <p class="text-sm text-gray-500">
-                  {{ row.buyer.email }}
+                <p
+                  v-if="row.buyer.phone"
+                  class="text-sm text-gray-500"
+                >
+                  {{ row.buyer.phone }}
                 </p>
               </div>
             </div>

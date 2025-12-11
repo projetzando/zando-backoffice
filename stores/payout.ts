@@ -1,3 +1,6 @@
+import type { PaginationOptions } from '~/utils/models/filter'
+import { CACHE_CONFIG } from '~/utils/constants/api'
+
 export const usePayoutStore = defineStore(
   'payout',
   () => {
@@ -6,6 +9,97 @@ export const usePayoutStore = defineStore(
     const currentPayout = ref<Payout | null>(null)
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
+
+    // Pagination info
+    const paginationInfo = ref({
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    })
+
+    // Composables
+    const { get: getFromCache, invalidatePattern } = useCache()
+    const { fetchPaginated } = usePagination()
+    const notification = useNotification()
+
+    // Obtenir tous les payouts avec pagination et cache
+    async function getAll(
+      options: PaginationOptions = {},
+      filters?: {
+        status?: string
+        search?: string
+      },
+    ) {
+      const supabase = useSupabaseClient()
+      loading.value = true
+      error.value = null
+
+      try {
+        const cacheKey = `payouts:${JSON.stringify({ ...options, ...filters })}`
+
+        const result = await getFromCache(
+          cacheKey,
+          async () => {
+            return await fetchPaginated<Payout>(
+              'payouts',
+              {
+                page: options.page || 1,
+                pageSize: options.pageSize || 10,
+                sortBy: options.sortBy || 'requested_at',
+                sortOrder: options.sortOrder || 'desc',
+              },
+              `
+                *,
+                wallet:wallets(
+                  id,
+                  owner_id,
+                  owner_type,
+                  balance
+                )
+              `,
+              (query) => {
+                let filteredQuery = query
+
+                if (filters?.status) {
+                  filteredQuery = filteredQuery.eq('status', filters.status)
+                }
+                if (filters?.search) {
+                  filteredQuery = filteredQuery.or(
+                    `reference.ilike.%${filters.search}%`,
+                  )
+                }
+
+                return filteredQuery
+              },
+            )
+          },
+          CACHE_CONFIG.DEFAULT_TTL,
+        )
+
+        paginationInfo.value = {
+          total: result.total,
+          page: result.page,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages,
+          hasNextPage: result.hasNextPage,
+          hasPreviousPage: result.hasPreviousPage,
+        }
+
+        payouts.value = result.data
+        return { success: true, data: result.data, pagination: paginationInfo.value }
+      }
+      catch (err: any) {
+        error.value = err.message
+        notification.error('Erreur de chargement', err.message)
+        return { success: false, error: err }
+      }
+      finally {
+        loading.value = false
+      }
+    }
 
     // Actions
     async function get() {
@@ -190,8 +284,10 @@ export const usePayoutStore = defineStore(
       currentPayout,
       loading,
       error,
+      paginationInfo,
 
       // Actions
+      getAll,
       get,
       show,
       updateStatus,

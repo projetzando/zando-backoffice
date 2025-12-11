@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PAGINATION } from '~/utils/constants/api'
+
 definePageMeta({
   name: 'Liste des avis clients',
   layout: 'dashboard',
@@ -7,49 +9,113 @@ definePageMeta({
 const reviewStore = useReviewStore()
 const productStore = useProductStore()
 
-// Charger les données
-onMounted(async () => {
-  await Promise.all([reviewStore.getAll(), productStore.getAll()])
-})
+const { reviews, loading, paginationInfo } = storeToRefs(reviewStore)
 
-const { reviews, loading } = storeToRefs(reviewStore)
-const { products } = storeToRefs(productStore)
+// Pagination côté serveur
+const currentPage = ref(1)
+const pageSize = ref(PAGINATION.DEFAULT_PAGE_SIZE)
 
 // Filtres
 const filters = ref({
   search: '',
-  rating: '',
+  rating: undefined as number | undefined,
   product_id: '',
 })
 
-// Table configuration
-const { q, page, pageCount, oneItem, isOpen, rows, totalFilteredRows, confirmDeleteItem }
-  = useTable(reviews, {
-    searchFields: ['comment', 'user.first_name', 'user.last_name', 'product.title'],
-    filtersConfig: {
-      rating: (item, value) => !value || item.rating === parseInt(value),
-      product_id: (item, value) => !value || item.product_id === value,
-    },
-    filters,
-  })
+// Debounce sur la recherche
+const debouncedSearch = ref('')
+watch(
+  () => filters.value.search,
+  useDebounce((value: string) => {
+    debouncedSearch.value = value
+  }, 500),
+  { immediate: true },
+)
+
+// Fonction pour charger les reviews avec pagination
+async function loadReviews() {
+  const paginationOptions = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: 'created_at',
+    sortOrder: 'desc' as const,
+  }
+
+  const filterOptions = {
+    search: debouncedSearch.value || undefined,
+    rating: filters.value.rating || undefined,
+    product_id: filters.value.product_id || undefined,
+  }
+
+  await reviewStore.getAll(paginationOptions, filterOptions)
+}
+
+// Charger les données au montage
+onMounted(async () => {
+  await loadReviews()
+  await productStore.getAll()
+})
+
+// Computed pour le nombre total de pages
+const totalPages = computed(() => paginationInfo.value.totalPages)
+
+// Changement de page
+function onPageChange(newPage: number) {
+  currentPage.value = newPage
+  loadReviews()
+}
+
+// Changement de taille de page
+function onPageSizeChange(event: any) {
+  const newSize = typeof event === 'number' ? event : Number(event)
+  pageSize.value = newSize
+  currentPage.value = 1
+  loadReviews()
+}
+
+// Watchers pour recharger les données
+watch(debouncedSearch, () => {
+  currentPage.value = 1
+  loadReviews()
+})
+
+watch(
+  () => [filters.value.rating, filters.value.product_id],
+  () => {
+    currentPage.value = 1
+    loadReviews()
+  },
+)
+
+// Réinitialiser les filtres
+function resetFilters() {
+  filters.value = {
+    search: '',
+    rating: undefined,
+    product_id: '',
+  }
+}
 
 // Options pour les filtres
 const ratingOptions = [
-  { value: '', label: 'Toutes les notes' },
-  { value: '5', label: '5 étoiles' },
-  { value: '4', label: '4 étoiles' },
-  { value: '3', label: '3 étoiles' },
-  { value: '2', label: '2 étoiles' },
-  { value: '1', label: '1 étoile' },
+  { value: undefined, label: 'Toutes les notes' },
+  { value: 5, label: '5 étoiles' },
+  { value: 4, label: '4 étoiles' },
+  { value: 3, label: '3 étoiles' },
+  { value: 2, label: '2 étoiles' },
+  { value: 1, label: '1 étoile' },
 ]
 
-const productOptions = computed(() => [
-  { value: '', label: 'Tous les produits' },
-  ...products.value.map(product => ({
-    value: product.id,
-    label: product.title,
-  })),
-])
+const productOptions = computed(() => {
+  const { products } = storeToRefs(productStore)
+  return [
+    { value: '', label: 'Tous les produits' },
+    ...products.value.map(product => ({
+      value: product.id,
+      label: product.title,
+    })),
+  ]
+})
 
 // Fonctions utilitaires
 function formatDate(dateString: string) {
@@ -72,7 +138,11 @@ function generateStars(rating: number) {
 
 // Compter les filtres actifs
 const activeFiltersCount = computed(() => {
-  return Object.values(filters.value).filter(value => value && value !== '').length
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.rating) count++
+  if (filters.value.product_id) count++
+  return count
 })
 
 // Actions
@@ -80,19 +150,10 @@ async function deleteReview(review: any) {
   if (confirm(`Êtes-vous sûr de vouloir supprimer cet avis ?`)) {
     const { success } = await reviewStore.remove(review.id!)
     if (success) {
-      console.log('Avis supprimé avec succès')
+      await loadReviews()
     }
   }
 }
-
-// Appliquer les filtres dynamiquement
-watch(
-  filters,
-  async (newFilters) => {
-    // await reviewStore.getAll(newFilters);
-  },
-  { deep: true },
-)
 </script>
 
 <template>
@@ -103,17 +164,17 @@ watch(
           <div>
             <h5 class="table-title">
               Avis clients
-            </h5>
-            <div class="flex gap-6 text-sm text-gray-600 mt-2">
-              <span>{{ totalFilteredRows }} avis</span>
-              <span
-                v-if="activeFiltersCount > 0"
-                class="text-blue-600"
-              >
-                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{
-                  activeFiltersCount > 1 ? 's' : ''
-                }}
+              <span class="text-sm font-normal text-gray-500 ml-2">
+                ({{ paginationInfo.total }} avis)
               </span>
+            </h5>
+            <div
+              v-if="activeFiltersCount > 0"
+              class="text-sm text-blue-600 mt-2"
+            >
+              {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{
+                activeFiltersCount > 1 ? 's' : ''
+              }}
             </div>
           </div>
         </div>
@@ -122,8 +183,8 @@ watch(
         <div class="flex flex-col sm:flex-row gap-4 py-4 border-y">
           <div class="flex-1">
             <UInput
-              v-model="q"
-              placeholder="Rechercher par commentaire, client ou produit..."
+              v-model="filters.search"
+              placeholder="Rechercher par commentaire..."
               icon="i-heroicons-magnifying-glass"
             />
           </div>
@@ -143,25 +204,34 @@ watch(
               class="min-w-[160px]"
             />
 
-            <!-- Bouton pour réinitialiser les filtres -->
             <UButton
-              v-if="filters.rating || filters.product_id"
+              v-if="activeFiltersCount > 0"
               icon="i-heroicons-x-mark"
               color="gray"
               variant="ghost"
               size="sm"
               title="Réinitialiser les filtres"
-              @click="filters = { search: '', rating: '', product_id: '' }"
+              @click="resetFilters"
             />
           </div>
 
-          <TableElementByPage v-model="pageCount" />
+          <USelect
+            v-model="pageSize"
+            :options="[
+              { value: 10, label: '10 / page' },
+              { value: 20, label: '20 / page' },
+              { value: 50, label: '50 / page' },
+              { value: 100, label: '100 / page' },
+            ]"
+            @change="onPageSizeChange"
+          />
         </div>
       </template>
 
       <template #content>
         <UTable
           :loading="loading"
+          :rows="reviews"
           :columns="[
             { key: 'user', label: 'Client' },
             { key: 'product', label: 'Produit' },
@@ -170,7 +240,6 @@ watch(
             { key: 'created_at', label: 'Date' },
             { key: 'actions', label: 'Actions' },
           ]"
-          :rows="rows"
         >
           <!-- Client -->
           <template #user-data="{ row }">
@@ -197,30 +266,10 @@ watch(
 
           <!-- Produit -->
           <template #product-data="{ row }">
-            <div
-              v-if="row.product"
-              class="flex items-center gap-3"
-            >
-              <img
-                v-if="row.product.cover_image"
-                :src="row.product.cover_image"
-                :alt="row.product.title"
-                class="w-10 h-10 object-cover rounded"
-              >
-              <div
-                v-else
-                class="w-10 h-10 bg-gray-100 rounded flex items-center justify-center"
-              >
-                <UIcon
-                  name="i-heroicons-photo"
-                  class="w-4 h-4 text-gray-400"
-                />
-              </div>
-              <div>
-                <p class="font-medium text-gray-900 truncate max-w-xs">
-                  {{ row.product.title }}
-                </p>
-              </div>
+            <div v-if="row.product">
+              <p class="font-medium text-gray-900">
+                {{ row.product.title }}
+              </p>
             </div>
             <span
               v-else
@@ -243,43 +292,21 @@ watch(
 
           <!-- Commentaire -->
           <template #comment-data="{ row }">
-            <div class="max-w-xs">
-              <p
-                v-if="row.comment"
-                class="text-sm text-gray-900"
-              >
-                {{ row.comment.length > 100 ? row.comment.substring(0, 100) + '...' : row.comment }}
-              </p>
-              <span
-                v-else
-                class="text-gray-400 text-sm"
-              >Aucun commentaire</span>
-
-              <!-- Images de l'avis -->
-              <div
-                v-if="row.images?.length"
-                class="flex gap-1 mt-2"
-              >
-                <img
-                  v-for="(image, index) in row.images.slice(0, 3)"
-                  :key="index"
-                  :src="image"
-                  :alt="`Image ${index + 1}`"
-                  class="w-8 h-8 object-cover rounded"
-                >
-                <span
-                  v-if="row.images.length > 3"
-                  class="text-xs text-gray-500 self-center"
-                >
-                  +{{ row.images.length - 3 }}
-                </span>
-              </div>
-            </div>
+            <p
+              v-if="row.comment"
+              class="text-sm text-gray-600 max-w-md truncate"
+            >
+              {{ row.comment }}
+            </p>
+            <span
+              v-else
+              class="text-gray-400"
+            >Aucun commentaire</span>
           </template>
 
           <!-- Date -->
           <template #created_at-data="{ row }">
-            <span class="text-sm text-gray-500">
+            <span class="text-sm text-gray-600">
               {{ formatDate(row.created_at) }}
             </span>
           </template>
@@ -288,20 +315,11 @@ watch(
           <template #actions-data="{ row }">
             <div class="flex gap-1">
               <UButton
-                icon="i-heroicons-eye"
-                size="sm"
-                color="primary"
-                variant="ghost"
-                title="Voir le produit"
-                @click="navigateTo(`/dashboard/products/show-${row.product_id}`)"
-              />
-
-              <UButton
                 icon="i-heroicons-trash"
                 size="sm"
                 color="red"
                 variant="ghost"
-                title="Supprimer l'avis"
+                title="Supprimer"
                 @click="deleteReview(row)"
               />
             </div>
@@ -310,21 +328,33 @@ watch(
       </template>
 
       <template #footer>
-        <TablePaginationInfo
-          :page="page"
-          :page-count="pageCount"
-          :length="totalFilteredRows"
-          title="avis"
-        />
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
+          <div class="text-sm text-gray-700 text-center sm:text-left">
+            <template v-if="paginationInfo.total > 0">
+              Affichage de
+              <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+              à
+              <span class="font-medium">{{
+                Math.min(currentPage * pageSize, paginationInfo.total)
+              }}</span>
+              sur
+              <span class="font-medium">{{ paginationInfo.total }}</span>
+              avis
+            </template>
+            <template v-else>
+              Aucun avis trouvé
+            </template>
+          </div>
 
-        <UPagination
-          v-if="totalFilteredRows > 0"
-          v-model="page"
-          show-first
-          show-last
-          :page-count="pageCount"
-          :total="totalFilteredRows"
-        />
+          <Pagination
+            v-if="totalPages > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :total="paginationInfo.total"
+            :page-size="pageSize"
+            @update:current-page="onPageChange"
+          />
+        </div>
       </template>
     </TableWrapper>
   </div>
