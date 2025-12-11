@@ -60,10 +60,21 @@ const totalStock = computed(() => {
 
 // Calculer le prix à afficher
 const displayPrice = computed(() => {
-  if (currentProduct.value?.base_price) {
-    return formatPrice(currentProduct.value.base_price);
+  // Si on utilise ProductWithPrice, on a display_price directement calculé par la vue
+  if (currentProduct.value?.display_price) {
+    return formatPrice(currentProduct.value.display_price);
   }
 
+  // Fallback: utiliser price ou sale_price
+  if (currentProduct.value?.sale_price) {
+    return formatPrice(currentProduct.value.sale_price);
+  }
+
+  if (currentProduct.value?.price) {
+    return formatPrice(currentProduct.value.price);
+  }
+
+  // Si c'est un produit variable, calculer à partir des variations
   if (currentProduct.value?.product_variations?.length) {
     const prices = currentProduct.value.product_variations
       .map((v) => v.price)

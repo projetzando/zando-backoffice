@@ -62,8 +62,11 @@ export function getOrderStatus(status: string) {
 
 // Helper pour formater le prix
 export function formatPrice(price: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XAF",
+  // Formater avec séparateur de milliers et décimales si nécessaire
+  const formatted = new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2, // Permet jusqu'à 2 décimales si nécessaire
   }).format(price);
+
+  return `${formatted} XAF`;
 }

@@ -7,6 +7,7 @@ definePageMeta({
 const orderStore = useOrderStore();
 const productStore = useProductStore();
 const authStore = useAuthStore();
+const walletStore = useWalletStore();
 const supabase = useSupabaseClient();
 const { calculateStats, getTrendData, getAlerts } = useDashboardStats();
 
@@ -17,6 +18,7 @@ const { products, loading: productsLoading } = storeToRefs(productStore);
 // Récupérer le seller_id si l'utilisateur est un vendeur
 const currentSellerId = ref<string | null>(null);
 const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
+const isSuperAdmin = computed(() => authStore.connected_user?.role === 'superadmin');
 const sellerInfo = ref<any>(null);
 const walletInfo = ref<any>(null);
 
@@ -59,6 +61,11 @@ async function loadDashboardData() {
   loadingAlerts.value = true;
 
   try {
+    // Si l'utilisateur est un superadmin, récupérer le wallet système
+    if (isSuperAdmin.value) {
+      await walletStore.getSystemWallet();
+    }
+
     // Si l'utilisateur est un vendeur, récupérer ses informations complètes
     if (isSellerUser.value && !currentSellerId.value) {
       const { data: sellerData } = await supabase
@@ -373,6 +380,76 @@ function handleAlertAction(alert: any) {
           <div v-else class="text-center py-8 text-gray-500">
             <UIcon name="i-heroicons-wallet" class="w-12 h-12 mx-auto mb-2 text-gray-300" />
             <p>Portefeuille non configuré</p>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
+    <!-- Wallet Système (SuperAdmin uniquement) -->
+    <UCard v-if="isSuperAdmin && walletStore.systemWallet" class="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+      <div class="flex items-center justify-between">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <UIcon name="i-heroicons-building-library" class="w-6 h-6 text-emerald-600" />
+            Portefeuille Système
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <!-- Solde disponible -->
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-gray-600">Solde disponible</p>
+                <UIcon name="i-heroicons-banknotes" class="w-5 h-5 text-emerald-600" />
+              </div>
+              <p class="text-2xl font-bold text-emerald-600">
+                {{ formatPrice(walletStore.systemWallet.balance || 0) }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">{{ walletStore.systemWallet.currency || 'XAF' }}</p>
+            </div>
+
+            <!-- Solde bloqué -->
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-gray-600">Solde bloqué</p>
+                <UIcon name="i-heroicons-lock-closed" class="w-5 h-5 text-orange-600" />
+              </div>
+              <p class="text-2xl font-bold text-orange-600">
+                {{ formatPrice(walletStore.systemWallet.locked_balance || 0) }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">En cours de traitement</p>
+            </div>
+
+            <!-- Solde total -->
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-gray-600">Solde total</p>
+                <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-blue-600" />
+              </div>
+              <p class="text-2xl font-bold text-blue-600">
+                {{ formatPrice((walletStore.systemWallet.balance || 0) + (walletStore.systemWallet.locked_balance || 0)) }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">Disponible + Bloqué</p>
+            </div>
+          </div>
+
+          <div class="mt-4 flex gap-3">
+            <UButton
+              color="emerald"
+              icon="i-heroicons-eye"
+              size="sm"
+              @click="navigateTo('/dashboard/payouts')"
+            >
+              Voir les transactions
+            </UButton>
+            <UButton
+              color="gray"
+              variant="outline"
+              icon="i-heroicons-arrow-path"
+              size="sm"
+              :loading="walletStore.loading"
+              @click="walletStore.getSystemWallet()"
+            >
+              Actualiser
+            </UButton>
           </div>
         </div>
       </div>

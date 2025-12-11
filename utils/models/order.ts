@@ -50,15 +50,6 @@ export interface Address extends Timestamps {
   is_default?: boolean;
 }
 
-export interface Profile extends Timestamps {
-  readonly id?: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
-  role?: 'buyer' | 'seller' | 'admin' | 'superadmin';
-  avatar_url?: string;
-}
-
 // Types pour les filtres et recherches
 export interface OrderFilters {
   status?: string;
