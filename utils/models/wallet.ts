@@ -10,13 +10,14 @@ export interface Wallet extends Timestamps {
   locked_balance?: number
 }
 
-export interface WalletTransaction extends Timestamps {
+export interface Transaction extends Timestamps {
   readonly id?: string
   wallet_id: string
-  type: 'credit' | 'debit'
+  transaction_type: 'credit' | 'debit'
   amount: number
-  description?: string
+  balance_before?: number
+  balance_after?: number
+  reason?: string
   reference?: string
-  status?: 'pending' | 'completed' | 'failed'
   metadata?: Record<string, any>
 }

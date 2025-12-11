@@ -22,6 +22,9 @@ const isSuperAdmin = computed(() => authStore.connected_user?.role === 'superadm
 const sellerInfo = ref<any>(null);
 const walletInfo = ref<any>(null);
 
+// Modal des transactions du wallet système
+const showSystemWalletTransactions = ref(false);
+
 // Période sélectionnée pour les statistiques
 const selectedPeriod = ref("month");
 const periodOptions = [
@@ -436,7 +439,7 @@ function handleAlertAction(alert: any) {
               color="emerald"
               icon="i-heroicons-eye"
               size="sm"
-              @click="navigateTo('/dashboard/payouts')"
+              @click="showSystemWalletTransactions = true"
             >
               Voir les transactions
             </UButton>
@@ -796,5 +799,12 @@ function handleAlertAction(alert: any) {
         </div>
       </UCard>
     </div>
+
+    <!-- Modal des transactions du wallet système -->
+    <SystemWalletTransactions
+      v-if="showSystemWalletTransactions && walletStore.systemWallet"
+      :wallet-id="walletStore.systemWallet.id"
+      @close="showSystemWalletTransactions = false"
+    />
   </div>
 </template>
