@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: "Modification d'une ville",
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin']
 })
 
 const cityStore = useCityStore()

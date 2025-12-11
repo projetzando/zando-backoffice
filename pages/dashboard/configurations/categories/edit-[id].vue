@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
     name: "Modification d'une catégorie",
-    // roles: ['admin', 'superadmin'],
+    roles: ['admin', 'superadmin'],
     layout: 'dashboard'
 })
 

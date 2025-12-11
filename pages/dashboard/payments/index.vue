@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Paiements',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'],
 })
 
 const paymentStore = usePaymentStore()

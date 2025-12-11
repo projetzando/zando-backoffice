@@ -2,6 +2,7 @@
 definePageMeta({
   layout: "dashboard",
   name: "Détails d'un vendeur",
+  roles: ['admin', 'superadmin'],
 });
 
 const route = useRoute();

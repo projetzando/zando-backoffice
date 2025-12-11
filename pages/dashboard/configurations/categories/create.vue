@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: "Nouvelle catégorie",
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'],
 })
 
 const categoryStore = useCategoryStore()
