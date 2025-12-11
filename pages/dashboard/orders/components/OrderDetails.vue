@@ -28,11 +28,12 @@
                 <div class="flex-shrink-0">
                   <img
                     v-if="
-                      item.product?.cover_image || item.product?.images?.[0]
+                      isValidImageUrl(item.product?.cover_image || item.product?.images?.[0])
                     "
                     :src="item.product.cover_image || item.product.images[0]"
                     :alt="item.product.title"
                     class="w-16 h-16 object-cover rounded-lg border"
+                    @error="handleImageError"
                   />
                   <div
                     v-else
@@ -274,7 +275,7 @@
         <!-- Colonne latérale -->
         <div class="space-y-6">
           <!-- Informations de l'acheteur -->
-          <UCard>
+          <UCard v-if="!isSellerUser">
             <template #header>
               <h3 class="text-lg font-semibold">Acheteur</h3>
             </template>
@@ -335,8 +336,8 @@
             </div>
           </UCard>
 
-          <!-- Adresse de livraison -->
-          <UCard>
+          <!-- Adresse de livraison (cachée pour les vendeurs) -->
+          <UCard v-if="!isSellerUser">
             <template #header>
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Adresse de livraison</h3>
@@ -527,6 +528,39 @@ const formatPrice = (amount: number) => {
   }).format(amount);
 };
 
+// Fonction pour vérifier si l'URL de l'image est valide (pas une URL locale du téléphone)
+const isValidImageUrl = (url: string | undefined | null): boolean => {
+  if (!url) return false;
+
+  // Bloquer les URLs locales du téléphone (file://, content://, etc.)
+  if (url.startsWith('file://') ||
+      url.startsWith('content://') ||
+      url.startsWith('/data/') ||
+      url.startsWith('/storage/')) {
+    return false;
+  }
+
+  // Accepter seulement les URLs HTTP/HTTPS
+  return url.startsWith('http://') || url.startsWith('https://');
+};
+
+// Gestionnaire d'erreur pour les images qui ne chargent pas
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement;
+  // Masquer l'image en erreur en supprimant le src
+  target.style.display = 'none';
+  // Afficher l'icône par défaut à la place
+  if (target.parentElement) {
+    target.parentElement.innerHTML = `
+      <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+    `;
+  }
+};
+
 // Calculs réactifs
 const calculateSubtotal = computed(() => {
   if (!props.order?.order_items) return 0;
@@ -573,6 +607,7 @@ const getStatusBadgeColor = (status: string) => {
     confirmed: "blue",
     shipped: "purple",
     delivered: "green",
+    received: "emerald",
     cancelled: "red",
   };
   return colors[status as keyof typeof colors] || "gray";
@@ -584,6 +619,7 @@ const getStatusBadgeLabel = (status: string) => {
     confirmed: "Confirmé",
     shipped: "Expédié",
     delivered: "Livré",
+    received: "Réceptionné",
     cancelled: "Annulé",
   };
   return labels[status as keyof typeof labels] || status;

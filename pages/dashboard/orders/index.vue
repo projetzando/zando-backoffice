@@ -48,13 +48,14 @@ const {
   filters,
 });
 
-// Options pour les filtres (selon nouveau schéma)
+// Options pour les filtres
 const statusOptions = [
   { value: "", label: "Tous les statuts" },
   { value: "pending", label: "En attente" },
   { value: "confirmed", label: "Confirmée" },
   { value: "shipped", label: "Expédiée" },
   { value: "delivered", label: "Livrée" },
+  { value: "received", label: "Réceptionnée" },
   { value: "cancelled", label: "Annulée" },
 ];
 
@@ -64,6 +65,7 @@ function getStatusColor(status: string) {
     confirmed: "blue",
     shipped: "purple",
     delivered: "green",
+    received: "emerald",
     cancelled: "red",
   };
   return colors[status as keyof typeof colors] || "gray";
@@ -75,6 +77,7 @@ function getStatusLabel(status: string) {
     confirmed: "Confirmée",
     shipped: "Expédiée",
     delivered: "Livrée",
+    received: "Réceptionnée",
     cancelled: "Annulée",
   };
   return labels[status as keyof typeof labels] || status;

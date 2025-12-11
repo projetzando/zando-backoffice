@@ -46,15 +46,23 @@ async function cancelOrder() {
   }
 }
 
-// Actions rapides basées sur le statut
+// Actions rapides basées sur le statut et le rôle
 const availableActions = computed(() => {
   if (!currentOrder.value) return [];
 
   const status = currentOrder.value.status;
+  const userRole = authStore.connected_user?.role;
   const actions = [];
 
+  // Les vendeurs ne peuvent pas gérer les commandes, seulement les voir
+  if (isSellerUser.value) {
+    return [];
+  }
+
+  // Actions selon le statut (pour admin/superadmin uniquement)
   switch (status) {
     case "pending":
+      // Nouvelle commande : peut être confirmée ou annulée
       actions.push(
         {
           label: "Confirmer",
@@ -70,13 +78,15 @@ const availableActions = computed(() => {
         }
       );
       break;
+
     case "confirmed":
+      // Commande confirmée : peut être expédiée ou annulée
       actions.push(
         {
-          label: "Traiter",
-          action: () => updateOrderStatus("processing"),
-          color: "blue",
-          icon: "i-heroicons-cog-8-tooth",
+          label: "Expédier",
+          action: () => updateOrderStatus("shipped"),
+          color: "purple",
+          icon: "i-heroicons-truck",
         },
         {
           label: "Annuler",
@@ -86,21 +96,33 @@ const availableActions = computed(() => {
         }
       );
       break;
-    case "processing":
-      actions.push({
-        label: "Expédier",
-        action: () => updateOrderStatus("shipped"),
-        color: "purple",
-        icon: "i-heroicons-truck",
-      });
-      break;
+
     case "shipped":
+      // Commande expédiée : peut être marquée comme livrée
       actions.push({
         label: "Marquer livrée",
         action: () => updateOrderStatus("delivered"),
         color: "green",
         icon: "i-heroicons-check-badge",
       });
+      break;
+
+    case "delivered":
+      // Commande livrée : peut être marquée comme réceptionnée
+      actions.push({
+        label: "Marquer réceptionnée",
+        action: () => updateOrderStatus("received"),
+        color: "green",
+        icon: "i-heroicons-check-circle",
+      });
+      break;
+
+    case "received":
+      // Commande réceptionnée : aucune action possible (état final)
+      break;
+
+    case "cancelled":
+      // Commande annulée : aucune action possible (état final)
       break;
   }
 
@@ -112,11 +134,10 @@ function getStatusColor(status: string) {
   const colors = {
     pending: "orange",
     confirmed: "blue",
-    processing: "yellow",
     shipped: "purple",
     delivered: "green",
+    received: "emerald",
     cancelled: "red",
-    returned: "gray",
   };
   return colors[status as keyof typeof colors] || "gray";
 }
@@ -125,11 +146,10 @@ function getStatusLabel(status: string) {
   const labels = {
     pending: "En attente",
     confirmed: "Confirmée",
-    processing: "En cours",
     shipped: "Expédiée",
     delivered: "Livrée",
+    received: "Réceptionnée",
     cancelled: "Annulée",
-    returned: "Retournée",
   };
   return labels[status as keyof typeof labels] || status;
 }
