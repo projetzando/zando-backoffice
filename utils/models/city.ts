@@ -1,4 +1,4 @@
 export interface City extends Timestamps {
-    readonly id?: string
-    name: string
+  readonly id?: string
+  name: string
 }

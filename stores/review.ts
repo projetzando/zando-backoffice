@@ -7,11 +7,7 @@ export const useReviewStore = defineStore('review', () => {
   const error = ref<string | null>(null)
 
   // Obtenir toutes les avis
-  async function getAll(filters?: {
-    product_id?: string
-    user_id?: string
-    rating?: number
-  }) {
+  async function getAll(filters?: { product_id?: string, user_id?: string, rating?: number }) {
     const supabase = useSupabaseClient()
     const authStore = useAuthStore()
     loading.value = true
@@ -39,7 +35,8 @@ export const useReviewStore = defineStore('review', () => {
 
           if (productsData && productsData.length > 0) {
             sellerProductIds = productsData.map(p => p.id!)
-          } else {
+          }
+          else {
             // Aucun produit, donc aucun avis
             reviews.value = []
             return { success: true, data: [] }
@@ -82,17 +79,19 @@ export const useReviewStore = defineStore('review', () => {
 
           return {
             ...review,
-            user: userProfile
+            user: userProfile,
           }
-        })
+        }),
       )
 
       reviews.value = enrichedReviews
       return { success: true, data: enrichedReviews }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -123,16 +122,18 @@ export const useReviewStore = defineStore('review', () => {
 
           return {
             ...review,
-            user: userProfile
+            user: userProfile,
           }
-        })
+        }),
       )
 
       return { success: true, data: enrichedReviews }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -161,15 +162,17 @@ export const useReviewStore = defineStore('review', () => {
 
       const enrichedData = {
         ...data,
-        user: userProfile
+        user: userProfile,
       }
 
       reviews.value.unshift(enrichedData)
       return { success: true, data: enrichedData }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -199,7 +202,7 @@ export const useReviewStore = defineStore('review', () => {
 
       const enrichedData = {
         ...data,
-        user: userProfile
+        user: userProfile,
       }
 
       const index = reviews.value.findIndex(r => r.id === id)
@@ -212,10 +215,12 @@ export const useReviewStore = defineStore('review', () => {
       }
 
       return { success: true, data: enrichedData }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -227,10 +232,7 @@ export const useReviewStore = defineStore('review', () => {
     error.value = null
 
     try {
-      const { error: supaError } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', id)
+      const { error: supaError } = await supabase.from('reviews').delete().eq('id', id)
 
       if (supaError) throw supaError
 
@@ -240,10 +242,12 @@ export const useReviewStore = defineStore('review', () => {
       }
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -261,9 +265,8 @@ export const useReviewStore = defineStore('review', () => {
       if (supaError) throw supaError
 
       const totalReviews = reviews.length
-      const avgRating = totalReviews > 0 
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
-        : 0
+      const avgRating
+        = totalReviews > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews : 0
 
       const ratingDistribution = {
         5: reviews.filter(r => r.rating === 5).length,
@@ -278,10 +281,11 @@ export const useReviewStore = defineStore('review', () => {
         data: {
           totalReviews,
           avgRating: Math.round(avgRating * 10) / 10,
-          ratingDistribution
-        }
+          ratingDistribution,
+        },
       }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       return { success: false, error: err }
     }
   }
@@ -307,6 +311,6 @@ export const useReviewStore = defineStore('review', () => {
     update,
     remove,
     getProductStats,
-    $reset
+    $reset,
   }
 })

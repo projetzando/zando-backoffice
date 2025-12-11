@@ -1,29 +1,29 @@
 <script setup lang="ts">
-const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu();
+const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu()
 </script>
 
 <template>
   <div class="px-4 space-y-2">
-    <h3 class="uppercase text-sm font-semibold my-4">Paramètres</h3>
+    <h3 class="uppercase text-sm font-semibold my-4">
+      Paramètres
+    </h3>
 
     <NavigationSidebarButton
-      label="Configuration"
-      :isActive="
-        activeMenu === Menu.Localisation || activeChild === Menu.Localisation
-      "
-      iconLeft="heroicons:cog"
-      @click="toggleMenu(Menu.Localisation)"
       v-role="['admin', 'superadmin']"
+      label="Configuration"
+      :is-active="activeMenu === Menu.Localisation || activeChild === Menu.Localisation"
+      icon-left="heroicons:cog"
+      @click="toggleMenu(Menu.Localisation)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Localisation">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.Localisation">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.Localisation)"
         v-for="link in localisationLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
         :permission="link.permission"
+        @click="setActiveChild(Menu.Localisation)"
       />
     </NavigationSidebarDropdown>
   </div>

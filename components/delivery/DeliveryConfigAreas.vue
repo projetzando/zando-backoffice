@@ -4,8 +4,8 @@ const cityStore = useCityStore()
 const toast = useToast()
 
 onMounted(() => {
-    cityStore.get()
-    areaStore.get()
+  cityStore.get()
+  areaStore.get()
 })
 
 const { areas } = storeToRefs(areaStore)
@@ -18,172 +18,203 @@ const isEditing = ref(false)
 const currentArea = ref<Area>({ name: '', city_id: '' })
 
 const filteredAreas = computed(() => {
-    let filtered = areas.value
+  let filtered = areas.value
 
-    if (selectedCityFilter.value) {
-        filtered = filtered.filter(area => area.city_id === selectedCityFilter.value)
-    }
+  if (selectedCityFilter.value) {
+    filtered = filtered.filter(area => area.city_id === selectedCityFilter.value)
+  }
 
-    if (searchQuery.value) {
-        filtered = filtered.filter(area =>
-            area.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        )
-    }
+  if (searchQuery.value) {
+    filtered = filtered.filter(area =>
+      area.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    )
+  }
 
-    return filtered
+  return filtered
 })
 
 const cityOptions = computed(() =>
-    cities.value.map(city => ({ label: city.name, value: city.id }))
+  cities.value.map(city => ({ label: city.name, value: city.id })),
 )
 
 function openCreateModal() {
-    isEditing.value = false
-    currentArea.value = { name: '', city_id: '' }
-    showModal.value = true
+  isEditing.value = false
+  currentArea.value = { name: '', city_id: '' }
+  showModal.value = true
 }
 
 function openEditModal(area: Area) {
-    isEditing.value = true
-    currentArea.value = { ...area }
-    showModal.value = true
+  isEditing.value = true
+  currentArea.value = { ...area }
+  showModal.value = true
 }
 
 async function saveArea() {
-    const result = isEditing.value
-        ? await areaStore.update(currentArea.value.id!, currentArea.value)
-        : await areaStore.store(currentArea.value)
+  const result = isEditing.value
+    ? await areaStore.update(currentArea.value.id!, currentArea.value)
+    : await areaStore.store(currentArea.value)
 
-    if (result.success) {
-        toast.add({
-            title: 'Succès',
-            description: `Quartier ${isEditing.value ? 'modifié' : 'créé'} avec succès`,
-            color: 'green'
-        })
-        showModal.value = false
-        await areaStore.get()
-    } else {
-        toast.add({
-            title: 'Erreur',
-            description: result.error?.message || 'Une erreur est survenue',
-            color: 'red'
-        })
-    }
+  if (result.success) {
+    toast.add({
+      title: 'Succès',
+      description: `Quartier ${isEditing.value ? 'modifié' : 'créé'} avec succès`,
+      color: 'green',
+    })
+    showModal.value = false
+    await areaStore.get()
+  }
+  else {
+    toast.add({
+      title: 'Erreur',
+      description: result.error?.message || 'Une erreur est survenue',
+      color: 'red',
+    })
+  }
 }
 
 async function deleteArea(area: Area) {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${area.name} ?`)) return
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer ${area.name} ?`)) return
 
-    const result = await areaStore.destroy(area.id!)
+  const result = await areaStore.destroy(area.id!)
 
-    if (result.success) {
-        toast.add({
-            title: 'Supprimé',
-            description: 'Quartier supprimé avec succès',
-            color: 'green'
-        })
-        await areaStore.get()
-    } else {
-        toast.add({
-            title: 'Erreur',
-            description: result.error?.message || 'Impossible de supprimer',
-            color: 'red'
-        })
-    }
+  if (result.success) {
+    toast.add({
+      title: 'Supprimé',
+      description: 'Quartier supprimé avec succès',
+      color: 'green',
+    })
+    await areaStore.get()
+  }
+  else {
+    toast.add({
+      title: 'Erreur',
+      description: result.error?.message || 'Impossible de supprimer',
+      color: 'red',
+    })
+  }
 }
 </script>
 
 <template>
-    <div class="space-y-4">
-        <!-- Actions -->
-        <div class="flex justify-between items-center gap-4">
-            <div class="flex gap-2 flex-1">
-                <UInput
-                    v-model="searchQuery"
-                    placeholder="Rechercher un quartier..."
-                    icon="i-heroicons-magnifying-glass"
-                    class="flex-1"
-                />
-                <USelectMenu
-                    v-model="selectedCityFilter"
-                    :options="[{ label: 'Toutes les villes', value: null }, ...cityOptions]"
-                    placeholder="Filtrer par ville"
-                    class="w-64"
-                />
-            </div>
-            <UButton
-                @click="openCreateModal"
-                icon="i-heroicons-plus"
-                label="Nouveau quartier"
-                color="primary"
-            />
-        </div>
-
-        <!-- Liste des quartiers -->
-        <UTable :rows="filteredAreas" :columns="[
-            { key: 'name', label: 'Nom' },
-            { key: 'city', label: 'Ville' },
-            { key: 'actions', label: 'Actions' }
-        ]">
-            <template #city-data="{ row }">
-                <UBadge color="blue" variant="subtle">
-                    {{ row.city?.name }}
-                </UBadge>
-            </template>
-
-            <template #actions-data="{ row }">
-                <div class="flex gap-2">
-                    <UButton
-                        @click="openEditModal(row)"
-                        icon="i-heroicons-pencil"
-                        size="sm"
-                        color="primary"
-                        variant="ghost"
-                    />
-                    <UButton
-                        @click="deleteArea(row)"
-                        icon="i-heroicons-trash"
-                        size="sm"
-                        color="red"
-                        variant="ghost"
-                    />
-                </div>
-            </template>
-        </UTable>
-
-        <!-- Modal -->
-        <UModal v-model="showModal">
-            <UCard>
-                <template #header>
-                    <h3 class="text-lg font-semibold">
-                        {{ isEditing ? 'Modifier' : 'Nouveau' }} quartier
-                    </h3>
-                </template>
-
-                <UForm :state="currentArea" :schema="areaSchema" @submit="saveArea" class="space-y-4">
-                    <UFormGroup label="Ville" name="city_id" required>
-                        <USelectMenu
-                            v-model="currentArea.city_id"
-                            :options="cityOptions"
-                            placeholder="Sélectionner une ville"
-                            value-attribute="value"
-                        />
-                    </UFormGroup>
-
-                    <UFormGroup label="Nom du quartier" name="name" required>
-                        <UInput v-model="currentArea.name" placeholder="Ex: Centre-ville" />
-                    </UFormGroup>
-
-                    <div class="flex justify-end gap-2">
-                        <UButton @click="showModal = false" color="gray" variant="outline">
-                            Annuler
-                        </UButton>
-                        <UButton type="submit" :loading="areaStore.loading">
-                            {{ isEditing ? 'Modifier' : 'Créer' }}
-                        </UButton>
-                    </div>
-                </UForm>
-            </UCard>
-        </UModal>
+  <div class="space-y-4">
+    <!-- Actions -->
+    <div class="flex justify-between items-center gap-4">
+      <div class="flex gap-2 flex-1">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Rechercher un quartier..."
+          icon="i-heroicons-magnifying-glass"
+          class="flex-1"
+        />
+        <USelectMenu
+          v-model="selectedCityFilter"
+          :options="[{ label: 'Toutes les villes', value: null }, ...cityOptions]"
+          placeholder="Filtrer par ville"
+          class="w-64"
+        />
+      </div>
+      <UButton
+        icon="i-heroicons-plus"
+        label="Nouveau quartier"
+        color="primary"
+        @click="openCreateModal"
+      />
     </div>
+
+    <!-- Liste des quartiers -->
+    <UTable
+      :rows="filteredAreas"
+      :columns="[
+        { key: 'name', label: 'Nom' },
+        { key: 'city', label: 'Ville' },
+        { key: 'actions', label: 'Actions' },
+      ]"
+    >
+      <template #city-data="{ row }">
+        <UBadge
+          color="blue"
+          variant="subtle"
+        >
+          {{ row.city?.name }}
+        </UBadge>
+      </template>
+
+      <template #actions-data="{ row }">
+        <div class="flex gap-2">
+          <UButton
+            icon="i-heroicons-pencil"
+            size="sm"
+            color="primary"
+            variant="ghost"
+            @click="openEditModal(row)"
+          />
+          <UButton
+            icon="i-heroicons-trash"
+            size="sm"
+            color="red"
+            variant="ghost"
+            @click="deleteArea(row)"
+          />
+        </div>
+      </template>
+    </UTable>
+
+    <!-- Modal -->
+    <UModal v-model="showModal">
+      <UCard>
+        <template #header>
+          <h3 class="text-lg font-semibold">
+            {{ isEditing ? 'Modifier' : 'Nouveau' }} quartier
+          </h3>
+        </template>
+
+        <UForm
+          :state="currentArea"
+          :schema="areaSchema"
+          class="space-y-4"
+          @submit="saveArea"
+        >
+          <UFormGroup
+            label="Ville"
+            name="city_id"
+            required
+          >
+            <USelectMenu
+              v-model="currentArea.city_id"
+              :options="cityOptions"
+              placeholder="Sélectionner une ville"
+              value-attribute="value"
+            />
+          </UFormGroup>
+
+          <UFormGroup
+            label="Nom du quartier"
+            name="name"
+            required
+          >
+            <UInput
+              v-model="currentArea.name"
+              placeholder="Ex: Centre-ville"
+            />
+          </UFormGroup>
+
+          <div class="flex justify-end gap-2">
+            <UButton
+              color="gray"
+              variant="outline"
+              @click="showModal = false"
+            >
+              Annuler
+            </UButton>
+            <UButton
+              type="submit"
+              :loading="areaStore.loading"
+            >
+              {{ isEditing ? 'Modifier' : 'Créer' }}
+            </UButton>
+          </div>
+        </UForm>
+      </UCard>
+    </UModal>
+  </div>
 </template>

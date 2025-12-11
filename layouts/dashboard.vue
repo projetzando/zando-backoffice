@@ -5,22 +5,22 @@ provide('confirm', confirm)
 </script>
 
 <template>
-    <div class="flex min-h-screen  w-full relative">
-        <Preloader />
-        <NetworkStatus />
+  <div class="flex min-h-screen w-full relative">
+    <Preloader />
+    <NetworkStatus />
 
-        <NavigationSidebar class="" />
+    <NavigationSidebar class="" />
 
-        <ConfirmDialog ref="confirm" />
+    <ConfirmDialog ref="confirm" />
 
-        <main class=" bg-white w-full overflow-x-auto">
-            <InitData />
+    <main class="bg-white w-full overflow-x-auto">
+      <InitData />
 
-            <NavigationHeader />
+      <NavigationHeader />
 
-            <div class="p-4 my-5">
-                <slot />
-            </div>
-        </main>
-    </div>
+      <div class="p-4 my-5">
+        <slot />
+      </div>
+    </main>
+  </div>
 </template>

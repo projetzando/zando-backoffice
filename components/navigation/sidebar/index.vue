@@ -1,33 +1,34 @@
-<script setup lang='ts'>
-const { resetMenuState } = useMenu();
+<script setup lang="ts">
+const { resetMenuState } = useMenu()
 </script>
 
-
 <template>
-    <aside class="w-80 h-screen bg-white hidden flex-col border-r sticky top-0 laptop-m:flex">
-        <div class="py-4 px-4 sticky top-0 bg-white z-10 flex">
-            <img
-                src="~/assets/images/logo.png"
-                alt="Logo"
-                width="150"
-            >
-        </div>
+  <aside class="w-80 h-screen bg-white hidden flex-col border-r sticky top-0 laptop-m:flex">
+    <div class="py-4 px-4 sticky top-0 bg-white z-10 flex">
+      <img
+        src="~/assets/images/logo.png"
+        alt="Logo"
+        width="150"
+      >
+    </div>
 
-        <nav class="flex flex-col space-y-4 overflow-x-auto">
-            <div class="py-2 px-4">
-                <h3 class="uppercase text-sm font-semibold my-4">Accueil</h3>
+    <nav class="flex flex-col space-y-4 overflow-x-auto">
+      <div class="py-2 px-4">
+        <h3 class="uppercase text-sm font-semibold my-4">
+          Accueil
+        </h3>
 
-                <NavigationLink
-                    title="Tableau de bord"
-                    link="/dashboard"
-                    icon="heroicons:home"
-                    @click="resetMenuState"
-                />
-            </div>
+        <NavigationLink
+          title="Tableau de bord"
+          link="/dashboard"
+          icon="heroicons:home"
+          @click="resetMenuState"
+        />
+      </div>
 
-            <NavigationSidebarModule />
+      <NavigationSidebarModule />
 
-            <NavigationSidebarConfig v-role="['admin', 'superadmin']" />
-        </nav>
-    </aside>
+      <NavigationSidebarConfig v-role="['admin', 'superadmin']" />
+    </nav>
+  </aside>
 </template>

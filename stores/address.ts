@@ -22,10 +22,12 @@ export const useAddressStore = defineStore('address', () => {
 
       addresses.value = data || []
       return { success: true, data: data || [] }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -55,10 +57,12 @@ export const useAddressStore = defineStore('address', () => {
 
       addresses.value.unshift(data)
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -101,10 +105,12 @@ export const useAddressStore = defineStore('address', () => {
       }
 
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -116,10 +122,7 @@ export const useAddressStore = defineStore('address', () => {
     error.value = null
 
     try {
-      const { error: supaError } = await supabase
-        .from('addresses')
-        .delete()
-        .eq('id', id)
+      const { error: supaError } = await supabase.from('addresses').delete().eq('id', id)
 
       if (supaError) throw supaError
 
@@ -129,10 +132,12 @@ export const useAddressStore = defineStore('address', () => {
       }
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -145,10 +150,7 @@ export const useAddressStore = defineStore('address', () => {
 
     try {
       // Désactiver toutes les adresses par défaut de l'utilisateur
-      await supabase
-        .from('addresses')
-        .update({ is_default: false })
-        .eq('user_id', userId)
+      await supabase.from('addresses').update({ is_default: false }).eq('user_id', userId)
 
       // Définir la nouvelle adresse par défaut
       const { data, error: supaError } = await supabase
@@ -163,14 +165,16 @@ export const useAddressStore = defineStore('address', () => {
       // Mettre à jour la liste locale
       addresses.value = addresses.value.map(a => ({
         ...a,
-        is_default: a.id === id
+        is_default: a.id === id,
       }))
 
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -203,6 +207,6 @@ export const useAddressStore = defineStore('address', () => {
     update,
     remove,
     setAsDefault,
-    $reset
+    $reset,
   }
 })

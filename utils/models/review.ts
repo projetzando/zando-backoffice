@@ -6,7 +6,7 @@ export interface Review extends Timestamps {
   rating: number // 1-5
   comment?: string
   images?: string[]
-  
+
   // Relations
   product?: Product
   user?: Profile

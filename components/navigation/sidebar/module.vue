@@ -1,103 +1,102 @@
 <script setup lang="ts">
-const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
-  useMenu();
+const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } = useMenu()
 </script>
 
 <template>
   <div class="px-4 space-y-2">
-    <h3 class="uppercase text-sm font-semibold my-4">Modules</h3>
+    <h3 class="uppercase text-sm font-semibold my-4">
+      Modules
+    </h3>
 
     <NavigationSidebarButton
       label="Commandes"
-      :isActive="activeMenu === Menu.Order || activeChild === Menu.Order"
-      iconLeft="heroicons:shopping-cart"
+      :is-active="activeMenu === Menu.Order || activeChild === Menu.Order"
+      icon-left="heroicons:shopping-cart"
       @click="toggleMenu(Menu.Order)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Order">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.Order">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.Order)"
         v-for="link in orderLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
         :target="link.target"
         :permission="link.permission"
+        @click="setActiveChild(Menu.Order)"
       />
     </NavigationSidebarDropdown>
 
     <NavigationSidebarButton
       label="Produits"
-      :isActive="activeMenu === Menu.Product || activeChild === Menu.Product"
-      iconLeft="iconoir:multiple-pages"
+      :is-active="activeMenu === Menu.Product || activeChild === Menu.Product"
+      icon-left="iconoir:multiple-pages"
       @click="toggleMenu(Menu.Product)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Product">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.Product">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.Product)"
         v-for="link in productLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
+        @click="setActiveChild(Menu.Product)"
       />
     </NavigationSidebarDropdown>
 
     <NavigationSidebarButton
       label="Conversations"
-      :isActive="
-        activeMenu === Menu.Conversation || activeChild === Menu.Conversation
-      "
-      iconLeft="heroicons:chat-bubble-left-right"
+      :is-active="activeMenu === Menu.Conversation || activeChild === Menu.Conversation"
+      icon-left="heroicons:chat-bubble-left-right"
       @click="toggleMenu(Menu.Conversation)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Conversation">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.Conversation">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.Conversation)"
         v-for="link in conversationLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
         :permission="link.permission"
+        @click="setActiveChild(Menu.Conversation)"
       />
     </NavigationSidebarDropdown>
 
     <NavigationSidebarButton
-      label="Paiements"
-      :isActive="activeMenu === Menu.Payment || activeChild === Menu.Payment"
-      iconLeft="heroicons:banknotes"
-      @click="toggleMenu(Menu.Payment)"
       v-role="['admin', 'superadmin']"
+      label="Paiements"
+      :is-active="activeMenu === Menu.Payment || activeChild === Menu.Payment"
+      icon-left="heroicons:banknotes"
+      @click="toggleMenu(Menu.Payment)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.Payment">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.Payment">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.Payment)"
         v-for="link in paymentLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
         :permission="link.permission"
+        @click="setActiveChild(Menu.Payment)"
       />
     </NavigationSidebarDropdown>
 
     <NavigationSidebarButton
-      label="Comptes"
-      :isActive="activeMenu === Menu.User || activeChild === Menu.User"
-      iconLeft="heroicons:users"
-      @click="toggleMenu(Menu.User)"
       v-role="['admin', 'superadmin']"
+      label="Comptes"
+      :is-active="activeMenu === Menu.User || activeChild === Menu.User"
+      icon-left="heroicons:users"
+      @click="toggleMenu(Menu.User)"
     />
 
-    <NavigationSidebarDropdown :isActive="activeMenu === Menu.User">
+    <NavigationSidebarDropdown :is-active="activeMenu === Menu.User">
       <NavigationSidebarLink
-        @click="setActiveChild(Menu.User)"
         v-for="link in userLinks"
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
         :permission="link.permission"
+        @click="setActiveChild(Menu.User)"
       />
     </NavigationSidebarDropdown>
 

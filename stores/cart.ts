@@ -19,7 +19,7 @@ export const useCartStore = defineStore('cart', () => {
       if (supaError) throw supaError
 
       currentCart.value = data || []
-      
+
       // Pour compatibilité, remplir aussi cartItems avec les données simplifiées
       cartItems.value = (data || []).map(item => ({
         id: item.id,
@@ -28,14 +28,16 @@ export const useCartStore = defineStore('cart', () => {
         variant_id: item.variant_id, // Garder pour compatibilité vue
         variation_id: item.variation_id,
         quantity: item.quantity,
-        created_at: item.created_at
+        created_at: item.created_at,
       }))
-      
+
       return { success: true, data: data || [] }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -49,21 +51,25 @@ export const useCartStore = defineStore('cart', () => {
     try {
       const { data, error: supaError } = await supabase
         .from('cart_items')
-        .select(`
+        .select(
+          `
           *,
           product:products(*),
           variation:product_variations(*)
-        `)
+        `,
+        )
         .eq('user_id', userId)
 
       if (supaError) throw supaError
 
       cartItems.value = data || []
       return { success: true, data: data || [] }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -90,19 +96,16 @@ export const useCartStore = defineStore('cart', () => {
         // Mettre à jour la quantité
         result = await supabase
           .from('cart_items')
-          .update({ 
-            quantity: existingItem.quantity + cartItem.quantity 
+          .update({
+            quantity: existingItem.quantity + cartItem.quantity,
           })
           .eq('id', existingItem.id)
           .select()
           .single()
-      } else {
+      }
+      else {
         // Créer un nouvel article
-        result = await supabase
-          .from('cart_items')
-          .insert([cartItem])
-          .select()
-          .single()
+        result = await supabase.from('cart_items').insert([cartItem]).select().single()
       }
 
       if (result.error) throw result.error
@@ -111,10 +114,12 @@ export const useCartStore = defineStore('cart', () => {
       await getCart(cartItem.user_id)
 
       return { success: true, data: result.data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -139,10 +144,12 @@ export const useCartStore = defineStore('cart', () => {
       await getCart(userId)
 
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -154,10 +161,7 @@ export const useCartStore = defineStore('cart', () => {
     error.value = null
 
     try {
-      const { error: supaError } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId)
+      const { error: supaError } = await supabase.from('cart_items').delete().eq('id', itemId)
 
       if (supaError) throw supaError
 
@@ -165,10 +169,12 @@ export const useCartStore = defineStore('cart', () => {
       await getCart(userId)
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -180,10 +186,7 @@ export const useCartStore = defineStore('cart', () => {
     error.value = null
 
     try {
-      const { error: supaError } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', userId)
+      const { error: supaError } = await supabase.from('cart_items').delete().eq('user_id', userId)
 
       if (supaError) throw supaError
 
@@ -191,10 +194,12 @@ export const useCartStore = defineStore('cart', () => {
       currentCart.value = []
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -236,6 +241,6 @@ export const useCartStore = defineStore('cart', () => {
     updateQuantity,
     removeItem,
     clearCart,
-    $reset
+    $reset,
   }
 })

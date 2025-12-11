@@ -44,9 +44,11 @@ async function loadSellerData() {
       email: data.email || '',
       website: data.website || '',
     }
-  } catch (err) {
+  }
+  catch (err) {
     console.error('Erreur:', err)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -93,8 +95,14 @@ onMounted(() => {
     :errors="errors"
     :error="error"
   >
-    <div v-if="loading" class="flex justify-center py-8">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin" />
+    <div
+      v-if="loading"
+      class="flex justify-center py-8"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="w-6 h-6 animate-spin"
+      />
     </div>
 
     <UForm
@@ -109,8 +117,8 @@ onMounted(() => {
         required
       >
         <UInput
-          required
           v-model="form.company_name"
+          required
           placeholder="Nom de votre entreprise"
         />
       </UFormGroup>
@@ -194,8 +202,14 @@ onMounted(() => {
     </UForm>
   </FormWrapper>
 
-  <div v-else class="p-4 text-center text-gray-500">
-    <UIcon name="i-heroicons-information-circle" class="w-8 h-8 mx-auto mb-2" />
+  <div
+    v-else
+    class="p-4 text-center text-gray-500"
+  >
+    <UIcon
+      name="i-heroicons-information-circle"
+      class="w-8 h-8 mx-auto mb-2"
+    />
     <p>Cette section est réservée aux vendeurs uniquement.</p>
   </div>
 </template>

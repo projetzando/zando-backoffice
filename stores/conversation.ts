@@ -8,10 +8,7 @@ export const useConversationStore = defineStore('conversation', () => {
   const error = ref<string | null>(null)
 
   // Obtenir toutes les conversations
-  async function getAll(filters?: {
-    seller_id?: string
-    buyer_id?: string
-  }) {
+  async function getAll(filters?: { seller_id?: string, buyer_id?: string }) {
     const supabase = useSupabaseClient()
     loading.value = true
     error.value = null
@@ -45,17 +42,19 @@ export const useConversationStore = defineStore('conversation', () => {
 
           return {
             ...conv,
-            buyer: buyerProfile
+            buyer: buyerProfile,
           }
-        })
+        }),
       )
 
       conversations.value = enrichedConversations
       return { success: true, data: enrichedConversations }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -85,7 +84,7 @@ export const useConversationStore = defineStore('conversation', () => {
           .from('conversations')
           .insert({
             seller_id: sellerId,
-            buyer_id: buyerId
+            buyer_id: buyerId,
           })
           .select('*, seller:sellers(*)')
           .single()
@@ -107,10 +106,12 @@ export const useConversationStore = defineStore('conversation', () => {
 
       currentConversation.value = conversation
       return { success: true, data: conversation }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -141,17 +142,19 @@ export const useConversationStore = defineStore('conversation', () => {
 
           return {
             ...msg,
-            sender: senderProfile
+            sender: senderProfile,
           }
-        })
+        }),
       )
 
       messages.value = enrichedMessages
       return { success: true, data: enrichedMessages }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -180,7 +183,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
       const enrichedMessage = {
         ...data,
-        sender: senderProfile
+        sender: senderProfile,
       }
 
       // Mettre à jour la conversation
@@ -188,7 +191,7 @@ export const useConversationStore = defineStore('conversation', () => {
         .from('conversations')
         .update({
           last_message: message.content,
-          last_message_at: new Date().toISOString()
+          last_message_at: new Date().toISOString(),
         })
         .eq('id', message.conversation_id)
 
@@ -196,10 +199,12 @@ export const useConversationStore = defineStore('conversation', () => {
       messages.value.push(enrichedMessage)
 
       return { success: true, data: enrichedMessage }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -223,14 +228,16 @@ export const useConversationStore = defineStore('conversation', () => {
       // Mettre à jour les messages locaux
       messages.value = messages.value.map(msg => ({
         ...msg,
-        is_read: msg.sender_id === userId ? msg.is_read : true
+        is_read: msg.sender_id === userId ? msg.is_read : true,
       }))
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -249,7 +256,8 @@ export const useConversationStore = defineStore('conversation', () => {
       if (supaError) throw supaError
 
       return { success: true, count: count || 0 }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       return { success: false, error: err }
     }
   }
@@ -286,15 +294,17 @@ export const useConversationStore = defineStore('conversation', () => {
 
       const enrichedConversation = {
         ...conversationData,
-        buyer: buyerProfile
+        buyer: buyerProfile,
       }
 
       currentConversation.value = enrichedConversation
       return { success: true, data: enrichedConversation }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -315,6 +325,6 @@ export const useConversationStore = defineStore('conversation', () => {
     sendMessage,
     markMessagesAsRead,
     getUnreadCount,
-    $reset
+    $reset,
   }
 })

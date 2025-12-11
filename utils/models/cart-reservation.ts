@@ -6,7 +6,7 @@ export interface CartReservation extends Timestamps {
   quantity: number
   reserved_at?: string
   expires_at?: string
-  
+
   // Relations
   user?: Profile
   product?: Product

@@ -4,7 +4,7 @@ export interface Conversation extends Timestamps {
   buyer_id: string
   last_message?: string
   last_message_at?: string
-  
+
   // Relations
   seller?: Seller
   buyer?: Profile
@@ -18,7 +18,7 @@ export interface Message extends Timestamps {
   content: string
   is_read?: boolean
   product_id?: string
-  
+
   // Relations
   conversation?: Conversation
   sender?: Profile

@@ -1,111 +1,103 @@
 <script setup lang="ts">
 definePageMeta({
-    name: 'Liste des villes',
-    layout: 'dashboard',
-    roles: ['admin', 'superadmin'], // Configuration réservée aux admins
+  name: 'Liste des villes',
+  layout: 'dashboard',
+  roles: ['admin', 'superadmin'], // Configuration réservée aux admins
 })
 
-const cityStore = useCityStore();
+const cityStore = useCityStore()
 
 cityStore.get()
 
-const { cities } = storeToRefs(cityStore);
+const { cities } = storeToRefs(cityStore)
 
-const {
-    q,
-    page,
-    pageCount,
-    oneItem,
-    isOpen,
-    rows,
-    totalFilteredRows,
-    confirmDeleteItem,
-} = useTable(cities);
+const { q, page, pageCount, oneItem, isOpen, rows, totalFilteredRows, confirmDeleteItem }
+  = useTable(cities)
 </script>
 
 <template>
-    <div>
-        <TableWrapper>
-            <template #header>
-                <div class="table-header">
-                    <h5 class="table-title">
-                        Liste des villes
-                    </h5>
+  <div>
+    <TableWrapper>
+      <template #header>
+        <div class="table-header">
+          <h5 class="table-title">
+            Liste des villes
+          </h5>
 
-                    <ButtonCreate @new="() => navigateTo(`/dashboard/configurations/cities/create`)" />
-                </div>
+          <ButtonCreate @new="() => navigateTo(`/dashboard/configurations/cities/create`)" />
+        </div>
 
-                <div class="flex justify-between py-3 border-y ">
-                    <TableElementByPage
-                        class="pl-3"
-                        v-model="pageCount"
-                    />
+        <div class="flex justify-between py-3 border-y">
+          <TableElementByPage
+            v-model="pageCount"
+            class="pl-3"
+          />
 
-                    <UInput
-                        required
-                        class="pr-3"
-                        v-model="q"
-                        placeholder="Effectuer une recherche..."
-                    />
-                </div>
-            </template>
+          <UInput
+            v-model="q"
+            required
+            class="pr-3"
+            placeholder="Effectuer une recherche..."
+          />
+        </div>
+      </template>
 
-            <template #content>
-                <UTable
-                    :loading="cityStore.loading"
-                    :columns="cityColumns"
-                    :rows="rows"
-                >
-                    <template #created_at-data="{ row }">
-                        {{ new Date(row.created_at).toLocaleDateString() }}
-                    </template>
+      <template #content>
+        <UTable
+          :loading="cityStore.loading"
+          :columns="cityColumns"
+          :rows="rows"
+        >
+          <template #created_at-data="{ row }">
+            {{ new Date(row.created_at).toLocaleDateString() }}
+          </template>
 
-                    <template #actions-data="{ row }">
-                        <div class="flex gap-2">
-                            <UButton
-                                @click="navigateTo(`/dashboard/configurations/cities/edit-${row.id}`)"
-                                icon="lets-icons:edit-fill"
-                                size="sm"
-                                title="Modifier"
-                                color="primary"
-                                variant="outline"
-                            />
+          <template #actions-data="{ row }">
+            <div class="flex gap-2">
+              <UButton
+                icon="lets-icons:edit-fill"
+                size="sm"
+                title="Modifier"
+                color="primary"
+                variant="outline"
+                @click="navigateTo(`/dashboard/configurations/cities/edit-${row.id}`)"
+              />
 
-                            <UButton
-                                @click="confirmDeleteItem(row)"
-                                icon="lets-icons:trash"
-                                size="sm"
-                                title="Supprimer"
-                                color="red"
-                                variant="outline"
-                            />
-                        </div>
-                    </template>
-                </UTable>
-            </template>
+              <UButton
+                icon="lets-icons:trash"
+                size="sm"
+                title="Supprimer"
+                color="red"
+                variant="outline"
+                @click="confirmDeleteItem(row)"
+              />
+            </div>
+          </template>
+        </UTable>
+      </template>
 
-            <template #footer>
-                <TablePaginationInfo
-                    :page="page"
-                    :page-count="pageCount"
-                    :length="totalFilteredRows"
-                    title="villes"
-                />
-
-                <UPagination
-                    v-if="totalFilteredRows > 0"
-                    v-model="page"
-                    show-first
-                    show-last
-                    :page-count="pageCount"
-                    :total="totalFilteredRows"
-                />
-            </template>
-        </TableWrapper>
-
-        <CityDelete
-            v-model:city="oneItem"
-            v-model:status=isOpen
+      <template #footer>
+        <TablePaginationInfo
+          :page="page"
+          :page-count="pageCount"
+          :length="totalFilteredRows"
+          title="villes"
         />
-    </div>
+
+        <UPagination
+          v-if="totalFilteredRows > 0"
+          v-model="page"
+          show-first
+          show-last
+          :page-count="pageCount"
+          :total="totalFilteredRows"
+        />
+      </template>
+    </TableWrapper>
+
+    <CityDelete
+      v-model:city="oneItem"
+      v-model:status="isOpen"
+    />
+  </div>
 </template>

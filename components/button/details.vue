@@ -1,20 +1,20 @@
-<script setup lang='ts'>
-const emit = defineEmits(['details']);
+<script setup lang="ts">
+const emit = defineEmits(['details'])
 
 function handleClick() {
-    emit('details');
+  emit('details')
 }
 </script>
 
 <template>
-    <UButton
-        @click="handleClick"
-        icon="lets-icons:eye"
-        size="sm"
-        title="Details"
-        color="primary"
-        variant="outline"
-    />
+  <UButton
+    icon="lets-icons:eye"
+    size="sm"
+    title="Details"
+    color="primary"
+    variant="outline"
+    @click="handleClick"
+  />
 </template>
 
 <style lang="css" scoped></style>

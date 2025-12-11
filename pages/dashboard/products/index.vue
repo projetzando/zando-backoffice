@@ -1,30 +1,61 @@
 <script setup lang="ts">
+import { PAGINATION } from '~/utils/constants/api'
+
 definePageMeta({
-  name: "Liste des produits",
-  layout: "dashboard",
-});
+  name: 'Liste des produits',
+  layout: 'dashboard',
+})
 
-const productStore = useProductStore();
-const categoryStore = useCategoryStore();
-const sellerStore = useSellerStore();
-const authStore = useAuthStore();
-const supabase = useSupabaseClient();
+const productStore = useProductStore()
+const categoryStore = useCategoryStore()
+const sellerStore = useSellerStore()
+const authStore = useAuthStore()
+const supabase = useSupabaseClient()
 
-const { products, loading } = storeToRefs(productStore);
+const { products, loading, paginationInfo } = storeToRefs(productStore)
+
+// Pagination côté serveur
+const currentPage = ref(1)
+const pageSize = ref(PAGINATION.DEFAULT_PAGE_SIZE)
 
 // Filtres
 const filters = ref({
-  search: "",
-  is_active: "",
-  seller_id: "",
-  category_id: "",
-});
+  search: '',
+  is_active: '',
+  seller_id: '',
+  category_id: '',
+})
+
+// Debounce sur la recherche
+const { debounced: debouncedSearch } = useDebouncedRef(
+  computed(() => filters.value.search),
+  500,
+)
 
 // Récupérer le seller_id si l'utilisateur est un vendeur
-const currentSellerId = ref<string | null>(null);
-const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
+const currentSellerId = ref<string | null>(null)
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller')
 
-// Charger les données
+// Fonction pour charger les produits avec pagination
+async function loadProducts() {
+  const paginationOptions = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: 'created_at',
+    sortOrder: 'desc' as const,
+  }
+
+  const filterOptions = {
+    search: debouncedSearch.value,
+    is_active: filters.value.is_active ? filters.value.is_active === 'true' : undefined,
+    seller_id: filters.value.seller_id || undefined,
+    category_id: filters.value.category_id || undefined,
+  }
+
+  await productStore.getAll(paginationOptions, filterOptions)
+}
+
+// Charger les données au montage
 onMounted(async () => {
   // Si l'utilisateur est un vendeur, récupérer son seller_id
   if (isSellerUser.value) {
@@ -32,118 +63,106 @@ onMounted(async () => {
       .from('sellers')
       .select('id')
       .eq('user_id', authStore.connected_user.id)
-      .single();
+      .single()
 
     if (sellerData) {
-      currentSellerId.value = sellerData.id;
-      // Appliquer automatiquement le filtre vendeur
-      filters.value.seller_id = sellerData.id;
+      currentSellerId.value = sellerData.id
+      filters.value.seller_id = sellerData.id
     }
   }
 
-  await Promise.all([
-    productStore.getAll(filters.value),
-    categoryStore.get(),
-    sellerStore.get(),
-  ]);
-});
+  await Promise.all([loadProducts(), categoryStore.get(), sellerStore.get()])
+})
 
-// Table configuration
-const {
-  q,
-  page,
-  pageCount,
-  oneItem,
-  isOpen,
-  rows,
-  totalFilteredRows,
-  confirmDeleteItem,
-} = useTable(products, {
-  searchFields: ["title", "description"],
-  filtersConfig: {
-    is_active: (item, value) =>
-      value === "" || item.is_active === (value === "true"),
-    seller_id: (item, value) => !value || item.seller_id === value,
-    category_id: (item, value) => !value || item.category_id === value,
-  },
-});
+// Computed pour le nombre total de pages
+const totalPages = computed(() => paginationInfo.value.totalPages)
 
 // Options pour les filtres
 const statusOptions = [
-  { value: "", label: "Tous les statuts" },
-  { value: "true", label: "Actif" },
-  { value: "false", label: "Inactif" },
-];
+  { value: '', label: 'Tous les statuts' },
+  { value: 'true', label: 'Actif' },
+  { value: 'false', label: 'Inactif' },
+]
 
 // Computed pour les options de vendeurs et catégories
 const sellerOptions = computed(() => [
-  { value: "", label: "Tous les vendeurs" },
-  ...sellerStore.sellers.map((seller) => ({
+  { value: '', label: 'Tous les vendeurs' },
+  ...sellerStore.sellers.map(seller => ({
     value: seller.id,
     label: seller.company_name,
   })),
-]);
+])
 
 const categoryOptions = computed(() => [
-  { value: "", label: "Toutes les catégories" },
-  ...categoryStore.categories.map((category) => ({
+  { value: '', label: 'Toutes les catégories' },
+  ...categoryStore.categories.map(category => ({
     value: category.id,
     label: category.name,
   })),
-]);
+])
 
 // Fonction pour obtenir la couleur du statut
 function getStatusColor(isActive: boolean) {
-  return isActive ? "green" : "red";
+  return isActive ? 'green' : 'red'
 }
 
 // Fonction pour obtenir le label du statut
 function getStatusLabel(isActive: boolean) {
-  return isActive ? "Actif" : "Inactif";
+  return isActive ? 'Actif' : 'Inactif'
 }
 
 // Fonction pour obtenir la couleur du type
 function getTypeColor(type: string) {
-  return type === "variable" ? "purple" : "blue";
+  return type === 'variable' ? 'purple' : 'blue'
 }
 
 // Fonction pour obtenir le label du type
 function getTypeLabel(type: string) {
-  return type === "variable" ? "Variable" : "Simple";
+  return type === 'variable' ? 'Variable' : 'Simple'
 }
 
 // Actions sur les produits
 async function deleteProduct(product: Product) {
-  if (
-    confirm(
-      `Êtes-vous sûr de vouloir supprimer le produit "${product.title}" ?`
-    )
-  ) {
-    const { success } = await productStore.remove(product.id!);
+  if (confirm(`Êtes-vous sûr de vouloir supprimer le produit "${product.title}" ?`)) {
+    const { success } = await productStore.remove(product.id!)
     if (success) {
-      // Notification de succès
-      console.log("Produit supprimé avec succès");
+      await loadProducts()
     }
   }
 }
 
 async function toggleProductStatus(product: Product) {
-  const newStatus = !product.is_active;
-  await productStore.update(product.id!, { is_active: newStatus });
+  const newStatus = !product.is_active
+  await productStore.update(product.id!, { is_active: newStatus })
+  await loadProducts()
 }
 
-// Appliquer les filtres
+// Changement de page
+function onPageChange(newPage: number) {
+  currentPage.value = newPage
+  loadProducts()
+}
+
+// Changement de taille de page
+function onPageSizeChange(newSize: number) {
+  pageSize.value = newSize
+  currentPage.value = 1
+  loadProducts()
+}
+
+// Watchers pour recharger les données
+watch(debouncedSearch, () => {
+  currentPage.value = 1
+  loadProducts()
+})
+
 watch(
-  filters,
-  async (newFilters) => {
-    // Si l'utilisateur est un vendeur, forcer le filtre seller_id
-    if (isSellerUser.value && currentSellerId.value) {
-      newFilters.seller_id = currentSellerId.value;
-    }
-    await productStore.getAll(newFilters);
+  () => [filters.value.is_active, filters.value.seller_id, filters.value.category_id],
+  () => {
+    currentPage.value = 1
+    loadProducts()
   },
-  { deep: true }
-);
+)
 </script>
 
 <template>
@@ -154,7 +173,7 @@ watch(
           <h5 class="table-title">
             Liste des produits
             <span class="text-sm font-normal text-gray-500 ml-2">
-              ({{ totalFilteredRows }} produits)
+              ({{ paginationInfo.total }} produits)
             </span>
           </h5>
 
@@ -165,8 +184,8 @@ watch(
         <div class="flex flex-col sm:flex-row gap-4 py-4 border-y">
           <div class="flex-1">
             <UInput
-              v-model="q"
-              placeholder="Rechercher par titre, description ou SKU..."
+              v-model="filters.search"
+              placeholder="Rechercher par titre, description..."
               icon="i-heroicons-magnifying-glass"
             />
           </div>
@@ -192,12 +211,25 @@ watch(
             />
           </div>
 
-          <TableElementByPage v-model="pageCount" />
+          <USelect
+            v-model="pageSize"
+            :options="[
+              { value: 10, label: '10 / page' },
+              { value: 20, label: '20 / page' },
+              { value: 50, label: '50 / page' },
+              { value: 100, label: '100 / page' },
+            ]"
+            @change="onPageSizeChange"
+          />
         </div>
       </template>
 
       <template #content>
-        <UTable :loading="loading" :columns="productColumns" :rows="rows">
+        <UTable
+          :loading="loading"
+          :columns="productColumns"
+          :rows="products"
+        >
           <!-- Image du produit -->
           <template #cover_image-data="{ row }">
             <UAvatar
@@ -210,7 +242,9 @@ watch(
           <!-- Titre -->
           <template #title-data="{ row }">
             <div>
-              <p class="font-medium text-gray-900">{{ row.title }}</p>
+              <p class="font-medium text-gray-900">
+                {{ row.title }}
+              </p>
               <p class="text-sm text-gray-500 truncate max-w-xs">
                 {{ row.description }}
               </p>
@@ -223,16 +257,14 @@ watch(
               :color="getTypeColor(row.product_type || 'simple')"
               variant="subtle"
             >
-              {{ getTypeLabel(row.product_type || "simple") }}
+              {{ getTypeLabel(row.product_type || 'simple') }}
             </UBadge>
           </template>
 
           <!-- Prix (utilise display_price de la vue) -->
           <template #price-data="{ row }">
             <div>
-              <span class="font-medium">{{
-                formatPrice(row.display_price)
-              }}</span>
+              <span class="font-medium">{{ formatPrice(row.display_price) }}</span>
               <div
                 v-if="row.sale_price && row.price !== row.sale_price"
                 class="text-xs text-gray-500 line-through"
@@ -273,19 +305,25 @@ watch(
           <!-- Vendeur -->
           <template #seller-data="{ row }">
             <span v-if="row.seller">{{ row.seller.company_name }}</span>
-            <span v-else class="text-gray-400">-</span>
+            <span
+              v-else
+              class="text-gray-400"
+            >-</span>
           </template>
 
           <!-- Catégorie -->
           <template #category-data="{ row }">
             <span v-if="row.category">{{ row.category.name }}</span>
-            <span v-else class="text-gray-400">-</span>
+            <span
+              v-else
+              class="text-gray-400"
+            >-</span>
           </template>
 
           <!-- Date de création -->
           <template #created_at-data="{ row }">
             <span class="text-sm">
-              {{ new Date(row.created_at).toLocaleDateString("fr-FR") }}
+              {{ new Date(row.created_at).toLocaleDateString('fr-FR') }}
             </span>
           </template>
 
@@ -293,12 +331,12 @@ watch(
           <template #actions-data="{ row }">
             <div class="flex gap-1">
               <UButton
-                @click="navigateTo(`/dashboard/products/show-${row.id}`)"
                 icon="i-heroicons-eye"
                 size="sm"
                 color="primary"
                 variant="ghost"
                 title="Voir les détails"
+                @click="navigateTo(`/dashboard/products/show-${row.id}`)"
               />
 
               <!-- <UButton
@@ -311,12 +349,12 @@ watch(
               /> -->
 
               <UButton
-                @click="toggleProductStatus(row)"
                 :icon="row.is_active ? 'i-heroicons-pause' : 'i-heroicons-play'"
                 size="sm"
                 :color="row.is_active ? 'orange' : 'green'"
                 variant="ghost"
                 :title="row.is_active ? 'Désactiver' : 'Activer'"
+                @click="toggleProductStatus(row)"
               />
 
               <!-- <UButton
@@ -333,21 +371,29 @@ watch(
       </template>
 
       <template #footer>
-        <TablePaginationInfo
-          :page="page"
-          :page-count="pageCount"
-          :length="totalFilteredRows"
-          title="produits"
-        />
+        <div class="flex items-center justify-between px-4 py-3 border-t">
+          <div class="text-sm text-gray-700">
+            Affichage de
+            <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+            à
+            <span class="font-medium">{{
+              Math.min(currentPage * pageSize, paginationInfo.total)
+            }}</span>
+            sur
+            <span class="font-medium">{{ paginationInfo.total }}</span>
+            produits
+          </div>
 
-        <UPagination
-          v-if="totalFilteredRows > 0"
-          v-model="page"
-          show-first
-          show-last
-          :page-count="pageCount"
-          :total="totalFilteredRows"
-        />
+          <UPagination
+            v-if="paginationInfo.total > 0"
+            v-model="currentPage"
+            show-first
+            show-last
+            :page-count="totalPages"
+            :total="paginationInfo.total"
+            @update:model-value="onPageChange"
+          />
+        </div>
       </template>
     </TableWrapper>
   </div>

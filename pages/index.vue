@@ -1,117 +1,132 @@
 <script setup lang="ts">
 definePageMeta({
-  name: "Connexion",
-});
+  name: 'Connexion',
+})
 
-const route = useRoute();
-const toast = useToast();
+const route = useRoute()
+const toast = useToast()
 
 const user = ref<Auth>({
-  name: "",
-});
+  name: '',
+})
 
-const showPassword = ref<boolean>(false);
+const showPassword = ref<boolean>(false)
 
-const display_error = ref<string>("");
+const display_error = ref<string>('')
 
-const display_errors = ref<string | string[]>("");
+const display_errors = ref<string | string[]>('')
 
-const tokenCookie = useCookie<string>("nkuna_token", {
+const tokenCookie = useCookie<string>('nkuna_token', {
   httpOnly: false,
   secure: true,
-  sameSite: "strict",
-});
+  sameSite: 'strict',
+})
 
-const authStore = useAuthStore();
+const authStore = useAuthStore()
 
 // Vérifier si un paramètre d'erreur est présent dans l'URL
 onMounted(() => {
-  const errorParam = route.query.error;
+  const errorParam = route.query.error
 
   if (errorParam === 'unauthorized') {
     toast.add({
       title: 'Accès refusé',
-      description: 'Vous n\'avez pas l\'autorisation d\'accéder au backoffice. Cette interface est réservée aux vendeurs et administrateurs.',
+      description:
+        'Vous n\'avez pas l\'autorisation d\'accéder au backoffice. Cette interface est réservée aux vendeurs et administrateurs.',
       color: 'red',
       icon: 'i-heroicons-shield-exclamation',
-      timeout: 8000
-    });
-  } else if (errorParam === 'role_error') {
+      timeout: 8000,
+    })
+  }
+  else if (errorParam === 'role_error') {
     toast.add({
       title: 'Erreur de rôle',
       description: 'Impossible de récupérer vos permissions. Veuillez contacter l\'administrateur.',
       color: 'red',
       icon: 'i-heroicons-exclamation-triangle',
-      timeout: 6000
-    });
+      timeout: 6000,
+    })
   }
-});
+})
 
 async function Login() {
-  display_error.value = "";
+  display_error.value = ''
 
-  display_errors.value = "";
+  display_errors.value = ''
 
   const result = await authStore.login({
     email: user.value.email,
     password: user.value.password,
-  });
+  })
 
   if (result.success) {
     // Vérifier si l'utilisateur a un rôle autorisé
-    const userRole = authStore.connected_user?.role;
+    const userRole = authStore.connected_user?.role
 
     if (userRole === 'buyer' || !userRole) {
       // L'utilisateur n'a pas accès au backoffice
       toast.add({
         title: 'Accès non autorisé',
-        description: 'Votre compte n\'a pas accès au backoffice. Seuls les vendeurs et administrateurs peuvent se connecter.',
+        description:
+          'Votre compte n\'a pas accès au backoffice. Seuls les vendeurs et administrateurs peuvent se connecter.',
         color: 'red',
         icon: 'i-heroicons-shield-exclamation',
-        timeout: 8000
-      });
+        timeout: 8000,
+      })
 
       // Déconnecter l'utilisateur
-      await authStore.logout();
-      return;
+      await authStore.logout()
+      return
     }
 
     // Connexion réussie - rediriger vers le dashboard
-    navigateTo("/dashboard", {
+    navigateTo('/dashboard', {
       replace: true,
-    });
-  } else {
+    })
+  }
+  else {
     // Gérer l'erreur
-    display_error.value = result.error;
+    display_error.value = result.error
   }
 }
 </script>
 
 <template>
-  <FormAuth title="Connexion" :errors="display_errors" :error="display_error">
+  <FormAuth
+    title="Connexion"
+    :errors="display_errors"
+    :error="display_error"
+  >
     <UForm
       :state="user"
       :schema="authSchema"
       class="space-y-4 mt-6"
       @submit="Login"
     >
-      <UFormGroup label="Email" name="email">
+      <UFormGroup
+        label="Email"
+        name="email"
+      >
         <UInput
-          icon="i-heroicons-envelope"
           id="email"
-          required
           v-model="user.email"
+          icon="i-heroicons-envelope"
+          required
           placeholder="Votre adresse email"
           size="lg"
         />
       </UFormGroup>
 
-      <UFormGroup class="relative" label="Mot de passe" name="password">
+      <UFormGroup
+        class="relative"
+        label="Mot de passe"
+        name="password"
+      >
         <UInput
-          icon="i-heroicons-lock-closed"
           id="password"
-          required
           v-model="user.password"
+          icon="i-heroicons-lock-closed"
+          required
           :type="showPassword ? 'text' : 'password'"
           placeholder="Votre mot de passe"
           size="lg"
@@ -121,9 +136,7 @@ async function Login() {
             <Icon
               class="cursor-pointer"
               size="20"
-              :name="`${
-                showPassword ? 'heroicons:eye-slash' : 'heroicons:eye'
-              }`"
+              :name="`${showPassword ? 'heroicons:eye-slash' : 'heroicons:eye'}`"
               @click="showPassword = !showPassword"
             />
           </template>
