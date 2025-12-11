@@ -1,16 +1,14 @@
 <template>
   <div class="flex flex-col h-[calc(100vh-12rem)]">
     <!-- Header de la conversation -->
-    <div
-      class="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800"
-    >
+    <div class="border-b border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <UButton
             icon="i-heroicons-arrow-left"
             variant="ghost"
-            @click="$router.push('/dashboard/conversations')"
             size="sm"
+            @click="$router.push('/dashboard/conversations')"
           />
           <UAvatar
             :src="conversation?.buyer?.avatar_url"
@@ -33,7 +31,7 @@
             variant="soft"
             size="sm"
           >
-            {{ conversation?.seller?.is_online ? "En ligne" : "Hors ligne" }}
+            {{ conversation?.seller?.is_online ? 'En ligne' : 'Hors ligne' }}
           </UBadge>
         </div>
       </div>
@@ -45,8 +43,15 @@
       class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
     >
       <!-- Skeleton pendant le chargement -->
-      <div v-if="conversationStore.loading" class="space-y-4">
-        <div v-for="i in 5" :key="i" class="flex items-start space-x-3">
+      <div
+        v-if="conversationStore.loading"
+        class="space-y-4"
+      >
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="flex items-start space-x-3"
+        >
           <USkeleton class="h-8 w-8 rounded-full" />
           <div class="flex-1">
             <USkeleton class="h-4 w-20 mb-2" />
@@ -84,14 +89,17 @@
             </div>
 
             <!-- Message de produit -->
-            <div v-if="message.product" class="mb-2">
+            <div
+              v-if="message.product"
+              class="mb-2"
+            >
               <UCard class="p-3">
                 <div class="flex items-center space-x-3">
                   <img
                     :src="message.product.images?.[0]"
                     :alt="message.product.name"
                     class="w-12 h-12 object-cover rounded"
-                  />
+                  >
                   <div class="flex-1">
                     <h4 class="font-medium text-sm">
                       {{ message.product.name }}
@@ -113,13 +121,18 @@
                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
               "
             >
-              <p class="text-sm whitespace-pre-wrap">{{ message.content }}</p>
+              <p class="text-sm whitespace-pre-wrap">
+                {{ message.content }}
+              </p>
             </div>
 
             <!-- Statut de lecture -->
-            <div v-if="isCurrentUserMessage(message)" class="mt-1">
+            <div
+              v-if="isCurrentUserMessage(message)"
+              class="mt-1"
+            >
               <span class="text-xs text-gray-500">
-                {{ message.is_read ? "Lu" : "Envoyé" }}
+                {{ message.is_read ? 'Lu' : 'Envoyé' }}
               </span>
             </div>
           </div>
@@ -145,10 +158,11 @@
     </div>
 
     <!-- Zone de saisie -->
-    <div
-      class="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800"
-    >
-      <form @submit.prevent="sendMessage" class="flex items-end space-x-3">
+    <div class="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+      <form
+        class="flex items-end space-x-3"
+        @submit.prevent="sendMessage"
+      >
         <div class="flex-1">
           <UTextarea
             v-model="newMessage"
@@ -176,164 +190,156 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: "dashboard",
-});
+  layout: 'dashboard',
+})
 
-const route = useRoute();
-const conversationStore = useConversationStore();
-const user = useSupabaseUser();
+const route = useRoute()
+const conversationStore = useConversationStore()
+const user = useSupabaseUser()
 
-const conversationId = computed(() => route.params.id as string);
-const conversation = computed(() => conversationStore.currentConversation);
-const messages = computed(() => conversationStore.messages);
-const newMessage = ref("");
-const messagesContainer = ref<HTMLElement>();
+const conversationId = computed(() => route.params.id as string)
+const conversation = computed(() => conversationStore.currentConversation)
+const messages = computed(() => conversationStore.messages)
+const newMessage = ref('')
+const messagesContainer = ref<HTMLElement>()
 
 // Charger la conversation et les messages
 onMounted(async () => {
   if (conversationId.value) {
     // Charger les détails de la conversation
-    await conversationStore.getById(conversationId.value);
+    await conversationStore.getById(conversationId.value)
     // Charger les messages
-    await conversationStore.getMessages(conversationId.value);
-    scrollToBottom();
+    await conversationStore.getMessages(conversationId.value)
+    scrollToBottom()
 
     // Marquer les messages comme lus
     if (user.value?.id) {
-      await conversationStore.markMessagesAsRead(
-        conversationId.value,
-        user.value.id
-      );
+      await conversationStore.markMessagesAsRead(conversationId.value, user.value.id)
     }
   }
-});
+})
 
 // Watcher pour auto-scroll lors de nouveaux messages
 watch(
   messages,
   () => {
     nextTick(() => {
-      scrollToBottom();
-    });
+      scrollToBottom()
+    })
   },
-  { deep: true }
-);
+  { deep: true },
+)
 
 // Fonctions utilitaires
 function isCurrentUserMessage(message: any) {
-  return message.sender_id === user.value?.id;
+  return message.sender_id === user.value?.id
 }
 
 function formatMessageTime(timestamp: string) {
-  const messageDate = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
+  const messageDate = new Date(timestamp)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
 
   // Vérifier si c'est aujourd'hui
   if (messageDate.toDateString() === today.toDateString()) {
-    return messageDate.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return messageDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   // Vérifier si c'est hier
   if (messageDate.toDateString() === yesterday.toDateString()) {
     return (
-      "Hier " +
-      messageDate.toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
+      'Hier '
+      + messageDate.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
       })
-    );
+    )
   }
 
   // Pour les autres jours
-  const diffDays = Math.floor(
-    (today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const diffDays = Math.floor((today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24))
 
   if (diffDays < 7) {
     // Cette semaine : afficher le jour
-    return messageDate.toLocaleDateString("fr-FR", {
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } else {
+    return messageDate.toLocaleDateString('fr-FR', {
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+  else {
     // Plus ancien : afficher la date complète
-    return messageDate.toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return messageDate.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 }
 
 function scrollToBottom() {
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
 
 async function sendMessage() {
-  if (!newMessage.value.trim() || !conversationId.value || !user.value?.id)
-    return;
+  if (!newMessage.value.trim() || !conversationId.value || !user.value?.id) return
 
   const messageData = {
     conversation_id: conversationId.value,
     sender_id: user.value.id,
     content: newMessage.value.trim(),
-  };
+  }
 
-  const result = await conversationStore.sendMessage(messageData);
+  const result = await conversationStore.sendMessage(messageData)
 
   if (result.success) {
-    newMessage.value = "";
+    newMessage.value = ''
     nextTick(() => {
-      scrollToBottom();
-    });
+      scrollToBottom()
+    })
   }
 }
 
 // Configuration de la subscription temps réel
-let realtimeSubscription: any = null;
+let realtimeSubscription: any = null
 
 onMounted(() => {
-  const supabase = useSupabaseClient();
+  const supabase = useSupabaseClient()
 
   // S'abonner aux nouveaux messages de cette conversation
   realtimeSubscription = supabase
     .channel(`conversation:${conversationId.value}`)
     .on(
-      "postgres_changes",
+      'postgres_changes',
       {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
         filter: `conversation_id=eq.${conversationId.value}`,
       },
       async (payload) => {
         // Recharger les messages pour obtenir les données enrichies
-        await conversationStore.getMessages(conversationId.value);
+        await conversationStore.getMessages(conversationId.value)
 
         // Marquer comme lu si ce n'est pas un message de l'utilisateur actuel
         if (payload.new.sender_id !== user.value?.id && user.value?.id) {
-          await conversationStore.markMessagesAsRead(
-            conversationId.value,
-            user.value.id
-          );
+          await conversationStore.markMessagesAsRead(conversationId.value, user.value.id)
         }
-      }
+      },
     )
-    .subscribe();
-});
+    .subscribe()
+})
 
 onUnmounted(() => {
   if (realtimeSubscription) {
-    realtimeSubscription.unsubscribe();
+    realtimeSubscription.unsubscribe()
   }
-});
+})
 </script>

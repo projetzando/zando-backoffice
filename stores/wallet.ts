@@ -20,10 +20,12 @@ export const useWalletStore = defineStore('wallet', () => {
 
       systemWallet.value = data
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -45,10 +47,12 @@ export const useWalletStore = defineStore('wallet', () => {
       if (supaError) throw supaError
 
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -70,10 +74,12 @@ export const useWalletStore = defineStore('wallet', () => {
       if (supaError) throw supaError
 
       return { success: true, data: data || [] }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -94,6 +100,6 @@ export const useWalletStore = defineStore('wallet', () => {
     getSystemWallet,
     getSellerWallet,
     getWalletTransactions,
-    $reset
+    $reset,
   }
 })

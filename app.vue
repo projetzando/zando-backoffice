@@ -1,21 +1,20 @@
 <script setup lang="ts">
-const route = useRoute();
+const route = useRoute()
 
 watch(
   () => route.meta.name,
   (newName) => {
     useHead({
       htmlAttrs: {
-        lang: "fr",
+        lang: 'fr',
       },
       title:
-        newName
-          ?.toLocaleLowerCase()
-          .replace(/^./, (char) => char.toUpperCase()) || "NKUNA Marketplace",
-    });
+        newName?.toLocaleLowerCase().replace(/^./, char => char.toUpperCase())
+        || 'NKUNA Marketplace',
+    })
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 </script>
 
 <template>

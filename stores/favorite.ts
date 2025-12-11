@@ -12,14 +12,16 @@ export const useFavoriteStore = defineStore('favorite', () => {
     try {
       const { data, error: supaError } = await supabase
         .from('favorites')
-        .select(`
+        .select(
+          `
           *,
           product:products(
             *,
             seller:sellers(*),
             category:categories(*)
           )
-        `)
+        `,
+        )
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
@@ -27,10 +29,12 @@ export const useFavoriteStore = defineStore('favorite', () => {
 
       favorites.value = data || []
       return { success: true, data: data || [] }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -52,7 +56,8 @@ export const useFavoriteStore = defineStore('favorite', () => {
       }
 
       return { success: true, isFavorite: !!data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       return { success: false, error: err }
     }
   }
@@ -68,26 +73,30 @@ export const useFavoriteStore = defineStore('favorite', () => {
         .from('favorites')
         .insert({
           user_id: userId,
-          product_id: productId
+          product_id: productId,
         })
-        .select(`
+        .select(
+          `
           *,
           product:products(
             *,
             seller:sellers(*),
             category:categories(*)
           )
-        `)
+        `,
+        )
         .single()
 
       if (supaError) throw supaError
 
       favorites.value.unshift(data)
       return { success: true, data }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -108,14 +117,16 @@ export const useFavoriteStore = defineStore('favorite', () => {
       if (supaError) throw supaError
 
       favorites.value = favorites.value.filter(
-        f => !(f.user_id === userId && f.product_id === productId)
+        f => !(f.user_id === userId && f.product_id === productId),
       )
 
       return { success: true }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       error.value = err.message
       return { success: false, error: err }
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -123,10 +134,11 @@ export const useFavoriteStore = defineStore('favorite', () => {
   // Toggle favori
   async function toggle(userId: string, productId: string) {
     const { isFavorite: isCurrentlyFavorite } = await isFavorite(userId, productId)
-    
+
     if (isCurrentlyFavorite) {
       return await remove(userId, productId)
-    } else {
+    }
+    else {
       return await add(userId, productId)
     }
   }
@@ -144,7 +156,8 @@ export const useFavoriteStore = defineStore('favorite', () => {
       if (supaError) throw supaError
 
       return { success: true, count: count || 0 }
-    } catch (err: any) {
+    }
+    catch (err: any) {
       return { success: false, error: err }
     }
   }
@@ -178,6 +191,6 @@ export const useFavoriteStore = defineStore('favorite', () => {
     remove,
     toggle,
     getProductFavoriteCount,
-    $reset
+    $reset,
   }
 })

@@ -1,22 +1,21 @@
 <script lang="ts" setup>
 definePageMeta({
-  layout: "dashboard",
-  name: "Détails d'un administrateur",
+  layout: 'dashboard',
+  name: 'Détails d\'un administrateur',
   roles: ['admin', 'superadmin'],
-});
+})
 
-const route = useRoute();
-const adminStore = useAdminStore();
-const authStore = useAuthStore();
-const toast = useToast();
+const route = useRoute()
+const adminStore = useAdminStore()
+const authStore = useAuthStore()
+const toast = useToast()
 
 // Charger les détails de l'admin
-const { data: admin, pending } = await useLazyAsyncData(
-  `admin-${route.params.id}`,
-  () => adminStore.show(route.params.id as string)
-);
+const { data: admin, pending } = await useLazyAsyncData(`admin-${route.params.id}`, () =>
+  adminStore.show(route.params.id as string),
+)
 
-const { currentAdmin } = storeToRefs(adminStore);
+const { currentAdmin } = storeToRefs(adminStore)
 
 // Plus besoin de ces états car on utilise les composants
 
@@ -25,14 +24,14 @@ const adminStats = ref({
   lastLogin: null,
   actionsCount: 0,
   recentActions: [],
-});
+})
 
 // Fonction pour charger les statistiques
 async function loadAdminStats() {
-  if (!currentAdmin.value?.id) return;
+  if (!currentAdmin.value?.id) return
 
   try {
-    const supabase = useSupabaseClient();
+    const supabase = useSupabaseClient()
 
     // Récupérer les activités de l'admin (si vous avez une table d'audit)
     // const { data: activities } = await supabase
@@ -46,9 +45,10 @@ async function loadAdminStats() {
       lastLogin: currentAdmin.value.last_login,
       actionsCount: 0,
       recentActions: [],
-    };
-  } catch (error) {
-    console.error("Erreur lors du chargement des statistiques:", error);
+    }
+  }
+  catch (error) {
+    console.error('Erreur lors du chargement des statistiques:', error)
   }
 }
 
@@ -57,44 +57,44 @@ watch(
   currentAdmin,
   (newAdmin) => {
     if (newAdmin?.id) {
-      loadAdminStats();
+      loadAdminStats()
     }
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 
 function goBack() {
-  return navigateTo("/dashboard/accounts/admins");
+  return navigateTo('/dashboard/accounts/admins')
 }
 
 function getCompanyInitials(admin: any) {
-  const first = admin.first_name?.charAt(0) || "";
-  const last = admin.last_name?.charAt(0) || "";
-  return (first + last).toUpperCase();
+  const first = admin.first_name?.charAt(0) || ''
+  const last = admin.last_name?.charAt(0) || ''
+  return (first + last).toUpperCase()
 }
 
 function formatDate(date: string) {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  })
 }
 
 function getRoleBadgeColor(role: string) {
-  return role === 'superadmin' ? 'red' : 'blue';
+  return role === 'superadmin' ? 'red' : 'blue'
 }
 
 function getRoleLabel(role: string) {
-  return role === 'superadmin' ? 'Super Admin' : 'Admin';
+  return role === 'superadmin' ? 'Super Admin' : 'Admin'
 }
 
 // Activer/Désactiver
 async function toggleStatus() {
-  if (!currentAdmin.value) return;
+  if (!currentAdmin.value) return
 
   // Empêcher de désactiver son propre compte
   if (currentAdmin.value.id === authStore.connected_user?.id) {
@@ -103,11 +103,11 @@ async function toggleStatus() {
       description: 'Vous ne pouvez pas désactiver votre propre compte.',
       color: 'red',
       icon: 'i-heroicons-shield-exclamation',
-    });
-    return;
+    })
+    return
   }
 
-  const result = await adminStore.toggleStatus(currentAdmin.value.id!);
+  const result = await adminStore.toggleStatus(currentAdmin.value.id!)
 
   if (result.success) {
     toast.add({
@@ -115,7 +115,7 @@ async function toggleStatus() {
       description: `L'administrateur a été ${currentAdmin.value.is_active ? 'désactivé' : 'activé'}.`,
       color: 'green',
       icon: 'i-heroicons-check-circle',
-    });
+    })
   }
 }
 </script>
@@ -143,23 +143,44 @@ async function toggleStatus() {
       </div>
 
       <div class="flex gap-2">
-        <AdminUpdate v-if="currentAdmin" v-role="'superadmin'" :admin="currentAdmin" />
+        <AdminUpdate
+          v-if="currentAdmin"
+          v-role="'superadmin'"
+          :admin="currentAdmin"
+        />
       </div>
     </div>
 
     <!-- Loading state -->
-    <div v-if="pending" class="flex justify-center py-12">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+    <div
+      v-if="pending"
+      class="flex justify-center py-12"
+    >
+      <UIcon
+        name="i-heroicons-arrow-path"
+        class="w-8 h-8 animate-spin text-primary"
+      />
     </div>
 
     <!-- Admin not found -->
-    <UCard v-else-if="!currentAdmin" class="text-center py-12">
-      <UIcon name="i-heroicons-user-circle" class="w-16 h-16 mx-auto text-gray-400 mb-4" />
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">Administrateur introuvable</h3>
+    <UCard
+      v-else-if="!currentAdmin"
+      class="text-center py-12"
+    >
+      <UIcon
+        name="i-heroicons-user-circle"
+        class="w-16 h-16 mx-auto text-gray-400 mb-4"
+      />
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">
+        Administrateur introuvable
+      </h3>
       <p class="text-gray-600 mb-4">
         L'administrateur que vous recherchez n'existe pas ou a été supprimé.
       </p>
-      <UButton label="Retour à la liste" @click="goBack" />
+      <UButton
+        label="Retour à la liste"
+        @click="goBack"
+      />
     </UCard>
 
     <!-- Admin details -->
@@ -171,7 +192,9 @@ async function toggleStatus() {
           <UCard>
             <template #header>
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold">Informations générales</h3>
+                <h3 class="text-lg font-semibold">
+                  Informations générales
+                </h3>
                 <UBadge
                   :color="currentAdmin.is_active ? 'green' : 'gray'"
                   variant="subtle"
@@ -185,22 +208,30 @@ async function toggleStatus() {
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="text-sm font-medium text-gray-700">Prénom</label>
-                  <p class="mt-1 text-sm text-gray-900">{{ currentAdmin.first_name || '-' }}</p>
+                  <p class="mt-1 text-sm text-gray-900">
+                    {{ currentAdmin.first_name || '-' }}
+                  </p>
                 </div>
                 <div>
                   <label class="text-sm font-medium text-gray-700">Nom</label>
-                  <p class="mt-1 text-sm text-gray-900">{{ currentAdmin.last_name || '-' }}</p>
+                  <p class="mt-1 text-sm text-gray-900">
+                    {{ currentAdmin.last_name || '-' }}
+                  </p>
                 </div>
               </div>
 
               <div>
                 <label class="text-sm font-medium text-gray-700">Email</label>
-                <p class="mt-1 text-sm text-gray-900">{{ currentAdmin.email || '-' }}</p>
+                <p class="mt-1 text-sm text-gray-900">
+                  {{ currentAdmin.email || '-' }}
+                </p>
               </div>
 
               <div>
                 <label class="text-sm font-medium text-gray-700">Téléphone</label>
-                <p class="mt-1 text-sm text-gray-900">{{ currentAdmin.phone || '-' }}</p>
+                <p class="mt-1 text-sm text-gray-900">
+                  {{ currentAdmin.phone || '-' }}
+                </p>
               </div>
 
               <div>
@@ -220,7 +251,9 @@ async function toggleStatus() {
           <!-- Actions dangereuses -->
           <UCard v-role="'superadmin'">
             <template #header>
-              <h3 class="text-lg font-semibold text-red-600">Zone dangereuse</h3>
+              <h3 class="text-lg font-semibold text-red-600">
+                Zone dangereuse
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -230,9 +263,10 @@ async function toggleStatus() {
                     {{ currentAdmin.is_active ? 'Désactiver' : 'Activer' }} le compte
                   </h4>
                   <p class="text-sm text-gray-500">
-                    {{ currentAdmin.is_active
-                      ? 'L\'administrateur ne pourra plus se connecter'
-                      : 'L\'administrateur pourra à nouveau se connecter'
+                    {{
+                      currentAdmin.is_active
+                        ? "L'administrateur ne pourra plus se connecter"
+                        : "L'administrateur pourra à nouveau se connecter"
                     }}
                   </p>
                 </div>
@@ -245,17 +279,26 @@ async function toggleStatus() {
 
               <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                 <div>
-                  <h4 class="text-sm font-medium text-gray-900">Changer le rôle</h4>
+                  <h4 class="text-sm font-medium text-gray-900">
+                    Changer le rôle
+                  </h4>
                   <p class="text-sm text-gray-500">
                     Modifier les permissions de cet administrateur
                   </p>
                 </div>
-                <AdminRoleChange v-if="currentAdmin" :admin="currentAdmin" />
+                <AdminRoleChange
+                  v-if="currentAdmin"
+                  :admin="currentAdmin"
+                />
               </div>
 
-              <div class="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50">
+              <div
+                class="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50"
+              >
                 <div>
-                  <h4 class="text-sm font-medium text-red-900">Supprimer l'administrateur</h4>
+                  <h4 class="text-sm font-medium text-red-900">
+                    Supprimer l'administrateur
+                  </h4>
                   <p class="text-sm text-red-700">
                     Cette action est irréversible
                   </p>
@@ -275,28 +318,37 @@ async function toggleStatus() {
           <!-- Photo de profil -->
           <UCard>
             <div class="text-center">
-              <div class="mx-auto h-32 w-32 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+              <div
+                class="mx-auto h-32 w-32 rounded-full bg-primary-100 flex items-center justify-center mb-4"
+              >
                 <img
                   v-if="currentAdmin.avatar_url"
                   :src="currentAdmin.avatar_url"
                   :alt="`${currentAdmin.first_name} ${currentAdmin.last_name}`"
                   class="h-32 w-32 rounded-full object-cover"
-                />
-                <span v-else class="text-4xl font-bold text-primary-700">
+                >
+                <span
+                  v-else
+                  class="text-4xl font-bold text-primary-700"
+                >
                   {{ getCompanyInitials(currentAdmin) }}
                 </span>
               </div>
               <h3 class="text-lg font-semibold text-gray-900">
                 {{ currentAdmin.first_name }} {{ currentAdmin.last_name }}
               </h3>
-              <p class="text-sm text-gray-600">{{ currentAdmin.email }}</p>
+              <p class="text-sm text-gray-600">
+                {{ currentAdmin.email }}
+              </p>
             </div>
           </UCard>
 
           <!-- Métadonnées -->
           <UCard>
             <template #header>
-              <h3 class="text-base font-semibold">Métadonnées</h3>
+              <h3 class="text-base font-semibold">
+                Métadonnées
+              </h3>
             </template>
 
             <div class="space-y-3 text-sm">
@@ -325,6 +377,5 @@ async function toggleStatus() {
         </div>
       </div>
     </template>
-
   </div>
 </template>

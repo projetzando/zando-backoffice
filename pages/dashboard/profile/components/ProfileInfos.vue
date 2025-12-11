@@ -12,16 +12,20 @@ const form = ref<Partial<Profile>>({
 })
 
 // Synchroniser avec le profil quand il change
-watch(() => authStore.profile, (newProfile) => {
-  if (newProfile) {
-    form.value = {
-      first_name: newProfile.first_name || '',
-      last_name: newProfile.last_name || '',
-      phone: newProfile.phone || '',
-      avatar_url: newProfile.avatar_url || '',
+watch(
+  () => authStore.profile,
+  (newProfile) => {
+    if (newProfile) {
+      form.value = {
+        first_name: newProfile.first_name || '',
+        last_name: newProfile.last_name || '',
+        phone: newProfile.phone || '',
+        avatar_url: newProfile.avatar_url || '',
+      }
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 async function updateProfile() {
   submit({
@@ -48,8 +52,8 @@ async function updateProfile() {
           name="first_name"
         >
           <UInput
-            required
             v-model="form.first_name"
+            required
             placeholder="Prénom"
           />
         </UFormGroup>
@@ -60,8 +64,8 @@ async function updateProfile() {
           name="last_name"
         >
           <UInput
-            required
             v-model="form.last_name"
+            required
             placeholder="Nom de famille"
           />
         </UFormGroup>
@@ -112,12 +116,14 @@ async function updateProfile() {
           type="reset"
           color="red"
           label="Annuler"
-          @click="form = {
-            first_name: authStore.profile?.first_name || '',
-            last_name: authStore.profile?.last_name || '',
-            phone: authStore.profile?.phone || '',
-            avatar_url: authStore.profile?.avatar_url || '',
-          }"
+          @click="
+            form = {
+              first_name: authStore.profile?.first_name || '',
+              last_name: authStore.profile?.last_name || '',
+              phone: authStore.profile?.phone || '',
+              avatar_url: authStore.profile?.avatar_url || '',
+            }
+          "
         />
       </div>
     </UForm>

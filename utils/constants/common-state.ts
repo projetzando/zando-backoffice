@@ -1,16 +1,16 @@
 export const Timeout: number = 1000
 
 export const getName = (name: string | undefined) => {
-    return `${name}`
+  return `${name}`
 }
 
 export const statusOptions = Object.entries(Status).map(([key, value]) => ({
-    name: key,
-    value: value,
-}));
+  name: key,
+  value: value,
+}))
 
-export const genders = ['M', 'F'];
+export const genders = ['M', 'F']
 
-export const sortOrderOptions = ['asc', 'desc'];
+export const sortOrderOptions = ['asc', 'desc']
 
-export const promoterType = ['morale', 'physique'];
+export const promoterType = ['morale', 'physique']

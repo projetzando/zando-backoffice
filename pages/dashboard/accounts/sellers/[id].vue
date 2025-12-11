@@ -1,20 +1,19 @@
 <script lang="ts" setup>
 definePageMeta({
-  layout: "dashboard",
-  name: "Détails d'un vendeur",
+  layout: 'dashboard',
+  name: 'Détails d\'un vendeur',
   roles: ['admin', 'superadmin'],
-});
+})
 
-const route = useRoute();
-const sellerStore = useSellerStore();
+const route = useRoute()
+const sellerStore = useSellerStore()
 
 // Charger les détails du vendeur
-const { data: seller, pending } = await useLazyAsyncData(
-  `seller-${route.params.id}`,
-  () => sellerStore.show(route.params.id as string)
-);
+const { data: seller, pending } = await useLazyAsyncData(`seller-${route.params.id}`, () =>
+  sellerStore.show(route.params.id as string),
+)
 
-const { currentSeller } = storeToRefs(sellerStore);
+const { currentSeller } = storeToRefs(sellerStore)
 
 // Charger les statistiques du vendeur
 const sellerStats = ref({
@@ -22,53 +21,54 @@ const sellerStats = ref({
   orders: 0,
   revenue: 0,
   reviews: 0,
-});
+})
 
 // Fonction pour charger les statistiques
 async function loadSellerStats() {
-  if (!currentSeller.value?.id) return;
+  if (!currentSeller.value?.id) return
 
   try {
-    const supabase = useSupabaseClient();
+    const supabase = useSupabaseClient()
 
     // Récupérer les produits du vendeur
     const { data: products, error: productsError } = await supabase
-      .from("products")
-      .select("id")
-      .eq("seller_id", currentSeller.value.id);
+      .from('products')
+      .select('id')
+      .eq('seller_id', currentSeller.value.id)
 
-    if (productsError) throw productsError;
+    if (productsError) throw productsError
 
     // Récupérer les commandes liées aux produits du vendeur
     const { data: orders, error: ordersError } = await supabase
-      .from("orders")
-      .select("id, total_amount, status, order_items!inner(product_id)")
-      .in("order_items.product_id", products?.map((p) => p.id) || []);
+      .from('orders')
+      .select('id, total_amount, status, order_items!inner(product_id)')
+      .in('order_items.product_id', products?.map(p => p.id) || [])
 
-    if (ordersError) throw ordersError;
+    if (ordersError) throw ordersError
 
     // Récupérer les avis pour les produits du vendeur
     const { data: reviews, error: reviewsError } = await supabase
-      .from("reviews")
-      .select("id")
-      .in("product_id", products?.map((p) => p.id) || []);
+      .from('reviews')
+      .select('id')
+      .in('product_id', products?.map(p => p.id) || [])
 
-    if (reviewsError) throw reviewsError;
+    if (reviewsError) throw reviewsError
 
     // Calculer le chiffre d'affaires
-    const revenue =
-      orders?.reduce((sum, order) => {
-        return sum + (parseFloat(order.total_amount) || 0);
-      }, 0) || 0;
+    const revenue
+      = orders?.reduce((sum, order) => {
+        return sum + (parseFloat(order.total_amount) || 0)
+      }, 0) || 0
 
     sellerStats.value = {
       products: products?.length || 0,
       orders: orders?.length || 0,
       revenue,
       reviews: reviews?.length || 0,
-    };
-  } catch (error) {
-    console.error("Erreur lors du chargement des statistiques:", error);
+    }
+  }
+  catch (error) {
+    console.error('Erreur lors du chargement des statistiques:', error)
   }
 }
 
@@ -77,63 +77,60 @@ watch(
   currentSeller,
   (newSeller) => {
     if (newSeller?.id) {
-      loadSellerStats();
+      loadSellerStats()
     }
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 
 function goBack() {
-  return navigateTo("/dashboard/accounts/sellers");
+  return navigateTo('/dashboard/accounts/sellers')
 }
 
 // États pour les modales
-const showApprovalModal = ref(false);
-const showEditModal = ref(false);
+const showApprovalModal = ref(false)
+const showEditModal = ref(false)
 
 // Actions
 async function toggleApproval() {
-  if (!currentSeller.value) return;
+  if (!currentSeller.value) return
 
-  const newStatus = !currentSeller.value.is_approved;
-  const result = await sellerStore.updateApprovalStatus(
-    currentSeller.value.id,
-    newStatus
-  );
+  const newStatus = !currentSeller.value.is_approved
+  const result = await sellerStore.updateApprovalStatus(currentSeller.value.id, newStatus)
 
   if (result.success) {
-    currentSeller.value.is_approved = newStatus;
+    currentSeller.value.is_approved = newStatus
   }
 }
 
 // Fonctions utilitaires
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function getCompanyInitials(companyName: string) {
   return (
     companyName
-      ?.split(" ")
-      .map((word) => word.charAt(0))
-      .join("")
+      ?.split(' ')
+      .map(word => word.charAt(0))
+      .join('')
       .toUpperCase()
-      .substring(0, 2) || "??"
-  );
+      .substring(0, 2) || '??'
+  )
 }
 
 function getStatusColor(isApproved: boolean) {
-  return isApproved ? "green" : "yellow";
+  return isApproved ? 'green' : 'yellow'
 }
 
 function getStatusLabel(isApproved: boolean) {
-  return isApproved ? "Approuvé" : "En attente d'approbation";
+  return isApproved ? 'Approuvé' : 'En attente d\'approbation'
 }
 </script>
 
@@ -145,14 +142,14 @@ function getStatusLabel(isApproved: boolean) {
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center space-x-4">
             <UButton
-              @click="goBack"
               icon="i-heroicons-arrow-left"
               variant="ghost"
               size="sm"
+              @click="goBack"
             >
               Retour
             </UButton>
-            <div class="h-6 border-l border-gray-300"></div>
+            <div class="h-6 border-l border-gray-300" />
             <h1 class="text-xl font-semibold text-gray-900">
               Détails du vendeur
             </h1>
@@ -162,12 +159,15 @@ function getStatusLabel(isApproved: boolean) {
     </div>
 
     <!-- Loading state -->
-    <div v-if="pending" class="flex justify-center items-center py-20">
+    <div
+      v-if="pending"
+      class="flex justify-center items-center py-20"
+    >
       <div class="flex flex-col items-center space-y-4">
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
-        ></div>
-        <p class="text-gray-500">Chargement du vendeur...</p>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <p class="text-gray-500">
+          Chargement du vendeur...
+        </p>
       </div>
     </div>
 
@@ -187,14 +187,21 @@ function getStatusLabel(isApproved: boolean) {
         <p class="text-gray-500">
           Le vendeur demandé n'existe pas ou a été supprimé.
         </p>
-        <UButton @click="goBack" class="mt-4" variant="outline">
+        <UButton
+          class="mt-4"
+          variant="outline"
+          @click="goBack"
+        >
           Retour à la liste
         </UButton>
       </div>
     </div>
 
     <!-- Seller details -->
-    <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div
+      v-else
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+    >
       <!-- Hero section -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
         <div class="p-6 sm:p-8">
@@ -210,8 +217,11 @@ function getStatusLabel(isApproved: boolean) {
                     :src="currentSeller.company_logo"
                     :alt="currentSeller.company_name"
                     class="w-full h-full object-cover"
-                  />
-                  <div v-else class="text-3xl font-bold text-gray-600">
+                  >
+                  <div
+                    v-else
+                    class="text-3xl font-bold text-gray-600"
+                  >
                     {{ getCompanyInitials(currentSeller.company_name) }}
                   </div>
                 </div>
@@ -221,7 +231,7 @@ function getStatusLabel(isApproved: boolean) {
                   size="lg"
                   class="absolute -top-2 -right-2"
                 >
-                  {{ currentSeller.is_approved ? "✓" : "!" }}
+                  {{ currentSeller.is_approved ? '✓' : '!' }}
                 </UBadge>
               </div>
             </div>
@@ -245,27 +255,21 @@ function getStatusLabel(isApproved: boolean) {
 
                 <div class="flex space-x-3">
                   <UButton
-                    @click="showEditModal = true"
                     icon="i-heroicons-pencil-square"
                     variant="outline"
                     :loading="sellerStore.loading"
+                    @click="showEditModal = true"
                   >
                     Modifier
                   </UButton>
                   <UButton
-                    @click="toggleApproval"
-                    :icon="
-                      currentSeller.is_approved
-                        ? 'i-heroicons-x-mark'
-                        : 'i-heroicons-check'
-                    "
+                    :icon="currentSeller.is_approved ? 'i-heroicons-x-mark' : 'i-heroicons-check'"
                     :color="currentSeller.is_approved ? 'red' : 'green'"
                     variant="outline"
                     :loading="sellerStore.loading"
+                    @click="toggleApproval"
                   >
-                    {{
-                      currentSeller.is_approved ? "Désapprouver" : "Approuver"
-                    }}
+                    {{ currentSeller.is_approved ? 'Désapprouver' : 'Approuver' }}
                   </UButton>
                 </div>
               </div>
@@ -351,13 +355,17 @@ function getStatusLabel(isApproved: boolean) {
                 </dd>
               </div>
               <div v-if="currentSeller.company_description">
-                <dt class="text-sm font-medium text-gray-500">Description</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Description
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   {{ currentSeller.company_description }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Statut</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Statut
+                </dt>
                 <dd class="mt-1">
                   <UBadge
                     :color="getStatusColor(currentSeller.is_approved)"
@@ -377,19 +385,25 @@ function getStatusLabel(isApproved: boolean) {
             </h3>
             <dl class="space-y-4">
               <div v-if="currentSeller.email">
-                <dt class="text-sm font-medium text-gray-500">Email</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Email
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   {{ currentSeller.email }}
                 </dd>
               </div>
               <div v-if="currentSeller.phone">
-                <dt class="text-sm font-medium text-gray-500">Téléphone</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Téléphone
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   {{ currentSeller.phone }}
                 </dd>
               </div>
               <div v-if="currentSeller.website">
-                <dt class="text-sm font-medium text-gray-500">Site web</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Site web
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   <a
                     :href="currentSeller.website"
@@ -416,25 +430,33 @@ function getStatusLabel(isApproved: boolean) {
                 <div class="text-2xl font-bold text-blue-600">
                   {{ sellerStats.products }}
                 </div>
-                <div class="text-sm text-blue-600">Produits</div>
+                <div class="text-sm text-blue-600">
+                  Produits
+                </div>
               </div>
               <div class="bg-green-50 rounded-lg p-4 text-center">
                 <div class="text-2xl font-bold text-green-600">
                   {{ sellerStats.orders }}
                 </div>
-                <div class="text-sm text-green-600">Commandes</div>
+                <div class="text-sm text-green-600">
+                  Commandes
+                </div>
               </div>
               <div class="bg-purple-50 rounded-lg p-4 text-center">
                 <div class="text-2xl font-bold text-purple-600">
                   {{ formatPrice(sellerStats.revenue) }}
                 </div>
-                <div class="text-sm text-purple-600">Chiffre d'affaires</div>
+                <div class="text-sm text-purple-600">
+                  Chiffre d'affaires
+                </div>
               </div>
               <div class="bg-orange-50 rounded-lg p-4 text-center">
                 <div class="text-2xl font-bold text-orange-600">
                   {{ sellerStats.reviews }}
                 </div>
-                <div class="text-sm text-orange-600">Avis</div>
+                <div class="text-sm text-orange-600">
+                  Avis
+                </div>
               </div>
             </div>
           </div>
@@ -446,19 +468,25 @@ function getStatusLabel(isApproved: boolean) {
             </h3>
             <dl class="space-y-4 text-sm">
               <div>
-                <dt class="font-medium text-gray-500">ID du vendeur</dt>
+                <dt class="font-medium text-gray-500">
+                  ID du vendeur
+                </dt>
                 <dd class="mt-1 text-gray-900 font-mono">
                   {{ currentSeller.id }}
                 </dd>
               </div>
               <div>
-                <dt class="font-medium text-gray-500">Date de création</dt>
+                <dt class="font-medium text-gray-500">
+                  Date de création
+                </dt>
                 <dd class="mt-1 text-gray-900">
                   {{ formatDate(currentSeller.created_at) }}
                 </dd>
               </div>
               <div v-if="currentSeller.user_id">
-                <dt class="font-medium text-gray-500">ID utilisateur lié</dt>
+                <dt class="font-medium text-gray-500">
+                  ID utilisateur lié
+                </dt>
                 <dd class="mt-1 text-gray-900 font-mono">
                   {{ currentSeller.user_id }}
                 </dd>
@@ -473,24 +501,18 @@ function getStatusLabel(isApproved: boolean) {
             </h3>
             <div class="space-y-3">
               <UButton
-                @click="
-                  navigateTo(
-                    `/dashboard/products?seller_id=${currentSeller.id}`
-                  )
-                "
                 icon="i-heroicons-cube"
                 variant="outline"
                 block
+                @click="navigateTo(`/dashboard/products?seller_id=${currentSeller.id}`)"
               >
                 Voir les produits
               </UButton>
               <UButton
-                @click="
-                  navigateTo(`/dashboard/orders?seller_id=${currentSeller.id}`)
-                "
                 icon="i-heroicons-shopping-bag"
                 variant="outline"
                 block
+                @click="navigateTo(`/dashboard/orders?seller_id=${currentSeller.id}`)"
               >
                 Voir les commandes
               </UButton>

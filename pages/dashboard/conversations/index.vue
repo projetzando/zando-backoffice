@@ -1,92 +1,84 @@
 <script setup lang="ts">
 definePageMeta({
-  name: "Liste des conversations",
-  layout: "dashboard",
-});
+  name: 'Liste des conversations',
+  layout: 'dashboard',
+})
 
-const conversationStore = useConversationStore();
+const conversationStore = useConversationStore()
 
 // Charger les conversations
 onMounted(async () => {
-  await conversationStore.getAll();
-});
+  await conversationStore.getAll()
+})
 
-const { conversations, loading } = storeToRefs(conversationStore);
+const { conversations, loading } = storeToRefs(conversationStore)
 
 // Filtres
 const filters = ref({
-  search: "",
-  status: "", // "unread", "read", ""
-});
+  search: '',
+  status: '', // "unread", "read", ""
+})
 
-// Table configuration  
-const {
-  q,
-  page,
-  pageCount,
-  oneItem,
-  isOpen,
-  rows,
-  totalFilteredRows,
-  confirmDeleteItem,
-} = useTable(conversations, {
-  searchFields: ["seller.company_name", "buyer.first_name", "buyer.last_name", "last_message"],
-  filtersConfig: {
-    status: (item, value) => {
-      if (!value) return true;
-      if (value === "unread") return (item.unread_count || 0) > 0;
-      if (value === "read") return (item.unread_count || 0) === 0;
-      return true;
+// Table configuration
+const { q, page, pageCount, oneItem, isOpen, rows, totalFilteredRows, confirmDeleteItem }
+  = useTable(conversations, {
+    searchFields: ['seller.company_name', 'buyer.first_name', 'buyer.last_name', 'last_message'],
+    filtersConfig: {
+      status: (item, value) => {
+        if (!value) return true
+        if (value === 'unread') return (item.unread_count || 0) > 0
+        if (value === 'read') return (item.unread_count || 0) === 0
+        return true
+      },
     },
-  },
-  filters,
-});
+    filters,
+  })
 
 // Options pour les filtres
 const statusOptions = [
-  { value: "", label: "Toutes les conversations" },
-  { value: "unread", label: "Non lues" },
-  { value: "read", label: "Lues" },
-];
+  { value: '', label: 'Toutes les conversations' },
+  { value: 'unread', label: 'Non lues' },
+  { value: 'read', label: 'Lues' },
+]
 
 // Fonctions utilitaires
 function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
 
   if (diffInHours < 1) {
-    const diffInMinutes = Math.floor(diffInHours * 60);
-    return diffInMinutes <= 1 ? "À l'instant" : `Il y a ${diffInMinutes}min`;
-  } else if (diffInHours < 24) {
-    return `Il y a ${Math.floor(diffInHours)}h`;
-  } else {
-    return date.toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-    });
+    const diffInMinutes = Math.floor(diffInHours * 60)
+    return diffInMinutes <= 1 ? 'À l\'instant' : `Il y a ${diffInMinutes}min`
+  }
+  else if (diffInHours < 24) {
+    return `Il y a ${Math.floor(diffInHours)}h`
+  }
+  else {
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+    })
   }
 }
 
 function truncateMessage(message: string, maxLength = 50) {
-  if (!message) return "Aucun message";
-  return message.length > maxLength
-    ? message.substring(0, maxLength) + "..."
-    : message;
+  if (!message) return 'Aucun message'
+  return message.length > maxLength ? message.substring(0, maxLength) + '...' : message
 }
 
 // Compter les filtres actifs
 const activeFiltersCount = computed(() => {
-  return Object.values(filters.value).filter(value => value && value !== '').length;
-});
+  return Object.values(filters.value).filter(value => value && value !== '').length
+})
 
 // Actions
 function openConversation(conversation: any) {
-  navigateTo(`/dashboard/conversations/${conversation.id}`);
+  navigateTo(`/dashboard/conversations/${conversation.id}`)
 }
 
 function openChat(conversation: any) {
-  navigateTo(`/dashboard/conversations/${conversation.id}`);
+  navigateTo(`/dashboard/conversations/${conversation.id}`)
 }
 
 // Appliquer les filtres dynamiquement
@@ -96,8 +88,8 @@ watch(
     // Optionnel : filtres côté serveur si supportés
     // await conversationStore.getAll(newFilters);
   },
-  { deep: true }
-);
+  { deep: true },
+)
 </script>
 
 <template>
@@ -106,11 +98,18 @@ watch(
       <template #header>
         <div class="table-header">
           <div>
-            <h5 class="table-title">Liste des conversations</h5>
+            <h5 class="table-title">
+              Liste des conversations
+            </h5>
             <div class="flex gap-6 text-sm text-gray-600 mt-2">
               <span>{{ totalFilteredRows }} conversations</span>
-              <span v-if="activeFiltersCount > 0" class="text-blue-600">
-                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{ activeFiltersCount > 1 ? 's' : '' }}
+              <span
+                v-if="activeFiltersCount > 0"
+                class="text-blue-600"
+              >
+                {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{
+                  activeFiltersCount > 1 ? 's' : ''
+                }}
               </span>
             </div>
           </div>
@@ -137,12 +136,12 @@ watch(
             <!-- Bouton pour réinitialiser les filtres -->
             <UButton
               v-if="filters.status"
-              @click="filters = { search: '', status: '' }"
               icon="i-heroicons-x-mark"
               color="gray"
               variant="ghost"
               size="sm"
               title="Réinitialiser les filtres"
+              @click="filters = { search: '', status: '' }"
             />
           </div>
 
@@ -158,7 +157,7 @@ watch(
             { key: 'last_message', label: 'Dernier message' },
             { key: 'unread_count', label: 'Non lus' },
             { key: 'last_message_at', label: 'Dernière activité' },
-            { key: 'actions', label: 'Actions' }
+            { key: 'actions', label: 'Actions' },
           ]"
           :rows="rows"
         >
@@ -207,7 +206,10 @@ watch(
             >
               {{ row.unread_count }}
             </UBadge>
-            <span v-else class="text-gray-400">-</span>
+            <span
+              v-else
+              class="text-gray-400"
+            >-</span>
           </template>
 
           <!-- Dernière activité -->
@@ -221,21 +223,21 @@ watch(
           <template #actions-data="{ row }">
             <div class="flex gap-1">
               <UButton
-                @click="openConversation(row)"
                 icon="i-heroicons-eye"
                 size="sm"
                 color="primary"
                 variant="ghost"
                 title="Voir la conversation"
+                @click="openConversation(row)"
               />
 
               <UButton
-                @click="openChat(row)"
                 icon="i-heroicons-chat-bubble-left-right"
                 size="sm"
                 color="blue"
                 variant="ghost"
                 title="Ouvrir le chat"
+                @click="openChat(row)"
               />
             </div>
           </template>

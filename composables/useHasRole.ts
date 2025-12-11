@@ -13,19 +13,19 @@
  * v-if="useHasRole('seller')"
  */
 export const useHasRole = (get_role: string): boolean => {
-    const auth = useAuthStore()
+  const auth = useAuthStore()
 
-    // Vérification avec le nouveau système de rôle unique (Supabase)
-    if (auth.connected_user?.role) {
-        return auth.connected_user.role === get_role
-    }
+  // Vérification avec le nouveau système de rôle unique (Supabase)
+  if (auth.connected_user?.role) {
+    return auth.connected_user.role === get_role
+  }
 
-    // Fallback vers l'ancien système de rôles multiples (si encore utilisé)
-    if (auth.connected_user?.roles) {
-        return auth.connected_user.roles.some((role: Group) => role.name === get_role)
-    }
+  // Fallback vers l'ancien système de rôles multiples (si encore utilisé)
+  if (auth.connected_user?.roles) {
+    return auth.connected_user.roles.some((role: Group) => role.name === get_role)
+  }
 
-    return false
+  return false
 }
 
 /**
@@ -38,7 +38,7 @@ export const useHasRole = (get_role: string): boolean => {
  * useHasAnyRole(['admin', 'superadmin']) // true si admin OU superadmin
  */
 export const useHasAnyRole = (roles: string[]): boolean => {
-    return roles.some(role => useHasRole(role))
+  return roles.some(role => useHasRole(role))
 }
 
 /**
@@ -49,7 +49,7 @@ export const useHasAnyRole = (roles: string[]): boolean => {
  * @returns true si l'utilisateur a tous les rôles
  */
 export const useHasAllRoles = (roles: string[]): boolean => {
-    return roles.every(role => useHasRole(role))
+  return roles.every(role => useHasRole(role))
 }
 
 /**
@@ -59,8 +59,8 @@ export const useHasAllRoles = (roles: string[]): boolean => {
  * @returns true si l'utilisateur peut accéder au backoffice
  */
 export const useCanAccessBackoffice = (): boolean => {
-    const auth = useAuthStore()
-    const userRole = auth.connected_user?.role
+  const auth = useAuthStore()
+  const userRole = auth.connected_user?.role
 
-    return userRole === 'seller' || userRole === 'admin' || userRole === 'superadmin'
+  return userRole === 'seller' || userRole === 'admin' || userRole === 'superadmin'
 }

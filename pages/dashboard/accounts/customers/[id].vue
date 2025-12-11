@@ -1,20 +1,19 @@
 <script lang="ts" setup>
 definePageMeta({
-  layout: "dashboard",
-  name: "Détails d'un client",
-  roles: ['admin', 'superadmin']
-});
+  layout: 'dashboard',
+  name: 'Détails d\'un client',
+  roles: ['admin', 'superadmin'],
+})
 
-const route = useRoute();
-const customerStore = useCustomerStore();
+const route = useRoute()
+const customerStore = useCustomerStore()
 
 // Charger les détails du client
-const { data: customer, pending } = await useLazyAsyncData(
-  `customer-${route.params.id}`,
-  () => customerStore.show(route.params.id as string)
-);
+const { data: customer, pending } = await useLazyAsyncData(`customer-${route.params.id}`, () =>
+  customerStore.show(route.params.id as string),
+)
 
-const { currentCustomer } = storeToRefs(customerStore);
+const { currentCustomer } = storeToRefs(customerStore)
 
 // Charger les statistiques du client
 const customerStats = ref({
@@ -22,46 +21,47 @@ const customerStats = ref({
   totalSpent: 0,
   reviews: 0,
   recentOrders: [],
-});
+})
 
 // Fonction pour charger les statistiques
 async function loadCustomerStats() {
-  if (!currentCustomer.value?.id) return;
+  if (!currentCustomer.value?.id) return
 
   try {
-    const supabase = useSupabaseClient();
+    const supabase = useSupabaseClient()
 
     // Récupérer les commandes du client
     const { data: orders, error: ordersError } = await supabase
-      .from("orders")
-      .select("id, total_amount, status, created_at, items:order_items(*)")
-      .eq("user_id", currentCustomer.value.id)
-      .order("created_at", { ascending: false });
+      .from('orders')
+      .select('id, total_amount, status, created_at, items:order_items(*)')
+      .eq('user_id', currentCustomer.value.id)
+      .order('created_at', { ascending: false })
 
-    if (ordersError) throw ordersError;
+    if (ordersError) throw ordersError
 
     // Récupérer les avis du client
     const { data: reviews, error: reviewsError } = await supabase
-      .from("reviews")
-      .select("id")
-      .eq("user_id", currentCustomer.value.id);
+      .from('reviews')
+      .select('id')
+      .eq('user_id', currentCustomer.value.id)
 
-    if (reviewsError) throw reviewsError;
+    if (reviewsError) throw reviewsError
 
     // Calculer les statistiques
-    const totalSpent =
-      orders?.reduce((sum, order) => {
-        return sum + (parseFloat(order.total_amount) || 0);
-      }, 0) || 0;
+    const totalSpent
+      = orders?.reduce((sum, order) => {
+        return sum + (parseFloat(order.total_amount) || 0)
+      }, 0) || 0
 
     customerStats.value = {
       orders: orders?.length || 0,
       totalSpent,
       reviews: reviews?.length || 0,
       recentOrders: orders?.slice(0, 5) || [],
-    };
-  } catch (error) {
-    console.error("Erreur lors du chargement des statistiques:", error);
+    }
+  }
+  catch (error) {
+    console.error('Erreur lors du chargement des statistiques:', error)
   }
 }
 
@@ -70,57 +70,57 @@ watch(
   currentCustomer,
   (newCustomer) => {
     if (newCustomer?.id) {
-      loadCustomerStats();
+      loadCustomerStats()
     }
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 
 function goBack() {
-  return navigateTo("/dashboard/accounts/customers");
+  return navigateTo('/dashboard/accounts/customers')
 }
 
 // États pour les modales
-const showEditModal = ref(false);
+const showEditModal = ref(false)
 
 // Fonctions utilitaires
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(date).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function getInitials(customer: any) {
-  const first = customer?.first_name?.charAt(0) || "";
-  const last = customer?.last_name?.charAt(0) || "";
-  return (first + last).toUpperCase();
+  const first = customer?.first_name?.charAt(0) || ''
+  const last = customer?.last_name?.charAt(0) || ''
+  return (first + last).toUpperCase()
 }
 
 function getRoleColor(role: string) {
   switch (role) {
-    case "admin":
-      return "red";
-    case "seller":
-      return "blue";
-    case "buyer":
+    case 'admin':
+      return 'red'
+    case 'seller':
+      return 'blue'
+    case 'buyer':
     default:
-      return "green";
+      return 'green'
   }
 }
 
 function getRoleLabel(role: string) {
   switch (role) {
-    case "admin":
-      return "Administrateur";
-    case "seller":
-      return "Vendeur";
-    case "buyer":
+    case 'admin':
+      return 'Administrateur'
+    case 'seller':
+      return 'Vendeur'
+    case 'buyer':
     default:
-      return "Acheteur";
+      return 'Acheteur'
   }
 }
 </script>
@@ -133,14 +133,14 @@ function getRoleLabel(role: string) {
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center space-x-4">
             <UButton
-              @click="goBack"
               icon="i-heroicons-arrow-left"
               variant="ghost"
               size="sm"
+              @click="goBack"
             >
               Retour
             </UButton>
-            <div class="h-6 border-l border-gray-300"></div>
+            <div class="h-6 border-l border-gray-300" />
             <h1 class="text-xl font-semibold text-gray-900">
               Détails du client
             </h1>
@@ -150,12 +150,15 @@ function getRoleLabel(role: string) {
     </div>
 
     <!-- Loading state -->
-    <div v-if="pending" class="flex justify-center items-center py-20">
+    <div
+      v-if="pending"
+      class="flex justify-center items-center py-20"
+    >
       <div class="flex flex-col items-center space-y-4">
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
-        ></div>
-        <p class="text-gray-500">Chargement du client...</p>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <p class="text-gray-500">
+          Chargement du client...
+        </p>
       </div>
     </div>
 
@@ -175,14 +178,21 @@ function getRoleLabel(role: string) {
         <p class="text-gray-500">
           Le client demandé n'existe pas ou a été supprimé.
         </p>
-        <UButton @click="goBack" class="mt-4" variant="outline">
+        <UButton
+          class="mt-4"
+          variant="outline"
+          @click="goBack"
+        >
           Retour à la liste
         </UButton>
       </div>
     </div>
 
     <!-- Customer details -->
-    <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div
+      v-else
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+    >
       <!-- Hero section -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
         <div class="p-6 sm:p-8">
@@ -196,7 +206,10 @@ function getRoleLabel(role: string) {
                   size="3xl"
                   class="ring-4 ring-gray-100"
                 >
-                  <template v-if="!currentCustomer.avatar_url" #fallback>
+                  <template
+                    v-if="!currentCustomer.avatar_url"
+                    #fallback
+                  >
                     <span class="text-4xl font-bold">
                       {{ getInitials(currentCustomer) }}
                     </span>
@@ -227,16 +240,16 @@ function getRoleLabel(role: string) {
                     size="lg"
                     class="mb-4"
                   >
-                    {{ getRoleLabel(currentCustomer.role || "buyer") }}
+                    {{ getRoleLabel(currentCustomer.role || 'buyer') }}
                   </UBadge>
                 </div>
 
                 <div class="flex space-x-3">
                   <UButton
-                    @click="showEditModal = true"
                     icon="i-heroicons-pencil-square"
                     variant="outline"
                     :loading="customerStore.loading"
+                    @click="showEditModal = true"
                   >
                     Modifier
                   </UButton>
@@ -288,31 +301,39 @@ function getRoleLabel(role: string) {
             </h3>
             <dl class="space-y-4">
               <div>
-                <dt class="text-sm font-medium text-gray-500">Prénom</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Prénom
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  {{ currentCustomer.first_name || "Non renseigné" }}
+                  {{ currentCustomer.first_name || 'Non renseigné' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Nom</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Nom
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
-                  {{ currentCustomer.last_name || "Non renseigné" }}
+                  {{ currentCustomer.last_name || 'Non renseigné' }}
                 </dd>
               </div>
               <div v-if="currentCustomer.phone">
-                <dt class="text-sm font-medium text-gray-500">Téléphone</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Téléphone
+                </dt>
                 <dd class="mt-1 text-sm text-gray-900">
                   {{ currentCustomer.phone }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm font-medium text-gray-500">Rôle</dt>
+                <dt class="text-sm font-medium text-gray-500">
+                  Rôle
+                </dt>
                 <dd class="mt-1">
                   <UBadge
                     :color="getRoleColor(currentCustomer.role || 'buyer')"
                     variant="subtle"
                   >
-                    {{ getRoleLabel(currentCustomer.role || "buyer") }}
+                    {{ getRoleLabel(currentCustomer.role || 'buyer') }}
                   </UBadge>
                 </dd>
               </div>
@@ -331,7 +352,9 @@ function getRoleLabel(role: string) {
                     <div class="text-2xl font-bold text-blue-600">
                       {{ customerStats.orders }}
                     </div>
-                    <div class="text-sm text-blue-600">Commandes passées</div>
+                    <div class="text-sm text-blue-600">
+                      Commandes passées
+                    </div>
                   </div>
                   <UIcon
                     name="i-heroicons-shopping-bag"
@@ -345,7 +368,9 @@ function getRoleLabel(role: string) {
                     <div class="text-2xl font-bold text-green-600">
                       {{ formatPrice(customerStats.totalSpent) }}
                     </div>
-                    <div class="text-sm text-green-600">Total dépensé</div>
+                    <div class="text-sm text-green-600">
+                      Total dépensé
+                    </div>
                   </div>
                   <UIcon
                     name="i-heroicons-banknotes"
@@ -359,7 +384,9 @@ function getRoleLabel(role: string) {
                     <div class="text-2xl font-bold text-purple-600">
                       {{ customerStats.reviews }}
                     </div>
-                    <div class="text-sm text-purple-600">Avis laissés</div>
+                    <div class="text-sm text-purple-600">
+                      Avis laissés
+                    </div>
                   </div>
                   <UIcon
                     name="i-heroicons-star"
@@ -380,21 +407,32 @@ function getRoleLabel(role: string) {
             </h3>
             <dl class="space-y-4 text-sm">
               <div>
-                <dt class="font-medium text-gray-500">ID du client</dt>
+                <dt class="font-medium text-gray-500">
+                  ID du client
+                </dt>
                 <dd class="mt-1 text-gray-900 font-mono">
                   {{ currentCustomer.id }}
                 </dd>
               </div>
               <div>
-                <dt class="font-medium text-gray-500">Date de création</dt>
+                <dt class="font-medium text-gray-500">
+                  Date de création
+                </dt>
                 <dd class="mt-1 text-gray-900">
                   {{ formatDate(currentCustomer.created_at) }}
                 </dd>
               </div>
               <div>
-                <dt class="font-medium text-gray-500">Statut du compte</dt>
+                <dt class="font-medium text-gray-500">
+                  Statut du compte
+                </dt>
                 <dd class="mt-1">
-                  <UBadge color="green" variant="subtle"> Actif </UBadge>
+                  <UBadge
+                    color="green"
+                    variant="subtle"
+                  >
+                    Actif
+                  </UBadge>
                 </dd>
               </div>
             </dl>
@@ -407,38 +445,26 @@ function getRoleLabel(role: string) {
             </h3>
             <div class="space-y-3">
               <UButton
-                @click="
-                  navigateTo(
-                    `/dashboard/orders?customer_id=${currentCustomer.id}`
-                  )
-                "
                 icon="i-heroicons-shopping-bag"
                 variant="outline"
                 block
+                @click="navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)"
               >
                 Voir les commandes
               </UButton>
               <UButton
-                @click="
-                  navigateTo(
-                    `/dashboard/reviews?customer_id=${currentCustomer.id}`
-                  )
-                "
                 icon="i-heroicons-star"
                 variant="outline"
                 block
+                @click="navigateTo(`/dashboard/reviews?customer_id=${currentCustomer.id}`)"
               >
                 Voir les avis
               </UButton>
               <UButton
-                @click="
-                  navigateTo(
-                    `/dashboard/conversations?user_id=${currentCustomer.id}`
-                  )
-                "
                 icon="i-heroicons-chat-bubble-left-right"
                 variant="outline"
                 block
+                @click="navigateTo(`/dashboard/conversations?user_id=${currentCustomer.id}`)"
               >
                 Voir les conversations
               </UButton>
@@ -464,7 +490,9 @@ function getRoleLabel(role: string) {
                 name="i-heroicons-clock"
                 class="w-12 h-12 text-gray-400 mx-auto mb-3"
               />
-              <p class="text-sm text-gray-500">Aucune activité récente</p>
+              <p class="text-sm text-gray-500">
+                Aucune activité récente
+              </p>
             </div>
           </div>
         </div>
@@ -477,11 +505,9 @@ function getRoleLabel(role: string) {
             Commandes récentes
           </h3>
           <UButton
-            @click="
-              navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)
-            "
             variant="ghost"
             size="sm"
+            @click="navigateTo(`/dashboard/orders?customer_id=${currentCustomer.id}`)"
           >
             Voir toutes
           </UButton>
@@ -504,7 +530,10 @@ function getRoleLabel(role: string) {
         </div>
 
         <!-- Liste des commandes récentes -->
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <div
             v-for="order in customerStats.recentOrders"
             :key="order.id"
@@ -521,24 +550,24 @@ function getRoleLabel(role: string) {
                     order.status === 'delivered'
                       ? 'green'
                       : order.status === 'shipped'
-                      ? 'blue'
-                      : order.status === 'confirmed'
-                      ? 'yellow'
-                      : 'gray'
+                        ? 'blue'
+                        : order.status === 'confirmed'
+                          ? 'yellow'
+                          : 'gray'
                   "
                   variant="subtle"
                   size="xs"
                 >
                   {{
-                    order.status === "delivered"
-                      ? "Livrée"
-                      : order.status === "shipped"
-                      ? "Expédiée"
-                      : order.status === "confirmed"
-                      ? "Confirmée"
-                      : order.status === "pending"
-                      ? "En attente"
-                      : "Annulée"
+                    order.status === 'delivered'
+                      ? 'Livrée'
+                      : order.status === 'shipped'
+                        ? 'Expédiée'
+                        : order.status === 'confirmed'
+                          ? 'Confirmée'
+                          : order.status === 'pending'
+                            ? 'En attente'
+                            : 'Annulée'
                   }}
                 </UBadge>
               </div>
@@ -552,7 +581,7 @@ function getRoleLabel(role: string) {
               </div>
               <div class="text-xs text-gray-500">
                 {{ order.items?.length || 0 }} article{{
-                  (order.items?.length || 0) > 1 ? "s" : ""
+                  (order.items?.length || 0) > 1 ? 's' : ''
                 }}
               </div>
             </div>

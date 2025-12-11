@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 401,
-      message: 'Non authentifié'
+      message: 'Non authentifié',
     })
   }
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!currentUserProfile || !['admin', 'superadmin'].includes(currentUserProfile.role)) {
     throw createError({
       statusCode: 403,
-      message: 'Accès refusé. Seuls les administrateurs peuvent supprimer des comptes admin.'
+      message: 'Accès refusé. Seuls les administrateurs peuvent supprimer des comptes admin.',
     })
   }
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!adminId) {
     throw createError({
       statusCode: 400,
-      message: 'ID administrateur requis'
+      message: 'ID administrateur requis',
     })
   }
 
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (adminId === user.id) {
     throw createError({
       statusCode: 400,
-      message: 'Vous ne pouvez pas supprimer votre propre compte'
+      message: 'Vous ne pouvez pas supprimer votre propre compte',
     })
   }
 
@@ -52,17 +52,18 @@ export default defineEventHandler(async (event) => {
     if (authError) {
       throw createError({
         statusCode: 400,
-        message: authError.message
+        message: authError.message,
       })
     }
 
     return {
-      success: true
+      success: true,
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     throw createError({
       statusCode: error.statusCode || 500,
-      message: error.message || 'Erreur lors de la suppression de l\'administrateur'
+      message: error.message || 'Erreur lors de la suppression de l\'administrateur',
     })
   }
 })

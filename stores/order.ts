@@ -1,392 +1,382 @@
-// stores/order-simple.ts - Version simple qui fonctionne immédiatement
-export const useOrderStore = defineStore("order", () => {
-  const orders = ref<Order[]>([]);
-  const currentOrder = ref<Order | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+// stores/order.ts
+import type { PaginationOptions } from '~/utils/models/filter'
+import { CACHE_CONFIG } from '~/utils/constants/api'
 
-  // Obtenir toutes les commandes
-  async function getAll(filters?: {
-    status?: string;
-    user_id?: string;
-    date_from?: string;
-    date_to?: string;
-    search?: string;
-  }) {
-    const supabase = useSupabaseClient();
-    const authStore = useAuthStore();
-    loading.value = true;
-    error.value = null;
+export const useOrderStore = defineStore('order', () => {
+  const orders = ref<Order[]>([])
+  const currentOrder = ref<Order | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Pagination info
+  const paginationInfo = ref({
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
+
+  // Composables
+  const { get: getFromCache, invalidatePattern } = useCache()
+  const { fetchPaginated } = usePagination()
+  const { supabaseWithRetry } = useRetry()
+  const notification = useNotification()
+
+  // Obtenir toutes les commandes avec pagination et cache
+  async function getAll(
+    options: PaginationOptions = {},
+    filters?: {
+      status?: string
+      user_id?: string
+      date_from?: string
+      date_to?: string
+      search?: string
+    },
+  ) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
 
     try {
-      // Vérifier si l'utilisateur est un vendeur
-      const isSellerUser = authStore.connected_user?.role === 'seller';
-      let currentSellerId = null;
+      const cacheKey = `orders:${JSON.stringify({ ...options, ...filters })}`
 
-      if (isSellerUser) {
-        // Récupérer l'ID du vendeur
-        const { data: sellerData } = await supabase
-          .from('sellers')
-          .select('id')
-          .eq('user_id', authStore.connected_user.id)
-          .single();
+      const result = await getFromCache(
+        cacheKey,
+        async () => {
+          return await fetchPaginated<Order>(
+            'orders',
+            {
+              page: options.page || 1,
+              pageSize: options.pageSize || 10,
+            },
+            `*`,
+            (query) => {
+              let filteredQuery = query.order('created_at', { ascending: false })
 
-        if (sellerData) {
-          currentSellerId = sellerData.id;
-        }
-      }
+              if (filters?.status) {
+                filteredQuery = filteredQuery.eq('status', filters.status)
+              }
+              if (filters?.user_id) {
+                filteredQuery = filteredQuery.eq('user_id', filters.user_id)
+              }
+              if (filters?.date_from) {
+                filteredQuery = filteredQuery.gte('created_at', filters.date_from)
+              }
+              if (filters?.date_to) {
+                filteredQuery = filteredQuery.lte('created_at', filters.date_to)
+              }
+              if (filters?.search) {
+                filteredQuery = filteredQuery.or(`id.ilike.%${filters.search}%`)
+              }
 
-      // 1. Si c'est un vendeur, récupérer les commandes qui contiennent ses produits
-      let ordersData;
+              return filteredQuery
+            },
+          )
+        },
+        CACHE_CONFIG.DEFAULT_TTL,
+      )
 
-      if (isSellerUser && currentSellerId) {
-        // Récupérer les IDs de commandes qui contiennent des produits du vendeur
-        const { data: sellerOrderItems } = await supabase
-          .from('order_items')
-          .select('order_id')
-          .eq('seller_id', currentSellerId);
-
-        if (!sellerOrderItems || sellerOrderItems.length === 0) {
-          orders.value = [];
-          return { success: true, data: [] };
-        }
-
-        // Extraire les IDs uniques de commandes
-        const orderIds = [...new Set(sellerOrderItems.map(item => item.order_id))];
-
-        // Récupérer ces commandes
-        let query = supabase
-          .from("orders")
-          .select("*")
-          .in('id', orderIds)
-          .order("created_at", { ascending: false });
-
-        // Appliquer les filtres
-        if (filters?.status) {
-          query = query.eq("status", filters.status);
-        }
-        if (filters?.user_id) {
-          query = query.eq("user_id", filters.user_id);
-        }
-        if (filters?.date_from) {
-          query = query.gte("created_at", filters.date_from);
-        }
-        if (filters?.date_to) {
-          query = query.lte("created_at", filters.date_to);
-        }
-        if (filters?.search) {
-          query = query.or(`id.ilike.%${filters.search}%`);
-        }
-
-        const { data, error: ordersError } = await query;
-        if (ordersError) throw ordersError;
-        ordersData = data;
-      } else {
-        // Pour admin/superadmin, récupérer toutes les commandes
-        let query = supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        // Appliquer les filtres
-        if (filters?.status) {
-          query = query.eq("status", filters.status);
-        }
-        if (filters?.user_id) {
-          query = query.eq("user_id", filters.user_id);
-        }
-        if (filters?.date_from) {
-          query = query.gte("created_at", filters.date_from);
-        }
-        if (filters?.date_to) {
-          query = query.lte("created_at", filters.date_to);
-        }
-        if (filters?.search) {
-          query = query.or(`id.ilike.%${filters.search}%`);
-        }
-
-        const { data, error: ordersError } = await query;
-        if (ordersError) throw ordersError;
-        ordersData = data;
-      }
-
-      if (!ordersData || ordersData.length === 0) {
-        orders.value = [];
-        return { success: true, data: [] };
-      }
-
-      // 2. Enrichir chaque commande avec ses relations
+      // Enrichir avec les relations buyer et order_items
       const enrichedOrders = await Promise.all(
-        ordersData.map(async (order) => {
-          try {
-            // Récupérer le profil de l'acheteur
-            let buyer = null;
-            if (order.user_id) {
-              const { data: profile } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", order.user_id)
-                .single();
-              buyer = profile;
-            }
+        result.data.map(async (order) => {
+          // Récupérer le buyer (profile de l'utilisateur)
+          const { data: buyer } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, avatar_url, created_at')
+            .eq('id', order.user_id)
+            .single()
 
-            // Récupérer les articles de la commande
-            // Si c'est un vendeur, filtrer pour ne récupérer que SES produits
-            let orderItemsQuery = supabase
-              .from("order_items")
-              .select(
-                `
-                                *,
-                                product:products(*),
-                                seller:sellers(id, company_name)
-                            `
-              )
-              .eq("order_id", order.id);
+          // Récupérer les order_items avec les produits et vendeurs
+          const { data: orderItems } = await supabase
+            .from('order_items')
+            .select(`
+              id,
+              quantity,
+              unit_price,
+              total_price,
+              variation_name,
+              product:products(id, title, cover_image),
+              seller:sellers(id, company_name, company_logo)
+            `)
+            .eq('order_id', order.id || '')
 
-            if (isSellerUser && currentSellerId) {
-              orderItemsQuery = orderItemsQuery.eq('seller_id', currentSellerId);
-            }
+          return {
+            ...order,
+            buyer: buyer || undefined,
+            order_items: orderItems || [],
+          } as Order
+        }),
+      )
 
-            const { data: orderItems } = await orderItemsQuery;
+      paginationInfo.value = {
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: result.hasPreviousPage,
+      }
 
-            // Calculer le total pour le vendeur (seulement ses items)
-            let sellerTotal = 0;
-            if (orderItems) {
-              sellerTotal = orderItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
-            }
-
-            return {
-              ...order,
-              buyer,
-              order_items: orderItems || [],
-              // Ajouter le total du vendeur si applicable
-              seller_total: isSellerUser && currentSellerId ? sellerTotal : undefined,
-            };
-          } catch (err) {
-            console.warn(
-              "Erreur lors de l'enrichissement de la commande:",
-              order.id,
-              err
-            );
-            return {
-              ...order,
-              buyer: null,
-              order_items: [],
-            };
-          }
-        })
-      );
-
-      orders.value = enrichedOrders;
-      return { success: true, data: enrichedOrders };
-    } catch (err: any) {
-      error.value = err.message;
-      console.error("Erreur lors de la récupération des commandes:", err);
-      return { success: false, error: err };
-    } finally {
-      loading.value = false;
+      orders.value = enrichedOrders
+      return { success: true, data: enrichedOrders, pagination: paginationInfo.value }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de chargement', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
     }
   }
 
-  // Obtenir une commande par ID
+  // Obtenir une commande par ID avec cache et retry
   async function getById(id: string) {
-    const supabase = useSupabaseClient();
-    const authStore = useAuthStore();
-    loading.value = true;
-    error.value = null;
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
 
     try {
-      // Vérifier si l'utilisateur est un vendeur
-      const isSellerUser = authStore.connected_user?.role === 'seller';
-      let currentSellerId = null;
+      const cacheKey = `order:${id}`
 
-      if (isSellerUser) {
-        // Récupérer l'ID du vendeur
-        const { data: sellerData } = await supabase
-          .from('sellers')
-          .select('id')
-          .eq('user_id', authStore.connected_user.id)
-          .single();
+      const data = await getFromCache(
+        cacheKey,
+        async () => {
+          const result = await supabaseWithRetry(
+            () => supabase.from('orders').select('*').eq('id', id).single(),
+            { maxRetries: 3 },
+          )
 
-        if (sellerData) {
-          currentSellerId = sellerData.id;
-        }
-      }
+          if (!result.success) throw result.error
+          return result.data
+        },
+        CACHE_CONFIG.DEFAULT_TTL,
+      ) as Order
 
-      // 1. Récupérer la commande de base
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", id)
-        .single();
+      // Enrichir avec les relations buyer et order_items
+      const { data: buyer } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, avatar_url, created_at')
+        .eq('id', data.user_id)
+        .single()
 
-      if (orderError) throw orderError;
-
-      // 2. Récupérer le profil de l'acheteur
-      let buyer = null;
-      if (orderData.user_id) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", orderData.user_id)
-          .single();
-        buyer = profile;
-      }
-
-      // 3. Récupérer les articles avec leurs produits
-      // Si c'est un vendeur, filtrer pour ne récupérer que SES produits
-      let orderItemsQuery = supabase
-        .from("order_items")
-        .select(
-          `
-                    *,
-                    product:products(
-                        *,
-                        category:categories(*)
-                    ),
-                    variation:product_variations(*),
-                    seller:sellers(id, company_name)
-                `
-        )
-        .eq("order_id", id);
-
-      if (isSellerUser && currentSellerId) {
-        orderItemsQuery = orderItemsQuery.eq('seller_id', currentSellerId);
-      }
-
-      const { data: orderItems } = await orderItemsQuery;
-
-      // 4. Récupérer les paiements
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("order_id", id);
-
-      // Calculer le total pour le vendeur (seulement ses items)
-      let sellerTotal = 0;
-      if (orderItems && isSellerUser && currentSellerId) {
-        sellerTotal = orderItems.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0);
-      }
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select(`
+          id,
+          quantity,
+          unit_price,
+          total_price,
+          variation_name,
+          product:products(id, title, cover_image),
+          seller:sellers(id, company_name, company_logo)
+        `)
+        .eq('order_id', data.id || '')
 
       const enrichedOrder = {
-        ...orderData,
-        buyer,
+        ...data,
+        buyer: buyer || undefined,
         order_items: orderItems || [],
-        payments: payments || [],
-        // Ajouter le total du vendeur si applicable
-        seller_total: isSellerUser && currentSellerId ? sellerTotal : undefined,
-      };
+      } as Order
 
-      currentOrder.value = enrichedOrder;
-      return { success: true, data: enrichedOrder };
-    } catch (err: any) {
-      error.value = err.message;
-      console.error("Erreur lors de la récupération de la commande:", err);
-      return { success: false, error: err };
-    } finally {
-      loading.value = false;
+      currentOrder.value = enrichedOrder
+      return { success: true, data: enrichedOrder }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de chargement', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
     }
   }
 
-  // Créer une nouvelle commande
-  async function create(
-    orderData: Omit<Order, "id" | "created_at" | "updated_at">
-  ) {
-    const supabase = useSupabaseClient();
-    loading.value = true;
-    error.value = null;
+  // Créer une nouvelle commande avec retry et notifications
+  async function create(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
 
     try {
-      const { data, error: supaError } = await supabase
-        .from("orders")
-        .insert([orderData])
-        .select()
-        .single();
+      const result = await supabaseWithRetry(
+        () => supabase.from('orders').insert([orderData]).select().single(),
+        { maxRetries: 2 },
+      )
 
-      if (supaError) throw supaError;
+      if (!result.success) throw result.error
 
-      // Recharger la liste
-      await getAll();
+      invalidatePattern('orders:*')
+      notification.createdSuccessfully('Commande')
 
-      return { success: true, data };
-    } catch (err: any) {
-      error.value = err.message;
-      return { success: false, error: err };
-    } finally {
-      loading.value = false;
+      return { success: true, data: result.data }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de création', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
     }
   }
 
-  // Mettre à jour une commande
+  // Mettre à jour une commande avec retry et notifications
   async function update(id: string, updates: Partial<Order>) {
-    const supabase = useSupabaseClient();
-    loading.value = true;
-    error.value = null;
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
 
     try {
-      const { data, error: supaError } = await supabase
-        .from("orders")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
+      const result = await supabaseWithRetry(
+        () =>
+          supabase
+            .from('orders')
+            .update({
+              ...updates,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', id)
+            .select()
+            .single(),
+        { maxRetries: 2 },
+      )
 
-      if (supaError) throw supaError;
+      if (!result.success) throw result.error
 
-      // Recharger la commande avec ses relations
-      await getById(id);
+      invalidatePattern('orders:*')
+      invalidatePattern(`order:${id}`)
+      notification.updatedSuccessfully('Commande')
 
-      return { success: true, data };
-    } catch (err: any) {
-      error.value = err.message;
-      return { success: false, error: err };
-    } finally {
-      loading.value = false;
+      return { success: true, data: result.data }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de mise à jour', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
     }
   }
 
   // Mettre à jour le statut d'une commande
   async function updateStatus(id: string, newStatus: string) {
-    return await update(id, { status: newStatus });
+    return await update(id, { status: newStatus as any })
   }
 
-  // Supprimer une commande
+  // Supprimer une commande avec retry et notifications
   async function remove(id: string) {
-    const supabase = useSupabaseClient();
-    loading.value = true;
-    error.value = null;
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
 
     try {
-      const { error: supaError } = await supabase
-        .from("orders")
-        .delete()
-        .eq("id", id);
+      const result = await supabaseWithRetry(() => supabase.from('orders').delete().eq('id', id), {
+        maxRetries: 2,
+      })
 
-      if (supaError) throw supaError;
+      if (!result.success) throw result.error
 
-      orders.value = orders.value.filter((o) => o.id !== id);
+      orders.value = orders.value.filter(o => o.id !== id)
       if (currentOrder.value?.id === id) {
-        currentOrder.value = null;
+        currentOrder.value = null
       }
 
-      return { success: true };
-    } catch (err: any) {
-      error.value = err.message;
-      return { success: false, error: err };
-    } finally {
-      loading.value = false;
+      invalidatePattern('orders:*')
+      invalidatePattern(`order:${id}`)
+      notification.deletedSuccessfully('Commande')
+
+      return { success: true }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de suppression', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  // Obtenir les commandes récentes (optimisé pour le dashboard)
+  async function getRecent(limit = 5, sellerId?: string) {
+    const supabase = useSupabaseClient()
+    loading.value = true
+    error.value = null
+
+    try {
+      let query = supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      // Filtrer par vendeur si nécessaire (via order_items)
+      if (sellerId) {
+        const { data: sellerOrders } = await supabase
+          .from('order_items')
+          .select('order_id')
+          .eq('seller_id', sellerId)
+
+        if (sellerOrders && sellerOrders.length > 0) {
+          const orderIds = [...new Set(sellerOrders.map((item: any) => item.order_id))]
+          query = query.in('id', orderIds)
+        }
+        else {
+          // Pas de commandes pour ce vendeur
+          return { success: true, data: [] }
+        }
+      }
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      // Enrichir avec les relations buyer (sans order_items pour le dashboard)
+      const enrichedOrders = await Promise.all(
+        (data || []).map(async (order: any) => {
+          const { data: buyer } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, phone, avatar_url, created_at')
+            .eq('id', order.user_id)
+            .single()
+
+          return {
+            ...order,
+            buyer: buyer || undefined,
+          } as Order
+        }),
+      )
+
+      return { success: true, data: enrichedOrders }
+    }
+    catch (err: any) {
+      error.value = err.message
+      notification.error('Erreur de chargement', err.message)
+      return { success: false, error: err }
+    }
+    finally {
+      loading.value = false
     }
   }
 
   // Reset du store
   function $reset() {
-    orders.value = [];
-    currentOrder.value = null;
-    loading.value = false;
-    error.value = null;
+    orders.value = []
+    currentOrder.value = null
+    loading.value = false
+    error.value = null
+    paginationInfo.value = {
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    }
   }
 
   return {
@@ -395,10 +385,12 @@ export const useOrderStore = defineStore("order", () => {
     currentOrder: readonly(currentOrder),
     loading: readonly(loading),
     error: readonly(error),
+    paginationInfo: readonly(paginationInfo),
 
     // Actions
     getAll,
     getById,
+    getRecent,
     create,
     update,
     updateStatus,
@@ -408,5 +400,5 @@ export const useOrderStore = defineStore("order", () => {
     // Aliases pour la compatibilité
     get: getAll,
     show: getById,
-  };
-});
+  }
+})

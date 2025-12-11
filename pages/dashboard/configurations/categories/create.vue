@@ -1,8 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
-    name: "Nouvelle catégorie",
-    layout: 'dashboard',
-    roles: ['admin', 'superadmin'],
+  name: 'Nouvelle catégorie',
+  layout: 'dashboard',
+  roles: ['admin', 'superadmin'],
 })
 
 const categoryStore = useCategoryStore()
@@ -10,86 +10,85 @@ const categoryStore = useCategoryStore()
 const { submit, error, errors, loading } = useFormSubmission()
 
 const category = ref<Category>({
-    name: '',
+  name: '',
 })
 
 function VIEW() {
-    return navigateTo('/dashboard/configurations/categories')
+  return navigateTo('/dashboard/configurations/categories')
 }
 
 function store() {
-    submit({
-        action: () => categoryStore.store(category.value),
-        redirect: () => VIEW(),
-        onSuccess: () => {
-            category.value = { name: '' }
-        }
-    })
+  submit({
+    action: () => categoryStore.store(category.value),
+    redirect: () => VIEW(),
+    onSuccess: () => {
+      category.value = { name: '' }
+    },
+  })
 }
 </script>
 
 <template>
-    <div>
-        <ButtonList @return="VIEW" />
+  <div>
+    <ButtonList @return="VIEW" />
 
-        <FormWrapper
-            title="Nouvelle catégorie"
-            :errors="errors"
-            :error="error"
-        >
-            <UForm
-                :state="category"
-                :schema="categorySchema"
-                class="my-3 space-y-4"
-                @submit="store"
-            >
-                <div class="tablet:flex-row flex-col gap-2 flex">
-                    <UFormGroup
-                        class="w-full"
-                        label="Nom"
-                        name="name"
-                    >
-                        <UInput
-                            required
-                            v-model="category.name"
-                            placeholder="Nom de la catégorie"
-                        />
-                    </UFormGroup>
+    <FormWrapper
+      title="Nouvelle catégorie"
+      :errors="errors"
+      :error="error"
+    >
+      <UForm
+        :state="category"
+        :schema="categorySchema"
+        class="my-3 space-y-4"
+        @submit="store"
+      >
+        <div class="tablet:flex-row flex-col gap-2 flex">
+          <UFormGroup
+            class="w-full"
+            label="Nom"
+            name="name"
+          >
+            <UInput
+              v-model="category.name"
+              required
+              placeholder="Nom de la catégorie"
+            />
+          </UFormGroup>
 
-                    <UFormGroup
-                        class="w-full"
-                        label="Image URL"
-                        name="image"
-                    >
-                        <UInput
-                            v-model="category.image"
-                            placeholder="URL de l'image (optionnel)"
-                        />
-                    </UFormGroup>
+          <UFormGroup
+            class="w-full"
+            label="Image URL"
+            name="image"
+          >
+            <UInput
+              v-model="category.image"
+              placeholder="URL de l'image (optionnel)"
+            />
+          </UFormGroup>
 
-                    <UFormGroup
-                        class="w-full"
-                        label="Statut"
-                        name="is_active"
-                    >
-                        <UToggle
-                            v-model="category.is_active"
-                            label="Catégorie active"
-                        />
-                    </UFormGroup>
+          <UFormGroup
+            class="w-full"
+            label="Statut"
+            name="is_active"
+          >
+            <UToggle
+              v-model="category.is_active"
+              label="Catégorie active"
+            />
+          </UFormGroup>
+        </div>
 
-                </div>
+        <div class="flex space-x-2">
+          <ButtonSubmit v-model="categoryStore.loading" />
 
-                <div class="flex space-x-2">
-                    <ButtonSubmit v-model="categoryStore.loading" />
-
-                    <UButton
-                        type="reset"
-                        color="red"
-                        label="Annuler"
-                    />
-                </div>
-            </UForm>
-        </FormWrapper>
-    </div>
+          <UButton
+            type="reset"
+            color="red"
+            label="Annuler"
+          />
+        </div>
+      </UForm>
+    </FormWrapper>
+  </div>
 </template>

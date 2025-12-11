@@ -3,35 +3,35 @@ import type { FormSubmitEvent } from '#ui/types'
 
 const props = defineProps<{
   admin: Admin
-}>();
+}>()
 
-const adminStore = useAdminStore();
-const toast = useToast();
+const adminStore = useAdminStore()
+const toast = useToast()
 
-const showModal = ref(false);
-const loading = ref(false);
+const showModal = ref(false)
+const loading = ref(false)
 
 const state = reactive({
   first_name: props.admin.first_name || '',
   last_name: props.admin.last_name || '',
   phone: props.admin.phone || '',
   avatar_url: props.admin.avatar_url || '',
-});
+})
 
 // Réinitialiser le formulaire quand on ouvre le modal
 watch(showModal, (isOpen) => {
   if (isOpen) {
-    state.first_name = props.admin.first_name || '';
-    state.last_name = props.admin.last_name || '';
-    state.phone = props.admin.phone || '';
-    state.avatar_url = props.admin.avatar_url || '';
+    state.first_name = props.admin.first_name || ''
+    state.last_name = props.admin.last_name || ''
+    state.phone = props.admin.phone || ''
+    state.avatar_url = props.admin.avatar_url || ''
   }
-});
+})
 
 async function onSubmit(event: FormSubmitEvent<any>) {
-  if (!props.admin.id) return;
+  if (!props.admin.id) return
 
-  loading.value = true;
+  loading.value = true
 
   try {
     const result = await adminStore.update(props.admin.id, {
@@ -39,7 +39,7 @@ async function onSubmit(event: FormSubmitEvent<any>) {
       last_name: state.last_name,
       phone: state.phone,
       avatar_url: state.avatar_url,
-    });
+    })
 
     if (result.success) {
       toast.add({
@@ -47,31 +47,34 @@ async function onSubmit(event: FormSubmitEvent<any>) {
         description: 'Les informations ont été mises à jour avec succès.',
         color: 'green',
         icon: 'i-heroicons-check-circle',
-      });
-      showModal.value = false;
-    } else {
+      })
+      showModal.value = false
+    }
+    else {
       toast.add({
         title: 'Erreur',
         description: result.error?.message || 'Impossible de mettre à jour les informations.',
         color: 'red',
         icon: 'i-heroicons-exclamation-triangle',
-      });
+      })
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.add({
       title: 'Erreur',
       description: error.message || 'Une erreur est survenue.',
       color: 'red',
       icon: 'i-heroicons-exclamation-triangle',
-    });
-  } finally {
-    loading.value = false;
+    })
+  }
+  finally {
+    loading.value = false
   }
 }
 
 defineExpose({
-  showModal
-});
+  showModal,
+})
 </script>
 
 <template>
@@ -85,16 +88,22 @@ defineExpose({
     <UModal v-model="showModal">
       <UCard>
         <template #header>
-          <h3 class="text-lg font-semibold">Modifier les informations</h3>
+          <h3 class="text-lg font-semibold">
+            Modifier les informations
+          </h3>
         </template>
 
         <UForm
           :schema="updateAdminSchema"
           :state="state"
-          @submit="onSubmit"
           class="space-y-4"
+          @submit="onSubmit"
         >
-          <UFormGroup label="Prénom" name="first_name" required>
+          <UFormGroup
+            label="Prénom"
+            name="first_name"
+            required
+          >
             <UInput
               v-model="state.first_name"
               placeholder="John"
@@ -103,7 +112,11 @@ defineExpose({
             />
           </UFormGroup>
 
-          <UFormGroup label="Nom" name="last_name" required>
+          <UFormGroup
+            label="Nom"
+            name="last_name"
+            required
+          >
             <UInput
               v-model="state.last_name"
               placeholder="Doe"
@@ -112,7 +125,10 @@ defineExpose({
             />
           </UFormGroup>
 
-          <UFormGroup label="Téléphone" name="phone">
+          <UFormGroup
+            label="Téléphone"
+            name="phone"
+          >
             <UInput
               v-model="state.phone"
               type="tel"
@@ -122,7 +138,10 @@ defineExpose({
             />
           </UFormGroup>
 
-          <UFormGroup label="URL de l'avatar" name="avatar_url">
+          <UFormGroup
+            label="URL de l'avatar"
+            name="avatar_url"
+          >
             <UInput
               v-model="state.avatar_url"
               type="url"

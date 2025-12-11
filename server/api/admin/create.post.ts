@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!user) {
     throw createError({
       statusCode: 401,
-      message: 'Non authentifié'
+      message: 'Non authentifié',
     })
   }
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!currentUserProfile || !['admin', 'superadmin'].includes(currentUserProfile.role)) {
     throw createError({
       statusCode: 403,
-      message: 'Accès refusé. Seuls les administrateurs peuvent créer des comptes admin.'
+      message: 'Accès refusé. Seuls les administrateurs peuvent créer des comptes admin.',
     })
   }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   if (!email || !first_name || !last_name || !password) {
     throw createError({
       statusCode: 400,
-      message: 'Email, prénom, nom et mot de passe sont requis'
+      message: 'Email, prénom, nom et mot de passe sont requis',
     })
   }
 
@@ -52,14 +52,14 @@ export default defineEventHandler(async (event) => {
         phone: phone || null,
         role: role || 'admin',
         email_verified: true,
-        phone_verified: false
-      }
+        phone_verified: false,
+      },
     })
 
     if (authError) {
       throw createError({
         statusCode: 400,
-        message: authError.message
+        message: authError.message,
       })
     }
 
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
           last_name,
           phone: phone || null,
           role: role || 'admin',
-          avatar_url: avatar_url || null
+          avatar_url: avatar_url || null,
         })
         .eq('id', authData.user.id)
         .select()
@@ -91,11 +91,12 @@ export default defineEventHandler(async (event) => {
         await supabase.auth.admin.deleteUser(authData.user.id)
         throw createError({
           statusCode: 400,
-          message: updateError.message
+          message: updateError.message,
         })
       }
       profileData = data
-    } else {
+    }
+    else {
       // Créer un nouveau profil
       const { data, error: insertError } = await supabase
         .from('profiles')
@@ -105,7 +106,7 @@ export default defineEventHandler(async (event) => {
           last_name,
           phone: phone || null,
           role: role || 'admin',
-          avatar_url: avatar_url || null
+          avatar_url: avatar_url || null,
         })
         .select()
         .single()
@@ -114,7 +115,7 @@ export default defineEventHandler(async (event) => {
         await supabase.auth.admin.deleteUser(authData.user.id)
         throw createError({
           statusCode: 400,
-          message: insertError.message
+          message: insertError.message,
         })
       }
       profileData = data
@@ -122,12 +123,13 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      data: profileData
+      data: profileData,
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     throw createError({
       statusCode: error.statusCode || 500,
-      message: error.message || 'Erreur lors de la création de l\'administrateur'
+      message: error.message || 'Erreur lors de la création de l\'administrateur',
     })
   }
 })
