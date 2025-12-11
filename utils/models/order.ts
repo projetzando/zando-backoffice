@@ -45,13 +45,20 @@ export interface Address extends Timestamps {
   is_default?: boolean;
 }
 
+// Note: Cette interface est dupliquée depuis utils/models/payment.ts
+// pour éviter les dépendances circulaires dans les auto-imports
 export interface Payment extends Timestamps {
   readonly id?: string;
   order_id: string;
   amount: number;
   method: string;
-  status?: 'pending' | 'completed' | 'failed';
+  status?: 'unpaid' | 'pending' | 'completed' | 'failed';
   transaction_ref?: string;
+  safe_reference?: string;
+  order?: {
+    id: string;
+    user_id: string;
+  };
 }
 
 export interface Profile extends Timestamps {

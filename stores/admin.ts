@@ -37,57 +37,41 @@ export const useAdminStore = defineStore('admin', () => {
     }
 
     async function store(admin: Omit<Admin, 'id' | 'created_at'>) {
-        const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
-            // Créer d'abord l'utilisateur dans auth
-            const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-                email: admin.email!,
-                email_confirm: true,
-                user_metadata: {
-                    first_name: admin.first_name,
-                    last_name: admin.last_name,
-                }
-            })
-
-            if (authError) {
-                return {
-                    success: false,
-                    error: authError,
-                    data: null
-                }
-            }
-
-            // Mettre à jour le profil avec le rôle admin
-            const { data, error: supaError } = await supabase
-                .from('profiles')
-                .update({
+            // Appeler l'API serveur pour créer l'admin
+            const response = await $fetch('/api/admin/create', {
+                method: 'POST',
+                body: {
+                    email: admin.email,
                     first_name: admin.first_name,
                     last_name: admin.last_name,
                     phone: admin.phone,
                     role: admin.role || 'admin',
                     avatar_url: admin.avatar_url,
                     is_active: admin.is_active !== false
-                })
-                .eq('id', authData.user.id)
-                .select()
-                .single()
-
-            if (supaError) {
-                return {
-                    success: false,
-                    error: supaError,
-                    data: null
                 }
+            })
+
+            if (response.success && response.data) {
+                admins.value.unshift(response.data)
+                return { success: true, data: response.data }
             }
 
-            admins.value.unshift(data)
-            return { success: true, data }
+            return {
+                success: false,
+                error: { message: 'Erreur lors de la création' },
+                data: null
+            }
         } catch (err: any) {
-            error.value = err.message
-            return { success: false, error: err.message }
+            error.value = err.data?.message || err.message
+            return {
+                success: false,
+                error: { message: err.data?.message || err.message },
+                data: null
+            }
         } finally {
             loading.value = false
         }
@@ -133,27 +117,31 @@ export const useAdminStore = defineStore('admin', () => {
     }
 
     async function destroy(id: string) {
-        const supabase = useSupabaseClient()
         loading.value = true
         error.value = null
 
         try {
-            // Supprimer l'utilisateur de auth (cascade supprime aussi le profil)
-            const { error: authError } = await supabase.auth.admin.deleteUser(id)
+            // Appeler l'API serveur pour supprimer l'admin
+            const response = await $fetch(`/api/admin/${id}`, {
+                method: 'DELETE'
+            })
 
-            if (authError) {
-                return {
-                    success: false,
-                    error: authError,
-                    data: null
-                }
+            if (response.success) {
+                admins.value = admins.value.filter(a => a.id !== id)
+                return { success: true }
             }
 
-            admins.value = admins.value.filter(a => a.id !== id)
-            return { success: true }
+            return {
+                success: false,
+                error: { message: 'Erreur lors de la suppression' },
+                data: null
+            }
         } catch (err: any) {
-            error.value = err.message
-            return { success: false, error: err.message }
+            error.value = err.data?.message || err.message
+            return {
+                success: false,
+                error: { message: err.data?.message || err.message }
+            }
         } finally {
             loading.value = false
         }

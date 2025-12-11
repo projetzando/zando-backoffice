@@ -158,7 +158,7 @@ function goBack() {
                 <UInput
                   v-model="state.phone"
                   type="tel"
-                  placeholder="+237 6XX XXX XXX"
+                  placeholder="+242 XX XXX XXXX"
                   icon="i-heroicons-phone"
                   size="lg"
                 />
