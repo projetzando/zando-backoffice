@@ -84,11 +84,11 @@ export const useOrderStore = defineStore('order', () => {
           // Récupérer le buyer (profile de l'utilisateur)
           const { data: buyer } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name, phone, avatar_url')
+            .select('id, first_name, last_name, phone, avatar_url, created_at')
             .eq('id', order.user_id)
             .single()
 
-          // Récupérer les order_items avec les produits
+          // Récupérer les order_items avec les produits et vendeurs
           const { data: orderItems } = await supabase
             .from('order_items')
             .select(`
@@ -96,7 +96,9 @@ export const useOrderStore = defineStore('order', () => {
               quantity,
               unit_price,
               total_price,
-              product:products(id, title, cover_image)
+              variation_name,
+              product:products(id, title, cover_image),
+              seller:sellers(id, company_name, company_logo)
             `)
             .eq('order_id', order.id || '')
 
@@ -153,8 +155,34 @@ export const useOrderStore = defineStore('order', () => {
         CACHE_CONFIG.DEFAULT_TTL,
       ) as Order
 
-      currentOrder.value = data
-      return { success: true, data }
+      // Enrichir avec les relations buyer et order_items
+      const { data: buyer } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, phone, avatar_url, created_at')
+        .eq('id', data.user_id)
+        .single()
+
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select(`
+          id,
+          quantity,
+          unit_price,
+          total_price,
+          variation_name,
+          product:products(id, title, cover_image),
+          seller:sellers(id, company_name, company_logo)
+        `)
+        .eq('order_id', data.id || '')
+
+      const enrichedOrder = {
+        ...data,
+        buyer: buyer || undefined,
+        order_items: orderItems || [],
+      } as Order
+
+      currentOrder.value = enrichedOrder
+      return { success: true, data: enrichedOrder }
     }
     catch (err: any) {
       error.value = err.message
