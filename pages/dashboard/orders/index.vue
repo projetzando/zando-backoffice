@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PAGINATION } from '~/utils/constants/api'
+
 definePageMeta({
   name: 'Liste des commandes',
   layout: 'dashboard',
@@ -7,15 +9,14 @@ definePageMeta({
 const orderStore = useOrderStore()
 const authStore = useAuthStore()
 
+const { orders, loading, paginationInfo } = storeToRefs(orderStore)
+
 // Vérifier si l'utilisateur est un vendeur
 const isSellerUser = computed(() => authStore.connected_user?.role === 'seller')
 
-// Charger les commandes
-onMounted(async () => {
-  await orderStore.getAll()
-})
-
-const { orders, loading } = storeToRefs(orderStore)
+// Pagination côté serveur
+const currentPage = ref(1)
+const pageSize = ref(PAGINATION.DEFAULT_PAGE_SIZE)
 
 // Filtres
 const filters = ref({
@@ -26,17 +27,81 @@ const filters = ref({
   date_to: '',
 })
 
-// Configuration de la table
-const { q, page, pageCount, oneItem, isOpen, rows, totalFilteredRows, confirmDeleteItem }
-  = useTable(orders, {
-    searchFields: ['id', 'delivery_name', 'buyer.first_name', 'buyer.last_name'],
-    filtersConfig: {
-      status: (item, value) => !value || item.status === value,
-      date_from: (item, value) => !value || new Date(item.created_at) >= new Date(value),
-      date_to: (item, value) => !value || new Date(item.created_at) <= new Date(value),
-    },
-    filters,
-  })
+// Debounce sur la recherche
+const debouncedSearch = ref('')
+watch(
+  () => filters.value.search,
+  useDebounce((value: string) => {
+    debouncedSearch.value = value
+  }, 500),
+  { immediate: true },
+)
+
+// Fonction pour charger les commandes avec pagination
+async function loadOrders() {
+  const paginationOptions = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: 'created_at',
+    sortOrder: 'desc' as const,
+  }
+
+  const filterOptions = {
+    search: debouncedSearch.value,
+    status: filters.value.status || undefined,
+    date_from: filters.value.date_from || undefined,
+    date_to: filters.value.date_to || undefined,
+  }
+
+  await orderStore.getAll(paginationOptions, filterOptions)
+}
+
+// Charger les données au montage
+onMounted(async () => {
+  await loadOrders()
+})
+
+// Computed pour le nombre total de pages
+const totalPages = computed(() => paginationInfo.value.totalPages)
+
+// Changement de page
+function onPageChange(newPage: number) {
+  currentPage.value = newPage
+  loadOrders()
+}
+
+// Changement de taille de page
+function onPageSizeChange(event: any) {
+  const newSize = typeof event === 'number' ? event : Number(event)
+  pageSize.value = newSize
+  currentPage.value = 1
+  loadOrders()
+}
+
+// Watchers pour recharger les données
+watch(debouncedSearch, () => {
+  currentPage.value = 1
+  loadOrders()
+})
+
+watch(
+  () => [filters.value.status, filters.value.date_from, filters.value.date_to],
+  () => {
+    currentPage.value = 1
+    loadOrders()
+  },
+)
+
+// Réinitialiser les filtres
+function resetFilters() {
+  filters.value = {
+    search: '',
+    status: '',
+    user_id: '',
+    date_from: '',
+    date_to: '',
+  }
+}
 
 // Options pour les filtres
 const statusOptions = [
@@ -88,14 +153,11 @@ function getPaymentMethodLabel(method: string) {
 }
 
 // Calculer le total des commandes
-// Pour un vendeur, on affiche le total de ses items uniquement
 const totalOrdersValue = computed(() => {
   return orders.value.reduce((total, order) => {
-    // Si c'est un vendeur et qu'il y a un seller_total, l'utiliser
     if (isSellerUser.value && order.seller_total !== undefined) {
       return total + order.seller_total
     }
-    // Sinon utiliser le total_amount normal
     return total + (order.total_amount || 0)
   }, 0)
 })
@@ -104,22 +166,6 @@ const totalOrdersValue = computed(() => {
 const activeFiltersCount = computed(() => {
   return Object.values(filters.value).filter(value => value && value !== '').length
 })
-
-// Synchroniser les filtres avec le composant de table
-watchEffect(() => {
-  if (filters.value.status !== (filters.value.status || '')) {
-    // Synchronisation automatique via le système de filtres de useTable
-  }
-})
-
-// Optionnel : Appliquer les filtres côté serveur si l'API le supporte
-watch(
-  filters,
-  async (newFilters) => {
-    // await orderStore.getAll(newFilters); // Décommenté si l'API supporte les filtres côté serveur
-  },
-  { deep: true },
-)
 </script>
 
 <template>
@@ -130,9 +176,11 @@ watch(
           <div>
             <h5 class="table-title">
               Liste des commandes
+              <span class="text-sm font-normal text-gray-500 ml-2">
+                ({{ paginationInfo.total }} commandes)
+              </span>
             </h5>
             <div class="flex gap-6 text-sm text-gray-600 mt-2">
-              <span>{{ totalFilteredRows }} commandes</span>
               <span>Total: {{ formatPrice(totalOrdersValue) }}</span>
               <span
                 v-if="activeFiltersCount > 0"
@@ -150,7 +198,7 @@ watch(
         <div class="flex flex-col sm:flex-row gap-4 py-4 border-y">
           <div class="flex-1">
             <UInput
-              v-model="q"
+              v-model="filters.search"
               placeholder="Rechercher par N° commande ou nom de l'acheteur..."
               icon="i-heroicons-magnifying-glass"
             />
@@ -186,19 +234,20 @@ watch(
               variant="ghost"
               size="sm"
               title="Réinitialiser les filtres"
-              @click="
-                filters = {
-                  search: '',
-                  status: '',
-                  user_id: '',
-                  date_from: '',
-                  date_to: '',
-                }
-              "
+              @click="resetFilters"
             />
           </div>
 
-          <TableElementByPage v-model="pageCount" />
+          <USelect
+            v-model="pageSize"
+            :options="[
+              { value: 10, label: '10 / page' },
+              { value: 20, label: '20 / page' },
+              { value: 50, label: '50 / page' },
+              { value: 100, label: '100 / page' },
+            ]"
+            @change="onPageSizeChange"
+          />
         </div>
       </template>
 
@@ -206,7 +255,7 @@ watch(
         <UTable
           :loading="loading"
           :columns="orderColumns"
-          :rows="rows"
+          :rows="orders"
         >
           <!-- N° Commande -->
           <template #id-data="{ row }">
@@ -399,21 +448,33 @@ watch(
       </template>
 
       <template #footer>
-        <TablePaginationInfo
-          :page="page"
-          :page-count="pageCount"
-          :length="totalFilteredRows"
-          title="commandes"
-        />
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
+          <div class="text-sm text-gray-700 text-center sm:text-left">
+            <template v-if="paginationInfo.total > 0">
+              Affichage de
+              <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+              à
+              <span class="font-medium">{{
+                Math.min(currentPage * pageSize, paginationInfo.total)
+              }}</span>
+              sur
+              <span class="font-medium">{{ paginationInfo.total }}</span>
+              commandes
+            </template>
+            <template v-else>
+              Aucune commande trouvée
+            </template>
+          </div>
 
-        <UPagination
-          v-if="totalFilteredRows > 0"
-          v-model="page"
-          show-first
-          show-last
-          :page-count="pageCount"
-          :total="totalFilteredRows"
-        />
+          <Pagination
+            v-if="totalPages > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :total="paginationInfo.total"
+            :page-size="pageSize"
+            @update:current-page="onPageChange"
+          />
+        </div>
       </template>
     </TableWrapper>
   </div>

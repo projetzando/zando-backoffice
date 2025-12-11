@@ -148,7 +148,8 @@ function onPageChange(newPage: number) {
 }
 
 // Changement de taille de page
-function onPageSizeChange(newSize: number) {
+function onPageSizeChange(event: any) {
+  const newSize = typeof event === 'number' ? event : Number(event)
   pageSize.value = newSize
   currentPage.value = 1
   loadProducts()
@@ -376,7 +377,7 @@ watch(
 
       <template #footer>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
-          <div class="text-sm text-gray-700">
+          <div class="text-sm text-gray-700 text-center sm:text-left">
             <template v-if="paginationInfo.total > 0">
               Affichage de
               <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
