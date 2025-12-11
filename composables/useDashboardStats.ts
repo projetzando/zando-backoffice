@@ -28,7 +28,8 @@ export const useDashboardStats = () => {
 
   // Calculer les statistiques pour une période donnée
   async function calculateStats(
-    period: "day" | "week" | "month" | "year" = "month"
+    period: "day" | "week" | "month" | "year" = "month",
+    sellerId?: string
   ) {
     const supabase = useSupabaseClient();
     loading.value = true;
@@ -73,28 +74,43 @@ export const useDashboardStats = () => {
       }
 
       // Récupérer les commandes pour la période courante
-      const { data: currentOrders, error: currentError } = await supabase
+      let currentOrdersQuery = supabase
         .from("orders")
         .select("total_amount, created_at, user_id")
         .gte("created_at", currentStart.toISOString())
         .lte("created_at", now.toISOString());
 
+      if (sellerId) {
+        currentOrdersQuery = currentOrdersQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: currentOrders, error: currentError } = await currentOrdersQuery;
       if (currentError) throw currentError;
 
       // Récupérer les commandes pour la période précédente
-      const { data: previousOrders, error: previousError } = await supabase
+      let previousOrdersQuery = supabase
         .from("orders")
         .select("total_amount, created_at, user_id")
         .gte("created_at", previousStart.toISOString())
         .lte("created_at", previousEnd.toISOString());
 
+      if (sellerId) {
+        previousOrdersQuery = previousOrdersQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: previousOrders, error: previousError } = await previousOrdersQuery;
       if (previousError) throw previousError;
 
       // Récupérer les produits
-      const { data: products, error: productsError } = await supabase
+      let productsQuery = supabase
         .from("products")
         .select("created_at, is_active");
 
+      if (sellerId) {
+        productsQuery = productsQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: products, error: productsError } = await productsQuery;
       if (productsError) throw productsError;
 
       // Récupérer les profils utilisateurs
@@ -184,7 +200,8 @@ export const useDashboardStats = () => {
   // Récupérer les données de tendance pour les graphiques
   async function getTrendData(
     period: "day" | "week" | "month" = "week",
-    days: number = 7
+    days: number = 7,
+    sellerId?: string
   ) {
     const supabase = useSupabaseClient();
 
@@ -211,11 +228,17 @@ export const useDashboardStats = () => {
           );
         }
 
-        const { data: dayOrders } = await supabase
+        let dayOrdersQuery = supabase
           .from("orders")
           .select("total_amount")
           .gte("created_at", startDate.toISOString())
           .lte("created_at", endDate.toISOString());
+
+        if (sellerId) {
+          dayOrdersQuery = dayOrdersQuery.eq("seller_id", sellerId);
+        }
+
+        const { data: dayOrders } = await dayOrdersQuery;
 
         const dayRevenue =
           dayOrders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
@@ -230,17 +253,23 @@ export const useDashboardStats = () => {
   }
 
   // Récupérer les alertes du dashboard
-  async function getAlerts() {
+  async function getAlerts(sellerId?: string) {
     const supabase = useSupabaseClient();
     const alerts = [];
 
     try {
       // Vérifier les produits en stock faible
-      const { data: lowStockProducts } = await supabase
+      let lowStockQuery = supabase
         .from("products")
         .select("title, stock")
         .lt("stock", 10)
         .eq("is_active", true);
+
+      if (sellerId) {
+        lowStockQuery = lowStockQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: lowStockProducts } = await lowStockQuery;
 
       if (lowStockProducts && lowStockProducts.length > 0) {
         alerts.push({
@@ -253,10 +282,16 @@ export const useDashboardStats = () => {
       }
 
       // Vérifier les commandes en attente
-      const { data: pendingOrders } = await supabase
+      let pendingOrdersQuery = supabase
         .from("orders")
         .select("id")
         .eq("status", "pending");
+
+      if (sellerId) {
+        pendingOrdersQuery = pendingOrdersQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: pendingOrders } = await pendingOrdersQuery;
 
       if (pendingOrders && pendingOrders.length > 0) {
         alerts.push({
@@ -272,11 +307,17 @@ export const useDashboardStats = () => {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-      const { data: oldOrders } = await supabase
+      let oldOrdersQuery = supabase
         .from("orders")
         .select("id")
         .in("status", ["pending", "confirmed"])
         .lt("created_at", threeDaysAgo.toISOString());
+
+      if (sellerId) {
+        oldOrdersQuery = oldOrdersQuery.eq("seller_id", sellerId);
+      }
+
+      const { data: oldOrders } = await oldOrdersQuery;
 
       if (oldOrders && oldOrders.length > 0) {
         alerts.push({

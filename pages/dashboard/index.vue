@@ -6,11 +6,19 @@ definePageMeta({
 
 const orderStore = useOrderStore();
 const productStore = useProductStore();
+const authStore = useAuthStore();
+const supabase = useSupabaseClient();
 const { calculateStats, getTrendData, getAlerts } = useDashboardStats();
 
 // États réactifs
 const { orders, loading: ordersLoading } = storeToRefs(orderStore);
 const { products, loading: productsLoading } = storeToRefs(productStore);
+
+// Récupérer le seller_id si l'utilisateur est un vendeur
+const currentSellerId = ref<string | null>(null);
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
+const sellerInfo = ref<any>(null);
+const walletInfo = ref<any>(null);
 
 // Période sélectionnée pour les statistiques
 const selectedPeriod = ref("month");
@@ -51,21 +59,56 @@ async function loadDashboardData() {
   loadingAlerts.value = true;
 
   try {
-    // Charger les données de base (utilise les vues optimisées)
-    await Promise.all([orderStore.getAll(), productStore.getAll()]);
+    // Si l'utilisateur est un vendeur, récupérer ses informations complètes
+    if (isSellerUser.value && !currentSellerId.value) {
+      const { data: sellerData } = await supabase
+        .from('sellers')
+        .select('*')
+        .eq('user_id', authStore.connected_user.id)
+        .single();
 
-    // Calculer les statistiques
-    const { data: stats } = await calculateStats(selectedPeriod.value as any);
+      if (sellerData) {
+        currentSellerId.value = sellerData.id;
+        sellerInfo.value = sellerData;
+
+        // Récupérer le wallet du vendeur
+        const { data: wallet } = await supabase
+          .from('wallets')
+          .select('*')
+          .eq('owner_id', sellerData.id)
+          .eq('owner_type', 'seller')
+          .single();
+
+        if (wallet) {
+          walletInfo.value = wallet;
+        }
+      }
+    }
+
+    // Charger les données de base avec filtre vendeur si nécessaire
+    const filters = isSellerUser.value && currentSellerId.value
+      ? { seller_id: currentSellerId.value }
+      : {};
+
+    await Promise.all([
+      orderStore.getAll(),
+      productStore.getAll(filters)
+    ]);
+
+    // Calculer les statistiques avec filtre vendeur si nécessaire
+    const sellerId = isSellerUser.value ? currentSellerId.value : undefined;
+
+    const { data: stats } = await calculateStats(selectedPeriod.value as any, sellerId);
     if (stats) {
       statsData.value = stats;
     }
 
     // Récupérer les données de tendance pour le graphique
-    const trendData = await getTrendData("day", 7);
+    const trendData = await getTrendData("day", 7, sellerId);
     chartData.value = trendData;
 
     // Récupérer les alertes
-    const alertsData = await getAlerts();
+    const alertsData = await getAlerts(sellerId);
     alerts.value = alertsData;
   } catch (error) {
     console.error("Erreur lors du chargement du dashboard:", error);
@@ -93,40 +136,48 @@ function getTrendColor(growth: number): string {
 }
 
 // Cartes de statistiques
-const statCards = computed(() => [
-  {
-    title: "Revenus totaux",
-    value: formatPrice(statsData.value.revenue.current),
-    growth: statsData.value.revenue.growth,
-    icon: "i-heroicons-currency-dollar",
-    iconBg: "bg-green-100",
-    iconColor: "text-green-600",
-  },
-  {
-    title: "Commandes totales",
-    value: formatNumber(statsData.value.orders.current),
-    growth: statsData.value.orders.growth,
-    icon: "i-heroicons-shopping-bag",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-  },
-  {
-    title: "Produits actifs",
-    value: formatNumber(statsData.value.products.current),
-    growth: statsData.value.products.growth,
-    icon: "i-heroicons-cube",
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
-  },
-  {
-    title: "Nouveaux clients",
-    value: formatNumber(statsData.value.customers.current),
-    growth: statsData.value.customers.growth,
-    icon: "i-heroicons-user-plus",
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-600",
-  },
-]);
+const statCards = computed(() => {
+  const cards = [
+    {
+      title: isSellerUser.value ? "Mes revenus" : "Revenus totaux",
+      value: formatPrice(statsData.value.revenue.current),
+      growth: statsData.value.revenue.growth,
+      icon: "i-heroicons-currency-dollar",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+    },
+    {
+      title: isSellerUser.value ? "Mes commandes" : "Commandes totales",
+      value: formatNumber(statsData.value.orders.current),
+      growth: statsData.value.orders.growth,
+      icon: "i-heroicons-shopping-bag",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+    },
+    {
+      title: isSellerUser.value ? "Mes produits actifs" : "Produits actifs",
+      value: formatNumber(statsData.value.products.current),
+      growth: statsData.value.products.growth,
+      icon: "i-heroicons-cube",
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+    },
+  ];
+
+  // Ajouter "Nouveaux clients" seulement pour admin/superadmin
+  if (!isSellerUser.value) {
+    cards.push({
+      title: "Nouveaux clients",
+      value: formatNumber(statsData.value.customers.current),
+      growth: statsData.value.customers.growth,
+      icon: "i-heroicons-user-plus",
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
+    });
+  }
+
+  return cards;
+});
 
 // Actions rapides
 const quickActions = [
@@ -249,6 +300,83 @@ function handleAlertAction(alert: any) {
         </UButton>
       </div>
     </div>
+
+    <!-- Informations Vendeur -->
+    <UCard v-if="isSellerUser && sellerInfo" class="bg-gradient-to-br from-primary-50 to-primary-100 border-primary-200">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Infos boutique -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <UIcon name="i-heroicons-building-storefront" class="w-5 h-5" />
+            Ma Boutique
+          </h3>
+          <div class="space-y-3">
+            <!-- Logo -->
+            <div v-if="sellerInfo.company_logo" class="flex justify-center mb-4">
+              <UAvatar
+                :src="sellerInfo.company_logo"
+                :alt="sellerInfo.company_name"
+                size="3xl"
+                class="ring-4 ring-white shadow-lg"
+              />
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">Nom de la boutique</p>
+              <p class="font-semibold text-gray-900">{{ sellerInfo.company_name }}</p>
+            </div>
+            <div v-if="sellerInfo.description">
+              <p class="text-sm text-gray-600">Description</p>
+              <p class="text-sm text-gray-900">{{ sellerInfo.description }}</p>
+            </div>
+            <div v-if="sellerInfo.phone">
+              <p class="text-sm text-gray-600">Téléphone</p>
+              <p class="text-sm text-gray-900">{{ sellerInfo.phone }}</p>
+            </div>
+            <div v-if="sellerInfo.is_verified !== undefined">
+              <UBadge :color="sellerInfo.is_verified ? 'green' : 'orange'" variant="subtle">
+                {{ sellerInfo.is_verified ? 'Boutique vérifiée' : 'En attente de vérification' }}
+              </UBadge>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallet -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <UIcon name="i-heroicons-wallet" class="w-5 h-5" />
+            Mon Portefeuille
+          </h3>
+          <div v-if="walletInfo" class="space-y-3">
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+              <p class="text-sm text-gray-600 mb-1">Solde disponible</p>
+              <p class="text-3xl font-bold text-primary-600">{{ formatPrice(walletInfo.balance || 0) }}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-lg p-3 shadow-sm">
+                <p class="text-xs text-gray-600">Total gagné</p>
+                <p class="font-semibold text-gray-900">{{ formatPrice(walletInfo.total_earned || 0) }}</p>
+              </div>
+              <div class="bg-white rounded-lg p-3 shadow-sm">
+                <p class="text-xs text-gray-600">Total retiré</p>
+                <p class="font-semibold text-gray-900">{{ formatPrice(walletInfo.total_withdrawn || 0) }}</p>
+              </div>
+            </div>
+            <UButton
+              @click="navigateTo('/dashboard/payouts')"
+              color="primary"
+              block
+              icon="i-heroicons-arrow-up-tray"
+            >
+              Demander un retrait
+            </UButton>
+          </div>
+          <div v-else class="text-center py-8 text-gray-500">
+            <UIcon name="i-heroicons-wallet" class="w-12 h-12 mx-auto mb-2 text-gray-300" />
+            <p>Portefeuille non configuré</p>
+          </div>
+        </div>
+      </div>
+    </UCard>
 
     <!-- Alertes importantes -->
     <div v-if="alerts.length > 0" class="space-y-4">
