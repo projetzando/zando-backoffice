@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PAGINATION } from '~/utils/constants/api'
+
 definePageMeta({
   name: 'Liste des vendeurs',
   layout: 'dashboard',
@@ -7,80 +9,88 @@ definePageMeta({
 
 const sellerStore = useSellerStore()
 
-// Chargement des données
-onMounted(() => {
-  sellerStore.get()
+const { sellers, loading, paginationInfo } = storeToRefs(sellerStore)
+
+// Pagination côté serveur
+const currentPage = ref(1)
+const pageSize = ref(PAGINATION.DEFAULT_PAGE_SIZE)
+
+// Filtres
+const filters = ref({
+  search: '',
+  is_approved: undefined as boolean | undefined,
 })
 
-const { sellers } = storeToRefs(sellerStore)
+// Debounce sur la recherche
+const debouncedSearch = ref('')
+watch(
+  () => filters.value.search,
+  useDebounce((value: string) => {
+    debouncedSearch.value = value
+  }, 500),
+  { immediate: true },
+)
 
-// États pour les filtres et la recherche
-const searchQuery = ref('')
-const statusFilter = ref('all')
-const sortBy = ref('created_at')
-const sortOrder = ref('desc')
-const page = ref(1)
-const pageSize = ref(10)
-
-// Filtres et recherche
-const filteredSellers = computed(() => {
-  let filtered = sellers.value || []
-
-  // Recherche par nom d'entreprise, email ou téléphone
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      seller =>
-        seller.company_name?.toLowerCase().includes(query)
-        || seller.email?.toLowerCase().includes(query)
-        || seller.phone?.toLowerCase().includes(query),
-    )
+// Fonction pour charger les vendeurs avec pagination
+async function loadSellers() {
+  const paginationOptions = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: 'created_at',
+    sortOrder: 'desc' as const,
   }
 
-  // Filtre par statut d'approbation
-  if (statusFilter.value !== 'all') {
-    const isApproved = statusFilter.value === 'approved'
-    filtered = filtered.filter(seller => seller.is_approved === isApproved)
+  const filterOptions = {
+    search: debouncedSearch.value || undefined,
+    is_approved: filters.value.is_approved,
   }
 
-  // Tri
-  filtered.sort((a, b) => {
-    let aValue = a[sortBy.value]
-    let bValue = b[sortBy.value]
+  await sellerStore.getAll(paginationOptions, filterOptions)
+}
 
-    if (sortBy.value === 'created_at') {
-      aValue = new Date(aValue)
-      bValue = new Date(bValue)
-    }
-
-    if (sortOrder.value === 'desc') {
-      return bValue > aValue ? 1 : -1
-    }
-    else {
-      return aValue > bValue ? 1 : -1
-    }
-  })
-
-  return filtered
+// Charger les données au montage
+onMounted(async () => {
+  await loadSellers()
 })
 
-// Statistiques
-const stats = computed(() => {
-  const total = sellers.value?.length || 0
-  const approved = sellers.value?.filter(s => s.is_approved)?.length || 0
-  const pending = total - approved
+// Computed pour le nombre total de pages
+const totalPages = computed(() => paginationInfo.value.totalPages)
 
-  return { total, approved, pending }
+// Changement de page
+function onPageChange(newPage: number) {
+  currentPage.value = newPage
+  loadSellers()
+}
+
+// Changement de taille de page
+function onPageSizeChange(event: any) {
+  const newSize = typeof event === 'number' ? event : Number(event)
+  pageSize.value = newSize
+  currentPage.value = 1
+  loadSellers()
+}
+
+// Watchers pour recharger les données
+watch(debouncedSearch, () => {
+  currentPage.value = 1
+  loadSellers()
 })
 
-// Pagination
-const totalSellers = computed(() => filteredSellers.value.length)
-const totalPages = computed(() => Math.ceil(totalSellers.value / pageSize.value))
-const paginatedSellers = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredSellers.value.slice(start, end)
-})
+watch(
+  () => filters.value.is_approved,
+  () => {
+    currentPage.value = 1
+    loadSellers()
+  },
+)
+
+// Réinitialiser les filtres
+function resetFilters() {
+  filters.value = {
+    search: '',
+    is_approved: undefined,
+  }
+}
 
 // Actions
 function viewSeller(seller: any) {
@@ -114,14 +124,22 @@ function getStatusLabel(isApproved: boolean) {
   return isApproved ? 'Approuvé' : 'En attente'
 }
 
-// Reset des filtres
-function resetFilters() {
-  searchQuery.value = ''
-  statusFilter.value = 'all'
-  sortBy.value = 'created_at'
-  sortOrder.value = 'desc'
-  page.value = 1
-}
+// Compter les filtres actifs
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.is_approved !== undefined) count++
+  return count
+})
+
+// Statistiques
+const stats = computed(() => {
+  return {
+    total: paginationInfo.value.total,
+    approved: 0, // Ces stats nécessiteraient un appel API séparé
+    pending: 0,
+  }
+})
 </script>
 
 <template>
@@ -169,44 +187,42 @@ function resetFilters() {
         <!-- Recherche -->
         <div class="flex-1">
           <UInput
-            v-model="searchQuery"
+            v-model="filters.search"
             placeholder="Rechercher par entreprise, email, téléphone..."
             icon="i-heroicons-magnifying-glass"
             size="lg"
           />
         </div>
 
-        <!-- Filtres et tri -->
+        <!-- Filtres -->
         <div class="flex items-center space-x-3">
           <USelect
-            v-model="statusFilter"
+            v-model="filters.is_approved"
             :options="[
-              { label: 'Tous les vendeurs', value: 'all' },
-              { label: 'Approuvés', value: 'approved' },
-              { label: 'En attente', value: 'pending' },
+              { label: 'Tous les vendeurs', value: undefined },
+              { label: 'Approuvés', value: true },
+              { label: 'En attente', value: false },
             ]"
             placeholder="Statut"
             size="lg"
           />
+
           <USelect
-            v-model="sortBy"
+            v-model="pageSize"
             :options="[
-              { label: 'Date de création', value: 'created_at' },
-              { label: 'Nom d\'entreprise', value: 'company_name' },
-              { label: 'Email', value: 'email' },
+              { value: 10, label: '10 / page' },
+              { value: 20, label: '20 / page' },
+              { value: 50, label: '50 / page' },
+              { value: 100, label: '100 / page' },
             ]"
-            placeholder="Trier par"
-            size="lg"
+            @change="onPageSizeChange"
           />
+
           <UButton
-            :icon="sortOrder === 'asc' ? 'i-heroicons-arrow-up' : 'i-heroicons-arrow-down'"
-            variant="outline"
-            size="lg"
-            @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-          />
-          <UButton
-            icon="i-heroicons-arrow-path"
-            variant="outline"
+            v-if="activeFiltersCount > 0"
+            icon="i-heroicons-x-mark"
+            color="gray"
+            variant="ghost"
             size="lg"
             title="Réinitialiser les filtres"
             @click="resetFilters"
@@ -217,7 +233,7 @@ function resetFilters() {
 
     <!-- Loading state -->
     <div
-      v-if="sellerStore.loading"
+      v-if="loading"
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
     >
       <UCard
@@ -237,12 +253,12 @@ function resetFilters() {
 
     <!-- Liste des vendeurs -->
     <div
-      v-else-if="paginatedSellers.length > 0"
+      v-else-if="sellers.length > 0"
       class="space-y-4"
     >
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <UCard
-          v-for="seller in paginatedSellers"
+          v-for="seller in sellers"
           :key="seller.id"
           class="hover:shadow-lg transition-shadow cursor-pointer"
           @click="viewSeller(seller)"
@@ -359,41 +375,52 @@ function resetFilters() {
       <!-- Pagination -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6">
         <div class="text-sm text-gray-700">
-          Affichage de {{ (page - 1) * pageSize + 1 }} à
-          {{ Math.min(page * pageSize, totalSellers) }} sur {{ totalSellers }} vendeur{{
-            totalSellers > 1 ? 's' : ''
-          }}
+          <template v-if="paginationInfo.total > 0">
+            Affichage de
+            <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+            à
+            <span class="font-medium">{{
+              Math.min(currentPage * pageSize, paginationInfo.total)
+            }}</span>
+            sur
+            <span class="font-medium">{{ paginationInfo.total }}</span>
+            vendeur{{ paginationInfo.total > 1 ? 's' : '' }}
+          </template>
+          <template v-else>
+            Aucun vendeur trouvé
+          </template>
         </div>
-        <UPagination
-          v-if="totalPages > 1"
-          v-model="page"
-          :page-count="totalPages"
-          :total="totalSellers"
-          show-first
-          show-last
+
+        <Pagination
+          v-if="totalPages > 0"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="paginationInfo.total"
+          :page-size="pageSize"
+          @update:current-page="onPageChange"
         />
       </div>
     </div>
 
     <!-- État vide -->
-    <UCard v-else-if="!sellerStore.loading">
+    <UCard v-else-if="!loading">
       <div class="text-center py-12">
         <UIcon
           name="i-heroicons-building-storefront"
           class="w-16 h-16 text-gray-400 mx-auto mb-4"
         />
         <h3 class="text-lg font-medium text-gray-900 mb-2">
-          {{ searchQuery || statusFilter !== 'all' ? 'Aucun vendeur trouvé' : 'Aucun vendeur' }}
+          {{ activeFiltersCount > 0 ? 'Aucun vendeur trouvé' : 'Aucun vendeur' }}
         </h3>
         <p class="text-gray-500 mb-6">
           {{
-            searchQuery || statusFilter !== 'all'
+            activeFiltersCount > 0
               ? 'Essayez de modifier vos critères de recherche ou filtres.'
               : "Les vendeurs s'afficheront ici une fois qu'ils se seront inscrits."
           }}
         </p>
         <UButton
-          v-if="searchQuery || statusFilter !== 'all'"
+          v-if="activeFiltersCount > 0"
           variant="outline"
           @click="resetFilters"
         >

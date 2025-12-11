@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PAGINATION } from '~/utils/constants/api'
+
 definePageMeta({
   name: 'Paiements',
   layout: 'dashboard',
@@ -8,54 +10,107 @@ definePageMeta({
 const paymentStore = usePaymentStore()
 const toast = useToast()
 
-onMounted(() => {
-  paymentStore.get()
+const { payments, loading, paginationInfo } = storeToRefs(paymentStore)
+
+// Pagination côté serveur
+const currentPage = ref(1)
+const pageSize = ref(PAGINATION.DEFAULT_PAGE_SIZE)
+
+// Filtres
+const filters = ref({
+  search: '',
+  status: '',
+  method: '',
 })
 
-const { payments } = storeToRefs(paymentStore)
+// Debounce sur la recherche
+const debouncedSearch = ref('')
+watch(
+  () => filters.value.search,
+  useDebounce((value: string) => {
+    debouncedSearch.value = value
+  }, 500),
+  { immediate: true },
+)
 
-const searchQuery = ref('')
-const statusFilter = ref<string | null>(null)
-const methodFilter = ref<string | null>(null)
-
-const filteredPayments = computed(() => {
-  let filtered = payments.value
-
-  if (statusFilter.value) {
-    filtered = filtered.filter(payment => payment.status === statusFilter.value)
+// Fonction pour charger les paiements avec pagination
+async function loadPayments() {
+  const paginationOptions = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: 'created_at',
+    sortOrder: 'desc' as const,
   }
 
-  if (methodFilter.value) {
-    filtered = filtered.filter(payment => payment.method === methodFilter.value)
+  const filterOptions = {
+    search: debouncedSearch.value || undefined,
+    status: filters.value.status || undefined,
+    method: filters.value.method || undefined,
   }
 
-  if (searchQuery.value) {
-    filtered = filtered.filter(
-      payment =>
-        payment.order?.id?.toLowerCase().includes(searchQuery.value.toLowerCase())
-        || payment.transaction_ref?.toLowerCase().includes(searchQuery.value.toLowerCase())
-        || payment.safe_reference?.toLowerCase().includes(searchQuery.value.toLowerCase()),
-    )
-  }
+  await paymentStore.getAll(paginationOptions, filterOptions)
+}
 
-  return filtered
+// Charger les données au montage
+onMounted(async () => {
+  await loadPayments()
 })
+
+// Computed pour le nombre total de pages
+const totalPages = computed(() => paginationInfo.value.totalPages)
+
+// Changement de page
+function onPageChange(newPage: number) {
+  currentPage.value = newPage
+  loadPayments()
+}
+
+// Changement de taille de page
+function onPageSizeChange(event: any) {
+  const newSize = typeof event === 'number' ? event : Number(event)
+  pageSize.value = newSize
+  currentPage.value = 1
+  loadPayments()
+}
+
+// Watchers pour recharger les données
+watch(debouncedSearch, () => {
+  currentPage.value = 1
+  loadPayments()
+})
+
+watch(
+  () => [filters.value.status, filters.value.method],
+  () => {
+    currentPage.value = 1
+    loadPayments()
+  },
+)
+
+// Réinitialiser les filtres
+function resetFilters() {
+  filters.value = {
+    search: '',
+    status: '',
+    method: '',
+  }
+}
 
 const statusOptions = [
-  { label: 'Tous les statuts', value: null },
-  { label: 'Non payé', value: 'unpaid' },
-  { label: 'En attente', value: 'pending' },
-  { label: 'Complété', value: 'completed' },
-  { label: 'Échoué', value: 'failed' },
+  { value: '', label: 'Tous les statuts' },
+  { value: 'unpaid', label: 'Non payé' },
+  { value: 'pending', label: 'En attente' },
+  { value: 'completed', label: 'Complété' },
+  { value: 'failed', label: 'Échoué' },
 ]
 
-const methodOptions = computed(() => {
-  const methods = [...new Set(payments.value.map(p => p.method))]
-  return [
-    { label: 'Toutes les méthodes', value: null },
-    ...methods.map(method => ({ label: method, value: method })),
-  ]
-})
+const methodOptions = [
+  { value: '', label: 'Toutes les méthodes' },
+  { value: 'mobile_money', label: 'Mobile Money' },
+  { value: 'cash', label: 'Paiement à la livraison' },
+  { value: 'card', label: 'Carte bancaire' },
+  { value: 'bank_transfer', label: 'Virement bancaire' },
+]
 
 async function updatePaymentStatus(payment: Payment, newStatus: Payment['status']) {
   const result = await paymentStore.updateStatus(payment.id!, newStatus)
@@ -72,7 +127,7 @@ async function updatePaymentStatus(payment: Payment, newStatus: Payment['status'
       description: `Paiement ${statusMessages[newStatus as keyof typeof statusMessages] || 'mis à jour'}`,
       color: 'green',
     })
-    await paymentStore.get()
+    await loadPayments()
   }
   else {
     toast.add({
@@ -94,6 +149,7 @@ async function deletePayment(payment: Payment) {
       description: 'Paiement supprimé avec succès',
       color: 'green',
     })
+    await loadPayments()
   }
   else {
     toast.add({
@@ -103,6 +159,11 @@ async function deletePayment(payment: Payment) {
     })
   }
 }
+
+// Compter les filtres actifs
+const activeFiltersCount = computed(() => {
+  return Object.values(filters.value).filter(value => value && value !== '').length
+})
 
 function getStatusColor(status?: string) {
   switch (status) {
@@ -147,55 +208,94 @@ function formatAmount(amount?: number) {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">
-        Paiements
-      </h1>
-      <p class="text-gray-600 mt-1">
-        Gérez les paiements des commandes
-      </p>
-    </div>
+  <div>
+    <TableWrapper>
+      <template #header>
+        <div class="table-header">
+          <div>
+            <h5 class="table-title">
+              Liste des paiements
+              <span class="text-sm font-normal text-gray-500 ml-2">
+                ({{ paginationInfo.total }} paiements)
+              </span>
+            </h5>
+            <div
+              v-if="activeFiltersCount > 0"
+              class="text-sm text-blue-600 mt-2"
+            >
+              {{ activeFiltersCount }} filtre{{ activeFiltersCount > 1 ? 's' : '' }} actif{{
+                activeFiltersCount > 1 ? 's' : ''
+              }}
+            </div>
+          </div>
+        </div>
 
-    <!-- Filtres -->
-    <div class="flex gap-4">
-      <UInput
-        v-model="searchQuery"
-        placeholder="Rechercher par référence..."
-        icon="i-heroicons-magnifying-glass"
-        class="flex-1"
-      />
-      <USelectMenu
-        v-model="statusFilter"
-        :options="statusOptions"
-        placeholder="Filtrer par statut"
-        class="w-48"
-      />
-      <USelectMenu
-        v-model="methodFilter"
-        :options="methodOptions"
-        placeholder="Filtrer par méthode"
-        class="w-48"
-      />
-    </div>
+        <!-- Filtres -->
+        <div class="flex flex-col sm:flex-row gap-4 py-4 border-y">
+          <div class="flex-1">
+            <UInput
+              v-model="filters.search"
+              placeholder="Rechercher par référence..."
+              icon="i-heroicons-magnifying-glass"
+            />
+          </div>
 
-    <!-- Liste des paiements -->
-    <UTable
-      :rows="filteredPayments"
-      :columns="[
-        { key: 'order_ref', label: 'Commande' },
-        { key: 'buyer', label: 'Acheteur' },
-        { key: 'amount', label: 'Montant' },
-        { key: 'method', label: 'Méthode' },
-        { key: 'transaction_ref', label: 'Référence transaction' },
-        { key: 'safe_reference', label: 'Référence sécurisée' },
-        { key: 'status', label: 'Statut' },
-        { key: 'created_at', label: 'Date' },
-        { key: 'actions', label: 'Actions' },
-      ]"
-      :loading="paymentStore.loading"
-    >
+          <div class="flex gap-2">
+            <USelect
+              v-model="filters.status"
+              :options="statusOptions"
+              placeholder="Statut"
+              class="min-w-[140px]"
+            />
+
+            <USelect
+              v-model="filters.method"
+              :options="methodOptions"
+              placeholder="Méthode"
+              class="min-w-[140px]"
+            />
+
+            <!-- Bouton pour réinitialiser les filtres -->
+            <UButton
+              v-if="filters.status || filters.method"
+              icon="i-heroicons-x-mark"
+              color="gray"
+              variant="ghost"
+              size="sm"
+              title="Réinitialiser les filtres"
+              @click="resetFilters"
+            />
+          </div>
+
+          <USelect
+            v-model="pageSize"
+            :options="[
+              { value: 10, label: '10 / page' },
+              { value: 20, label: '20 / page' },
+              { value: 50, label: '50 / page' },
+              { value: 100, label: '100 / page' },
+            ]"
+            @change="onPageSizeChange"
+          />
+        </div>
+      </template>
+
+      <template #content>
+        <UTable
+          :loading="loading"
+          :rows="payments"
+          :columns="[
+            { key: 'order_ref', label: 'Commande' },
+            { key: 'buyer', label: 'Acheteur' },
+            { key: 'amount', label: 'Montant' },
+            { key: 'method', label: 'Méthode' },
+            { key: 'transaction_ref', label: 'Référence transaction' },
+            { key: 'safe_reference', label: 'Référence sécurisée' },
+            { key: 'status', label: 'Statut' },
+            { key: 'created_at', label: 'Date' },
+            { key: 'actions', label: 'Actions' },
+          ]"
+        >
       <template #order_ref-data="{ row }">
         <div>
           <p class="font-medium font-mono text-sm">
@@ -320,6 +420,38 @@ function formatAmount(amount?: number) {
           </UTooltip>
         </div>
       </template>
-    </UTable>
+        </UTable>
+      </template>
+
+      <template #footer>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
+          <div class="text-sm text-gray-700 text-center sm:text-left">
+            <template v-if="paginationInfo.total > 0">
+              Affichage de
+              <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+              à
+              <span class="font-medium">{{
+                Math.min(currentPage * pageSize, paginationInfo.total)
+              }}</span>
+              sur
+              <span class="font-medium">{{ paginationInfo.total }}</span>
+              paiements
+            </template>
+            <template v-else>
+              Aucun paiement trouvé
+            </template>
+          </div>
+
+          <Pagination
+            v-if="totalPages > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :total="paginationInfo.total"
+            :page-size="pageSize"
+            @update:current-page="onPageChange"
+          />
+        </div>
+      </template>
+    </TableWrapper>
   </div>
 </template>
