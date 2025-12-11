@@ -26,26 +26,6 @@ const { activeMenu, activeChild, toggleMenu, setActiveChild } = useMenu();
         :permission="link.permission"
       />
     </NavigationSidebarDropdown>
-
-    <div v-role="['admin', 'superadmin']">
-      <NavigationSidebarButton
-        label="Admin"
-        :isActive="activeMenu === Menu.Admin || activeChild === Menu.Admin"
-        iconLeft="heroicons:shield-check"
-        @click="toggleMenu(Menu.Admin)"
-      />
-
-      <NavigationSidebarDropdown :isActive="activeMenu === Menu.Admin">
-        <NavigationSidebarLink
-          @click="setActiveChild(Menu.Admin)"
-          v-for="link in adminLinks"
-          :key="link.title"
-          :title="link.title"
-          :link="link.route_link"
-          :permission="link.permission"
-        />
-      </NavigationSidebarDropdown>
-    </div>
   </div>
 </template>
 
