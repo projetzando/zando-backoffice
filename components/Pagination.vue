@@ -4,13 +4,16 @@ interface Props {
   totalPages: number
   total: number
   pageSize: number
+  loading?: boolean
 }
 
 interface Emits {
   (e: 'update:currentPage', page: number): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  loading: false,
+})
 const emit = defineEmits<Emits>()
 
 // Générer les numéros de pages à afficher
@@ -91,11 +94,39 @@ const canGoNext = computed(() => props.currentPage < props.totalPages)
 
 <template>
   <div class="flex items-center gap-2">
+    <!-- Indicateur de chargement -->
+    <div
+      v-if="loading"
+      class="flex items-center gap-2 text-sm text-gray-600 mr-2"
+    >
+      <svg
+        class="animate-spin h-4 w-4 text-primary-600"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+      <span>Chargement...</span>
+    </div>
+
     <!-- Bouton Première page -->
     <button
-      :disabled="!canGoPrevious"
+      :disabled="!canGoPrevious || loading"
       class="pagination-button"
-      :class="{ 'pagination-button-disabled': !canGoPrevious }"
+      :class="{ 'pagination-button-disabled': !canGoPrevious || loading }"
       title="Première page"
       @click="goToFirst"
     >
@@ -116,9 +147,9 @@ const canGoNext = computed(() => props.currentPage < props.totalPages)
 
     <!-- Bouton Page précédente -->
     <button
-      :disabled="!canGoPrevious"
+      :disabled="!canGoPrevious || loading"
       class="pagination-button"
-      :class="{ 'pagination-button-disabled': !canGoPrevious }"
+      :class="{ 'pagination-button-disabled': !canGoPrevious || loading }"
       title="Page précédente"
       @click="goToPrevious"
     >
@@ -145,10 +176,12 @@ const canGoNext = computed(() => props.currentPage < props.totalPages)
       >
         <button
           v-if="page !== '...'"
+          :disabled="loading"
           class="pagination-number"
           :class="{
             'pagination-number-active': page === currentPage,
             'pagination-number-inactive': page !== currentPage,
+            'opacity-50 cursor-not-allowed': loading,
           }"
           @click="goToPage(page as number)"
         >
@@ -163,9 +196,9 @@ const canGoNext = computed(() => props.currentPage < props.totalPages)
 
     <!-- Bouton Page suivante -->
     <button
-      :disabled="!canGoNext"
+      :disabled="!canGoNext || loading"
       class="pagination-button"
-      :class="{ 'pagination-button-disabled': !canGoNext }"
+      :class="{ 'pagination-button-disabled': !canGoNext || loading }"
       title="Page suivante"
       @click="goToNext"
     >
@@ -186,9 +219,9 @@ const canGoNext = computed(() => props.currentPage < props.totalPages)
 
     <!-- Bouton Dernière page -->
     <button
-      :disabled="!canGoNext"
+      :disabled="!canGoNext || loading"
       class="pagination-button"
-      :class="{ 'pagination-button-disabled': !canGoNext }"
+      :class="{ 'pagination-button-disabled': !canGoNext || loading }"
       title="Dernière page"
       @click="goToLast"
     >

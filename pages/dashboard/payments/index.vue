@@ -448,6 +448,7 @@ function formatAmount(amount?: number) {
             :total-pages="totalPages"
             :total="paginationInfo.total"
             :page-size="pageSize"
+            :loading="loading"
             @update:current-page="onPageChange"
           />
         </div>
