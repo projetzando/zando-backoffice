@@ -36,7 +36,7 @@ export const useAdminStore = defineStore('admin', () => {
         }
     }
 
-    async function store(admin: Omit<Admin, 'id' | 'created_at'>) {
+    async function store(admin: Omit<Admin, 'id' | 'created_at'> & { password: string }) {
         loading.value = true
         error.value = null
 
@@ -51,6 +51,7 @@ export const useAdminStore = defineStore('admin', () => {
                     phone: admin.phone,
                     role: admin.role || 'admin',
                     avatar_url: admin.avatar_url,
+                    password: admin.password,
                     is_active: admin.is_active !== false
                 }
             })

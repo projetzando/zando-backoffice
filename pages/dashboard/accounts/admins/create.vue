@@ -51,6 +51,7 @@ async function onSubmit(event: FormSubmitEvent<any>) {
       email: state.email,
       phone: state.phone,
       role: state.role,
+      password: state.password,
       is_active: true,
     });
 

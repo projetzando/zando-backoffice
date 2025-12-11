@@ -30,12 +30,12 @@ export default defineEventHandler(async (event) => {
   // Lire les données du body
   const body = await readBody(event)
 
-  const { email, first_name, last_name, phone, role, avatar_url } = body
+  const { email, first_name, last_name, phone, role, avatar_url, password } = body
 
-  if (!email || !first_name || !last_name) {
+  if (!email || !first_name || !last_name || !password) {
     throw createError({
       statusCode: 400,
-      message: 'Email, prénom et nom sont requis'
+      message: 'Email, prénom, nom et mot de passe sont requis'
     })
   }
 
@@ -43,10 +43,16 @@ export default defineEventHandler(async (event) => {
     // Créer l'utilisateur dans auth avec le service role client
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
+      password,
       email_confirm: true,
       user_metadata: {
         first_name,
         last_name,
+        email,
+        phone: phone || null,
+        role: role || 'admin',
+        email_verified: true,
+        phone_verified: false
       }
     })
 
