@@ -7,15 +7,8 @@ definePageMeta({
 const productStore = useProductStore();
 const categoryStore = useCategoryStore();
 const sellerStore = useSellerStore();
-
-// Charger les données
-onMounted(async () => {
-  await Promise.all([
-    productStore.getAll(),
-    categoryStore.get(),
-    sellerStore.get(),
-  ]);
-});
+const authStore = useAuthStore();
+const supabase = useSupabaseClient();
 
 const { products, loading } = storeToRefs(productStore);
 
@@ -25,6 +18,34 @@ const filters = ref({
   is_active: "",
   seller_id: "",
   category_id: "",
+});
+
+// Récupérer le seller_id si l'utilisateur est un vendeur
+const currentSellerId = ref<string | null>(null);
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
+
+// Charger les données
+onMounted(async () => {
+  // Si l'utilisateur est un vendeur, récupérer son seller_id
+  if (isSellerUser.value) {
+    const { data: sellerData } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('user_id', authStore.connected_user.id)
+      .single();
+
+    if (sellerData) {
+      currentSellerId.value = sellerData.id;
+      // Appliquer automatiquement le filtre vendeur
+      filters.value.seller_id = sellerData.id;
+    }
+  }
+
+  await Promise.all([
+    productStore.getAll(filters.value),
+    categoryStore.get(),
+    sellerStore.get(),
+  ]);
 });
 
 // Table configuration
@@ -115,6 +136,10 @@ async function toggleProductStatus(product: Product) {
 watch(
   filters,
   async (newFilters) => {
+    // Si l'utilisateur est un vendeur, forcer le filtre seller_id
+    if (isSellerUser.value && currentSellerId.value) {
+      newFilters.seller_id = currentSellerId.value;
+    }
     await productStore.getAll(newFilters);
   },
   { deep: true }
@@ -154,6 +179,7 @@ watch(
             />
 
             <USelect
+              v-if="!isSellerUser"
               v-model="filters.seller_id"
               :options="sellerOptions"
               placeholder="Vendeur"
