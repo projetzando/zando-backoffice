@@ -477,6 +477,101 @@ export const useDeliveryZoneStore = defineStore(
       }
     }
 
+    // ========================================
+    // Rapport des tarifs manquants
+    // ========================================
+
+    /**
+     * Génère un rapport des combinaisons de zones sans tarif configuré
+     * Pour chaque ville, identifie toutes les paires de zones (A→B et B→A) qui n'ont pas de tarif
+     */
+    function getMissingPricingsReport(cityId?: string) {
+      const missingRoutes: Array<{
+        city_id: string
+        city_name: string
+        from_zone_id: string
+        from_zone_name: string
+        to_zone_id: string
+        to_zone_name: string
+        is_bidirectional: boolean
+      }> = []
+
+      // Filtrer les zones par ville si spécifié
+      const relevantZones = cityId
+        ? zones.value.filter(z => z.city_id === cityId)
+        : zones.value
+
+      // Grouper les zones par ville
+      const zonesByCity = relevantZones.reduce((acc, zone) => {
+        const cityKey = zone.city_id
+        if (!acc[cityKey]) {
+          acc[cityKey] = []
+        }
+        acc[cityKey].push(zone)
+        return acc
+      }, {} as Record<string, DeliveryZone[]>)
+
+      // Pour chaque ville, vérifier toutes les combinaisons possibles
+      Object.entries(zonesByCity).forEach(([cityKey, cityZones]) => {
+        // Générer toutes les paires possibles (incluant A→B et B→A)
+        for (let i = 0; i < cityZones.length; i++) {
+          for (let j = 0; j < cityZones.length; j++) {
+            // On peut aussi inclure les trajets d'une zone vers elle-même si nécessaire
+            // Pour l'instant, on les exclut (i !== j)
+            if (i !== j) {
+              const fromZone = cityZones[i]
+              const toZone = cityZones[j]
+
+              // Vérifier si ce tarif existe
+              const pricingExists = pricings.value.some(
+                p =>
+                  p.city_id === cityKey
+                  && p.from_zone_id === fromZone.id
+                  && p.to_zone_id === toZone.id,
+              )
+
+              if (!pricingExists) {
+                // Vérifier si le trajet inverse existe
+                const reversePricingExists = pricings.value.some(
+                  p =>
+                    p.city_id === cityKey
+                    && p.from_zone_id === toZone.id
+                    && p.to_zone_id === fromZone.id,
+                )
+
+                missingRoutes.push({
+                  city_id: cityKey,
+                  city_name: fromZone.city?.name || 'Ville inconnue',
+                  from_zone_id: fromZone.id!,
+                  from_zone_name: fromZone.name,
+                  to_zone_id: toZone.id!,
+                  to_zone_name: toZone.name,
+                  is_bidirectional: !reversePricingExists, // Si le retour n'existe pas non plus
+                })
+              }
+            }
+          }
+        }
+      })
+
+      // Grouper le rapport par ville
+      const reportByCity = missingRoutes.reduce((acc, route) => {
+        if (!acc[route.city_id]) {
+          acc[route.city_id] = {
+            city_id: route.city_id,
+            city_name: route.city_name,
+            missing_routes: [],
+            total_missing: 0,
+          }
+        }
+        acc[route.city_id].missing_routes.push(route)
+        acc[route.city_id].total_missing++
+        return acc
+      }, {} as Record<string, any>)
+
+      return Object.values(reportByCity)
+    }
+
     function $reset() {
       zones.value = []
       currentZone.value = null
@@ -513,6 +608,9 @@ export const useDeliveryZoneStore = defineStore(
       addAreasToZone,
       removeAreaFromZone,
       getAreasForZone,
+
+      // Rapports
+      getMissingPricingsReport,
 
       $reset,
     }

@@ -1,0 +1,211 @@
+<script setup lang="ts">
+const zoneStore = useDeliveryZoneStore()
+const cityStore = useCityStore()
+const toast = useToast()
+
+const props = defineProps<{
+  show: boolean
+}>()
+
+const emit = defineEmits<{
+  close: []
+  createPricing: [route: any]
+}>()
+
+const { pricings, zones } = storeToRefs(zoneStore)
+const { cities } = storeToRefs(cityStore)
+
+const selectedCityFilter = ref<string | null>(null)
+const showOnlyBidirectional = ref(false)
+
+// Générer le rapport des tarifs manquants
+const missingReport = computed(() => {
+  return zoneStore.getMissingPricingsReport(selectedCityFilter.value || undefined)
+})
+
+// Filtrer le rapport selon les options
+const filteredReport = computed(() => {
+  if (!showOnlyBidirectional.value) return missingReport.value
+
+  return missingReport.value.map(city => ({
+    ...city,
+    missing_routes: city.missing_routes.filter((route: any) => route.is_bidirectional),
+    total_missing: city.missing_routes.filter((route: any) => route.is_bidirectional).length,
+  })).filter(city => city.total_missing > 0)
+})
+
+const cityOptions = computed(() => [
+  { label: 'Toutes les villes', value: null },
+  ...cities.value.map(city => ({ label: city.name, value: city.id })),
+])
+
+// Statistiques globales
+const globalStats = computed(() => {
+  const totalMissing = filteredReport.value.reduce((sum, city) => sum + city.total_missing, 0)
+  const totalBidirectional = filteredReport.value.reduce(
+    (sum, city) => sum + city.missing_routes.filter((r: any) => r.is_bidirectional).length,
+    0,
+  )
+  const totalCities = filteredReport.value.length
+
+  return { totalMissing, totalBidirectional, totalCities }
+})
+
+function handleCreatePricing(route: any) {
+  emit('createPricing', route)
+  emit('close')
+}
+
+function formatRouteName(route: any) {
+  return `${route.from_zone_name} → ${route.to_zone_name}`
+}
+</script>
+
+<template>
+  <UModal
+    v-model="props.show"
+    :ui="{ width: 'sm:max-w-4xl' }"
+    @close="emit('close')"
+  >
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">
+              Rapport des tarifs manquants
+            </h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Identifiez toutes les routes sans tarif configuré
+            </p>
+          </div>
+          <UButton
+            icon="i-heroicons-x-mark"
+            color="gray"
+            variant="ghost"
+            @click="emit('close')"
+          />
+        </div>
+      </template>
+
+      <!-- Filtres -->
+      <div class="space-y-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UFormGroup label="Filtrer par ville">
+            <USelectMenu
+              v-model="selectedCityFilter"
+              :options="cityOptions"
+              placeholder="Sélectionner une ville"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Options d'affichage">
+            <UCheckbox
+              v-model="showOnlyBidirectional"
+              label="Afficher uniquement les routes bidirectionnelles manquantes"
+            />
+          </UFormGroup>
+        </div>
+
+        <!-- Statistiques globales -->
+        <UAlert
+          v-if="globalStats.totalMissing > 0"
+          icon="i-heroicons-exclamation-triangle"
+          color="orange"
+          variant="subtle"
+          :title="`${globalStats.totalMissing} route(s) sans tarif`"
+          :description="`${globalStats.totalBidirectional} route(s) bidirectionnelles • ${globalStats.totalCities} ville(s) concernée(s)`"
+        />
+
+        <UAlert
+          v-else
+          icon="i-heroicons-check-circle"
+          color="green"
+          variant="subtle"
+          title="Tous les tarifs sont configurés"
+          description="Toutes les combinaisons de zones ont un tarif défini"
+        />
+      </div>
+
+      <!-- Rapport par ville -->
+      <div
+        v-if="globalStats.totalMissing > 0"
+        class="space-y-6 max-h-[500px] overflow-y-auto"
+      >
+        <div
+          v-for="cityReport in filteredReport"
+          :key="cityReport.city_id"
+          class="border border-gray-200 rounded-lg p-4"
+        >
+          <!-- En-tête de ville -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-heroicons-map-pin"
+                class="w-5 h-5 text-primary-600"
+              />
+              <h4 class="font-semibold text-gray-900">
+                {{ cityReport.city_name }}
+              </h4>
+              <UBadge
+                color="orange"
+                variant="subtle"
+              >
+                {{ cityReport.total_missing }} route(s) manquante(s)
+              </UBadge>
+            </div>
+          </div>
+
+          <!-- Liste des routes manquantes -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div
+              v-for="(route, index) in cityReport.missing_routes"
+              :key="index"
+              class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div class="flex items-center gap-2 flex-1">
+                <UIcon
+                  name="i-heroicons-arrow-right"
+                  class="w-4 h-4 text-gray-400"
+                />
+                <span class="text-sm font-medium text-gray-900">
+                  {{ formatRouteName(route) }}
+                </span>
+                <UBadge
+                  v-if="route.is_bidirectional"
+                  color="red"
+                  variant="subtle"
+                  size="xs"
+                >
+                  Aller-retour manquant
+                </UBadge>
+              </div>
+
+              <UButton
+                icon="i-heroicons-plus"
+                size="xs"
+                color="primary"
+                @click="handleCreatePricing(route)"
+              >
+                Créer
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-gray-600">
+            Conseil : Configurez les tarifs pour toutes les routes (A→B et B→A) pour assurer une couverture complète
+          </p>
+          <UButton
+            color="gray"
+            @click="emit('close')"
+          >
+            Fermer
+          </UButton>
+        </div>
+      </template>
+    </UCard>
+  </UModal>
+</template>

@@ -14,6 +14,7 @@ const { cities } = storeToRefs(cityStore)
 
 const selectedCityFilter = ref<string | null>(null)
 const showModal = ref(false)
+const showReportModal = ref(false)
 const isEditing = ref(false)
 const currentPricing = ref<DeliveryPricing>({
   city_id: '',
@@ -36,6 +37,12 @@ const zoneOptions = computed(() => {
   return zones.value
     .filter(zone => zone.city_id === currentPricing.value.city_id)
     .map(zone => ({ label: zone.name, value: zone.id }))
+})
+
+// Nombre total de tarifs manquants
+const missingPricingsCount = computed(() => {
+  const report = zoneStore.getMissingPricingsReport(selectedCityFilter.value || undefined)
+  return report.reduce((sum, city) => sum + city.total_missing, 0)
 })
 
 function openCreateModal() {
@@ -107,6 +114,21 @@ function formatPrice(price: number) {
     minimumFractionDigits: 0,
   }).format(price)
 }
+
+function openReportModal() {
+  showReportModal.value = true
+}
+
+function handleCreateFromReport(route: any) {
+  isEditing.value = false
+  currentPricing.value = {
+    city_id: route.city_id,
+    from_zone_id: route.from_zone_id,
+    to_zone_id: route.to_zone_id,
+    price: 0,
+  }
+  showModal.value = true
+}
 </script>
 
 <template>
@@ -119,12 +141,29 @@ function formatPrice(price: number) {
         placeholder="Filtrer par ville"
         class="w-64"
       />
-      <UButton
-        icon="i-heroicons-plus"
-        label="Nouveau tarif"
-        color="primary"
-        @click="openCreateModal"
-      />
+      <div class="flex gap-2">
+        <div class="relative">
+          <UButton
+            icon="i-heroicons-document-chart-bar"
+            label="Rapport des tarifs manquants"
+            color="orange"
+            variant="outline"
+            @click="openReportModal"
+          />
+          <UBadge
+            v-if="missingPricingsCount > 0"
+            :label="missingPricingsCount.toString()"
+            color="red"
+            class="absolute -top-2 -right-2"
+          />
+        </div>
+        <UButton
+          icon="i-heroicons-plus"
+          label="Nouveau tarif"
+          color="primary"
+          @click="openCreateModal"
+        />
+      </div>
     </div>
 
     <!-- Liste des tarifs -->
@@ -271,5 +310,12 @@ function formatPrice(price: number) {
         </UForm>
       </UCard>
     </UModal>
+
+    <!-- Modal du rapport des tarifs manquants -->
+    <DeliveryMissingPricingsReport
+      :show="showReportModal"
+      @close="showReportModal = false"
+      @create-pricing="handleCreateFromReport"
+    />
   </div>
 </template>
