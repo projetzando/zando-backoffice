@@ -160,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         try {
             const { error: supaError } = await supabase.auth.signOut()
-            
+
             if (supaError) {
                 return {
                     success: false,
@@ -169,9 +169,10 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             }
 
-            // Réinitialiser le store
+            // Réinitialiser le store auth
+            // Note: Les autres stores seront réinitialisés par useLogout via $ResetPinia
             $reset()
-            
+
             return { success: true }
         } catch (error) {
             return { error: error.message, success: false }
