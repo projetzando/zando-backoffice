@@ -59,6 +59,7 @@ const { activeMenu, activeChild, toggleMenu, resetMenuState, setActiveChild } =
         :key="link.title"
         :title="link.title"
         :link="link.route_link"
+        :permission="link.permission"
       />
     </NavigationSidebarDropdown>
 

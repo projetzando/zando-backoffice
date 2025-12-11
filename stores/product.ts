@@ -19,7 +19,11 @@ export const useProductStore = defineStore("product", () => {
     try {
       let query = supabase
         .from("products_with_price")
-        .select("*")
+        .select(`
+          *,
+          seller:sellers(id, company_name),
+          category:categories(id, name)
+        `)
         .order("created_at", { ascending: false });
 
       // Appliquer les filtres
@@ -29,7 +33,7 @@ export const useProductStore = defineStore("product", () => {
       if (filters?.category_id) {
         query = query.eq("category_id", filters.category_id);
       }
-      if (filters?.is_active !== undefined) {
+      if (filters?.is_active !== undefined && filters.is_active !== null && filters.is_active !== '' as any) {
         query = query.eq("is_active", filters.is_active);
       }
       if (filters?.search) {
@@ -61,7 +65,11 @@ export const useProductStore = defineStore("product", () => {
     try {
       const { data, error: supaError } = await supabase
         .from("products_with_price")
-        .select("*")
+        .select(`
+          *,
+          seller:sellers(id, company_name),
+          category:categories(id, name)
+        `)
         .eq("id", id)
         .single();
 
@@ -286,7 +294,7 @@ export const useProductStore = defineStore("product", () => {
       if (filters?.category_id) {
         query = query.eq('category_id', filters.category_id);
       }
-      if (filters?.is_active !== undefined) {
+      if (filters?.is_active !== undefined && filters.is_active !== null && filters.is_active !== '' as any) {
         query = query.eq('is_active', filters.is_active);
       }
       if (filters?.search) {
