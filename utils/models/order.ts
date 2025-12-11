@@ -1,7 +1,7 @@
 export interface Order extends Timestamps {
   readonly id?: string;
   user_id: string;
-  status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'received' | 'cancelled';
   total_amount: number;
   shipping_cost?: number;
   delivery_name: string;
@@ -10,11 +10,16 @@ export interface Order extends Timestamps {
   delivery_city: string;
   payment_method: string;
   notes?: string;
+  payment_status?: 'unpaid' | 'pending' | 'completed' | 'failed';
+  delivery_time?: string;
 
   // Relations
   buyer?: Profile;
   order_items?: OrderItem[];
   payments?: Payment[];
+
+  // Calculé côté client pour les vendeurs
+  seller_total?: number;
 }
 
 export interface OrderItem extends Timestamps {

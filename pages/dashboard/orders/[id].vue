@@ -6,6 +6,10 @@ definePageMeta({
 
 const route = useRoute();
 const orderStore = useOrderStore();
+const authStore = useAuthStore();
+
+// Vérifier si l'utilisateur est un vendeur
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
 
 // Charger la commande
 const { data: order, pending } = await useLazyAsyncData(
@@ -129,6 +133,16 @@ function getStatusLabel(status: string) {
   };
   return labels[status as keyof typeof labels] || status;
 }
+
+function getPaymentMethodLabel(method: string) {
+  const labels = {
+    mobile_money: "Mobile Money",
+    cash: "Paiement à la livraison",
+    card: "Carte bancaire",
+    bank_transfer: "Virement bancaire",
+  };
+  return labels[method as keyof typeof labels] || method;
+}
 </script>
 
 <template>
@@ -220,9 +234,14 @@ function getStatusLabel(status: string) {
               />
             </div>
             <div>
-              <p class="text-sm text-gray-500">Montant total</p>
+              <p class="text-sm text-gray-500">
+                {{ isSellerUser ? 'Mon montant' : 'Montant total' }}
+              </p>
               <p class="font-semibold text-lg">
-                {{ formatPrice(currentOrder.total_amount) }}
+                {{ formatPrice(isSellerUser && currentOrder.seller_total !== undefined ? currentOrder.seller_total : currentOrder.total_amount) }}
+              </p>
+              <p v-if="isSellerUser && currentOrder.seller_total !== undefined && currentOrder.seller_total < currentOrder.total_amount" class="text-xs text-gray-500 mt-1">
+                sur {{ formatPrice(currentOrder.total_amount) }}
               </p>
             </div>
           </div>
@@ -270,7 +289,7 @@ function getStatusLabel(status: string) {
             <div>
               <p class="text-sm text-gray-500">Paiement</p>
               <p class="font-semibold text-sm">
-                {{ currentOrder.payment_method || "Non défini" }}
+                {{ getPaymentMethodLabel(currentOrder.payment_method) || "Non défini" }}
               </p>
             </div>
           </div>

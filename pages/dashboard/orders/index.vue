@@ -5,6 +5,10 @@ definePageMeta({
 });
 
 const orderStore = useOrderStore();
+const authStore = useAuthStore();
+
+// Vérifier si l'utilisateur est un vendeur
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
 
 // Charger les commandes
 onMounted(async () => {
@@ -80,10 +84,28 @@ function truncateId(id: string) {
   return id.substring(0, 8) + "...";
 }
 
+function getPaymentMethodLabel(method: string) {
+  const labels = {
+    mobile_money: "Mobile Money",
+    cash: "Paiement à la livraison",
+    card: "Carte bancaire",
+    bank_transfer: "Virement bancaire",
+  };
+  return labels[method as keyof typeof labels] || method;
+}
+
 // Calculer le total des commandes
+// Pour un vendeur, on affiche le total de ses items uniquement
 const totalOrdersValue = computed(() => {
   return orders.value.reduce(
-    (total, order) => total + (order.total_amount || 0),
+    (total, order) => {
+      // Si c'est un vendeur et qu'il y a un seller_total, l'utiliser
+      if (isSellerUser.value && order.seller_total !== undefined) {
+        return total + order.seller_total;
+      }
+      // Sinon utiliser le total_amount normal
+      return total + (order.total_amount || 0);
+    },
     0
   );
 });
@@ -225,9 +247,15 @@ watch(
 
           <!-- Montant total -->
           <template #total_amount-data="{ row }">
-            <span class="font-medium text-gray-900">
-              {{ formatPrice(row.total_amount) }}
-            </span>
+            <div>
+              <span class="font-medium text-gray-900">
+                {{ formatPrice(isSellerUser && row.seller_total !== undefined ? row.seller_total : row.total_amount) }}
+              </span>
+              <!-- Afficher un indicateur si c'est le montant partiel du vendeur -->
+              <div v-if="isSellerUser && row.seller_total !== undefined && row.seller_total < row.total_amount" class="text-xs text-gray-500 mt-1">
+                sur {{ formatPrice(row.total_amount) }}
+              </div>
+            </div>
           </template>
 
           <!-- Articles -->
@@ -272,7 +300,7 @@ watch(
           <!-- Méthode de paiement -->
           <template #payment_method-data="{ row }">
             <div class="text-sm">
-              <div class="font-medium">{{ row.payment_method }}</div>
+              <div class="font-medium">{{ getPaymentMethodLabel(row.payment_method) }}</div>
               <div v-if="row.shipping_cost" class="text-gray-500">
                 Livraison: {{ formatPrice(row.shipping_cost) }}
               </div>

@@ -65,6 +65,13 @@
                       >
                         Variation: {{ item.variation_name }}
                       </p>
+                      <!-- Afficher le vendeur pour les admins/superadmins -->
+                      <div v-if="item.seller && !isSellerUser" class="mt-2">
+                        <UBadge color="gray" variant="subtle" size="xs">
+                          <UIcon name="i-heroicons-building-storefront" class="w-3 h-3 mr-1" />
+                          {{ item.seller.company_name }}
+                        </UBadge>
+                      </div>
                     </div>
 
                     <div class="text-right">
@@ -84,19 +91,6 @@
                 </div>
               </div>
             </div>
-
-            <template #footer>
-              <div class="flex gap-3">
-                <UButton variant="outline" size="sm">
-                  <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-2" />
-                  Remettre en stock
-                </UButton>
-                <UButton color="primary" size="sm">
-                  <UIcon name="i-heroicons-truck" class="w-4 h-4 mr-2" />
-                  Créer une étiquette
-                </UButton>
-              </div>
-            </template>
           </UCard>
 
           <!-- Résumé financier -->
@@ -124,7 +118,7 @@
                   <div>
                     <span class="text-gray-600">Frais de livraison</span>
                     <p class="text-sm text-gray-400">
-                      {{ order.payment_method || "Non spécifié" }}
+                      {{ getPaymentMethodLabel(order.payment_method) || "Non spécifié" }}
                     </p>
                   </div>
                   <span class="font-medium">{{
@@ -144,34 +138,81 @@
 
               <!-- Statut du paiement -->
               <div class="bg-gray-50 rounded-lg p-4">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm text-gray-600">Payé par l'acheteur</span>
-                  <span class="text-sm font-medium">0.00 XAF</span>
-                </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-sm text-gray-600">Montant dû</span>
-                  <span class="text-sm font-medium text-red-600">{{
-                    formatPrice(calculateTotal)
-                  }}</span>
+                  <span class="text-sm text-gray-600">Statut du paiement</span>
+                  <UBadge
+                    :color="paymentStatus === 'paid' ? 'green' : paymentStatus === 'pending' ? 'orange' : paymentStatus === 'failed' ? 'red' : 'gray'"
+                    variant="subtle"
+                    size="sm"
+                  >
+                    {{
+                      paymentStatus === 'paid' ? 'Payée' :
+                      paymentStatus === 'pending' ? 'En attente' :
+                      paymentStatus === 'failed' ? 'Échec de paiement' :
+                      'Non payée'
+                    }}
+                  </UBadge>
                 </div>
               </div>
             </div>
+          </UCard>
 
-            <template #footer>
-              <div class="flex gap-3">
-                <UButton variant="outline" size="sm">
-                  <UIcon
-                    name="i-heroicons-document-text"
-                    class="w-4 h-4 mr-2"
-                  />
-                  Envoyer la facture
-                </UButton>
-                <UButton color="primary" size="sm">
-                  <UIcon name="i-heroicons-credit-card" class="w-4 h-4 mr-2" />
-                  Collecter le paiement
-                </UButton>
+          <!-- Tentatives de paiement -->
+          <UCard v-if="order.payments && order.payments.length > 0">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Tentatives de paiement</h3>
+                <UBadge
+                  :color="hasSuccessfulPayment ? 'green' : 'gray'"
+                  variant="subtle"
+                >
+                  {{ order.payments.length }} tentative{{ order.payments.length > 1 ? 's' : '' }}
+                </UBadge>
               </div>
             </template>
+
+            <div class="space-y-3">
+              <div
+                v-for="payment in order.payments"
+                :key="payment.id"
+                class="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              >
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-medium text-gray-900">
+                        {{ formatPrice(payment.amount) }}
+                      </p>
+                      <UBadge
+                        :color="getPaymentStatusColor(payment.status)"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        {{ getPaymentStatusLabel(payment.status) }}
+                      </UBadge>
+                    </div>
+                    <p class="text-sm text-gray-600">
+                      {{ getPaymentMethodLabel(payment.method) }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="space-y-1">
+                  <div v-if="payment.transaction_ref" class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500">Réf. transaction:</span>
+                    <code class="bg-gray-100 px-2 py-0.5 rounded">{{ payment.transaction_ref }}</code>
+                  </div>
+                  <div v-if="payment.safe_reference" class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500">Réf. Safe:</span>
+                    <code class="bg-gray-100 px-2 py-0.5 rounded">{{ payment.safe_reference }}</code>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500">Date:</span>
+                    <span class="text-gray-700">{{ formatDate(payment.created_at, true) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </UCard>
 
           <!-- Chronologie -->
@@ -319,13 +360,6 @@
                 </p>
               </div>
             </div>
-
-            <template #footer>
-              <UButton variant="outline" size="sm" block>
-                <UIcon name="i-heroicons-map-pin" class="w-4 h-4 mr-2" />
-                Voir sur la carte
-              </UButton>
-            </template>
           </UCard>
 
           <!-- Méthode de paiement -->
@@ -343,7 +377,7 @@
 
             <div class="space-y-2">
               <p class="font-medium text-gray-900">
-                {{ order.payment_method || "Non spécifié" }}
+                {{ getPaymentMethodLabel(order.payment_method) || "Non spécifié" }}
               </p>
               <div v-if="order.notes" class="text-sm text-gray-600">
                 <p><strong>Notes:</strong> {{ order.notes }}</p>
@@ -394,6 +428,11 @@
 </template>
 
 <script setup lang="ts">
+const authStore = useAuthStore();
+
+// Vérifier si l'utilisateur est un vendeur
+const isSellerUser = computed(() => authStore.connected_user?.role === 'seller');
+
 // Props
 const props = defineProps({
   order: {
@@ -447,6 +486,39 @@ const formatDate = (dateString: string, shortFormat = false) => {
   }).format(date);
 };
 
+// Fonction pour formater la méthode de paiement
+const getPaymentMethodLabel = (method: string) => {
+  const labels = {
+    mobile_money: "Mobile Money",
+    cash: "Paiement à la livraison",
+    card: "Carte bancaire",
+    bank_transfer: "Virement bancaire",
+  };
+  return labels[method as keyof typeof labels] || method;
+};
+
+// Fonction pour obtenir la couleur du statut de paiement
+const getPaymentStatusColor = (status: string) => {
+  const colors = {
+    unpaid: "red",
+    pending: "orange",
+    completed: "green",
+    failed: "red",
+  };
+  return colors[status as keyof typeof colors] || "gray";
+};
+
+// Fonction pour obtenir le label du statut de paiement
+const getPaymentStatusLabel = (status: string) => {
+  const labels = {
+    unpaid: "Non payé",
+    pending: "En attente",
+    completed: "Complété",
+    failed: "Échoué",
+  };
+  return labels[status as keyof typeof labels] || status;
+};
+
 // Fonction pour formater la devise
 const formatPrice = (amount: number) => {
   return new Intl.NumberFormat("fr-FR", {
@@ -465,6 +537,33 @@ const calculateSubtotal = computed(() => {
 
 const calculateTotal = computed(() => {
   return calculateSubtotal.value + (props.order?.shipping_cost || 0);
+});
+
+// Vérifier s'il y a un paiement réussi (tentative réussie)
+const hasSuccessfulPayment = computed(() => {
+  if (!props.order?.payments || props.order.payments.length === 0) {
+    return false;
+  }
+  return props.order.payments.some((payment: any) => payment.status === 'completed');
+});
+
+// Statut de paiement de la commande
+const paymentStatus = computed(() => {
+  if (hasSuccessfulPayment.value) {
+    return 'paid'; // Payée
+  }
+
+  if (!props.order?.payments || props.order.payments.length === 0) {
+    return 'unpaid'; // Non payée
+  }
+
+  // Si des tentatives existent mais aucune réussie
+  const hasPendingPayment = props.order.payments.some((payment: any) => payment.status === 'pending');
+  if (hasPendingPayment) {
+    return 'pending'; // En attente
+  }
+
+  return 'failed'; // Échec de paiement
 });
 
 // Fonctions utilitaires pour les statuts
