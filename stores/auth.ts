@@ -2,6 +2,7 @@ export const useAuthStore = defineStore('auth', () => {
     // États
     const user = ref<Auth>({ name: '' })
     const connected_user = ref<Auth>({ name: '' })
+    const profile = ref<Profile | null>(null)
     const token = ref<string>('')
     const loading = ref<boolean>(false)
 
@@ -24,7 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             }
 
-            // Récupérer le profil depuis la table profiles pour avoir le rôle à jour
+            // Récupérer le profil depuis la table profiles pour avoir toutes les infos
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
@@ -35,17 +36,20 @@ export const useAuthStore = defineStore('auth', () => {
                 console.error('Erreur récupération profil:', profileError)
             }
 
+            // Stocker le profil complet
+            profile.value = profileData
+
             connected_user.value = {
-                name: data.user?.user_metadata?.name || profileData?.first_name || '',
+                name: `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() || data.user?.email?.split('@')[0] || '',
                 email: data.user?.email,
                 id: data.user?.id,
-                role: profileData?.role || 'buyer' // Utiliser le rôle depuis profiles
+                role: profileData?.role || 'buyer'
             }
 
             token.value = data.session?.access_token || ''
 
             return { data: { user: user.value }, success: true }
-        } catch (error) {
+        } catch (error: any) {
             return { error: error.message, success: false }
         } finally {
             loading.value = false
@@ -68,48 +72,60 @@ export const useAuthStore = defineStore('auth', () => {
                     data: null
                 }
             }
-            
+
             return { success: true, data: [] }
-        } catch (error) {
+        } catch (error: any) {
             return { error: error.message, success: false }
         } finally {
             loading.value = false
         }
     }
 
-    async function update(payload: Auth) {
+    async function updateProfile(updates: Partial<Profile>) {
         const supabase = useSupabaseClient()
         loading.value = true
 
         try {
-            const { data, error: supaError } = await supabase.auth.updateUser({
-                data: {
-                    name: payload.name,
-                    // autres champs à mettre à jour
-                }
-            })
-
-            if (supaError) {
-                return {
-                    success: false,
-                    error: supaError,
-                    data: null
-                }
+            if (!connected_user.value.id) {
+                throw new Error('Utilisateur non connecté')
             }
 
+            // Mettre à jour le profil dans la table profiles
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    first_name: updates.first_name,
+                    last_name: updates.last_name,
+                    phone: updates.phone,
+                    avatar_url: updates.avatar_url,
+                })
+                .eq('id', connected_user.value.id)
+                .select()
+                .single()
+
+            if (profileError) throw profileError
+
+            // Mettre à jour le state
+            profile.value = profileData
             connected_user.value = {
-                name: data.user.user_metadata.name,
-                email: data.user.email,
-                id: data.user.id,
-                role: data.user.user_metadata?.role || data.user.app_metadata?.role
+                ...connected_user.value,
+                name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim()
             }
 
-            return { success: true, data: [] }
-        } catch (error) {
+            return { success: true, data: profileData }
+        } catch (error: any) {
             return { error: error.message, success: false }
         } finally {
             loading.value = false
         }
+    }
+
+    // Ancienne méthode update pour compatibilité
+    async function update(payload: Auth) {
+        return updateProfile({
+            first_name: payload.name?.split(' ')[0],
+            last_name: payload.name?.split(' ').slice(1).join(' '),
+        })
     }
 
     async function connectedUser() {
@@ -138,15 +154,18 @@ export const useAuthStore = defineStore('auth', () => {
                 console.error('Erreur récupération profil:', profileError)
             }
 
+            // Stocker le profil complet
+            profile.value = profileData
+
             connected_user.value = {
-                name: currentUser?.user_metadata?.name || profileData?.first_name || '',
+                name: `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() || currentUser?.email?.split('@')[0] || '',
                 email: currentUser?.email,
                 id: currentUser?.id,
-                role: profileData?.role || 'buyer' // Utiliser le rôle depuis profiles
+                role: profileData?.role || 'buyer'
             }
 
             return { success: true }
-        } catch (error) {
+        } catch (error: any) {
             return { error: error.message, success: false }
         } finally {
             loading.value = false
@@ -174,7 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
             $reset()
 
             return { success: true }
-        } catch (error) {
+        } catch (error: any) {
             return { error: error.message, success: false }
         } finally {
             loading.value = false
@@ -184,6 +203,7 @@ export const useAuthStore = defineStore('auth', () => {
     function $reset() {
         user.value = { name: '' }
         connected_user.value = { name: '' }
+        profile.value = null
         token.value = ''
         loading.value = false
     }
@@ -192,17 +212,19 @@ export const useAuthStore = defineStore('auth', () => {
     return {
         loading,
         user,
+        profile,
         $reset,
         login,
         logout,
         update,
+        updateProfile,
         changePassword,
         connectedUser,
         connected_user,
         token,
     }
 }, {
-    persist: {  
+    persist: {
         storage: piniaPluginPersistedstate.localStorage(),
     }
 })

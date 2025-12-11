@@ -6,7 +6,6 @@ definePageMeta({
 
 const route = useRoute()
 
-
 useHead({
     htmlAttrs: {
         lang: 'fr',
@@ -16,46 +15,117 @@ useHead({
 
 const auth = useAuthStore()
 
-auth.connectedUser()
+await auth.connectedUser()
 
-const items = [
-    {
-        slot: 'password',
-        label: 'Nouveau mot de passe',
-    },
-    {
-        slot: 'info',
-        label: 'Mes infos personnelles',
-    },
-]
+// Définir les onglets en fonction du rôle
+const items = computed(() => {
+    const tabs = [
+        {
+            slot: 'info',
+            label: 'Mes informations personnelles',
+        },
+        {
+            slot: 'password',
+            label: 'Mot de passe',
+        },
+    ]
+
+    // Ajouter l'onglet vendeur si l'utilisateur est un vendeur
+    if (auth.connected_user?.role === 'seller') {
+        tabs.splice(1, 0, {
+            slot: 'seller',
+            label: 'Informations de mon entreprise',
+        })
+    }
+
+    return tabs
+})
+
+// Nom d'affichage
+const displayName = computed(() => {
+    if (auth.profile?.first_name || auth.profile?.last_name) {
+        return `${auth.profile.first_name || ''} ${auth.profile.last_name || ''}`.trim()
+    }
+    return auth.connected_user.email?.split('@')[0] || 'Utilisateur'
+})
+
+// Badge du rôle
+const roleLabel = computed(() => {
+    const labels: Record<string, string> = {
+        buyer: 'Acheteur',
+        seller: 'Vendeur',
+        admin: 'Administrateur',
+        superadmin: 'Super Administrateur',
+    }
+    return labels[auth.connected_user?.role || 'buyer'] || 'Utilisateur'
+})
+
+const roleColor = computed(() => {
+    const colors: Record<string, string> = {
+        buyer: 'blue',
+        seller: 'purple',
+        admin: 'orange',
+        superadmin: 'red',
+    }
+    return colors[auth.connected_user?.role || 'buyer'] || 'gray'
+})
 </script>
 
 <template>
-    <div>
-        <div class="w-full shadow-sm border rounded-xl">
-            <div class="bg-white flex flex-col items-center justify-center p-3">
+    <div class="space-y-6">
+        <!-- En-tête du profil -->
+        <UCard>
+            <div class="flex flex-col items-center justify-center p-4">
+                <!-- Avatar ou icône -->
+                <div v-if="auth.profile?.avatar_url" class="mb-4">
+                    <img
+                        :src="auth.profile.avatar_url"
+                        :alt="displayName"
+                        class="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                    />
+                </div>
                 <UIcon
-                    class="mx-2 w-16 h-14 object-cover rounded-lg hidden sm:block"
-                    name="heroicons:user-circle"
+                    v-else
+                    class="w-20 h-20 text-gray-400 mb-4"
+                    name="i-heroicons-user-circle"
                 />
 
-                <h1 class="text-gray-900 font-bold text-xl leading-8 my-1">{{ auth.connected_user.name }}</h1>
+                <!-- Nom -->
+                <h1 class="text-gray-900 font-bold text-2xl mb-2">
+                    {{ displayName }}
+                </h1>
 
-                <h3 class="text-gray-600 font-lg  text-semibold leading-6">{{
-                    auth.connected_user.email }}</h3>
+                <!-- Email -->
+                <p class="text-gray-600 text-lg mb-3">
+                    {{ auth.connected_user.email }}
+                </p>
+
+                <!-- Badge du rôle -->
+                <UBadge
+                    :color="roleColor"
+                    variant="subtle"
+                    size="lg"
+                >
+                    {{ roleLabel }}
+                </UBadge>
             </div>
-        </div>
+        </UCard>
 
+        <!-- Onglets -->
         <UTabs
             :items="items"
-            class="w-full mt-2"
+            class="w-full"
         >
-            <template #password>
-                <ProfilePassword />
+            <template #info>
+                <ProfileInfos />
             </template>
 
-            <template #info>
-                <ProfileInfos :user="auth.connected_user" />
+            <template #seller v-if="auth.connected_user?.role === 'seller'">
+                <ProfileSellerInfos />
+            </template>
+
+            <template #password>
+                <ProfilePassword />
             </template>
         </UTabs>
     </div>
