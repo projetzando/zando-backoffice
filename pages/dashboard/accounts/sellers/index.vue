@@ -2,6 +2,7 @@
 definePageMeta({
   name: "Liste des vendeurs",
   layout: "dashboard",
+  roles: ['admin', 'superadmin'], // Gestion des vendeurs réservée aux admins
 });
 
 const sellerStore = useSellerStore();

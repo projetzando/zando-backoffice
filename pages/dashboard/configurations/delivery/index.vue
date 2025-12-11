@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Configuration de livraison',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Configuration réservée aux admins
 })
 
 const tabs = [

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Demandes de retrait',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Gestion des retraits réservée aux admins
 })
 
 const payoutStore = usePayoutStore()

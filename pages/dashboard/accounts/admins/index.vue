@@ -2,6 +2,7 @@
 definePageMeta({
   name: "Liste des administrateurs",
   layout: "dashboard",
+  roles: ['admin', 'superadmin'], // Seuls les admins peuvent gérer les admins
 });
 
 const adminStore = useAdminStore();

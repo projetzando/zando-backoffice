@@ -2,6 +2,7 @@
 definePageMeta({
   name: "Liste des acheteurs",
   layout: "dashboard",
+  roles: ['admin', 'superadmin'], // Gestion des clients réservée aux admins
 });
 
 const customerStore = useCustomerStore();

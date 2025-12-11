@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Gestion des frais',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Configuration réservée aux admins
 })
 
 const tabs = [

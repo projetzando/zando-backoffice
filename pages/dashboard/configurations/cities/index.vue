@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Liste des villes',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Configuration réservée aux admins
 })
 
 const cityStore = useCityStore();

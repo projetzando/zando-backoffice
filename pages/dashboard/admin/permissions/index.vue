@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 definePageMeta({
     name: "Liste des permissions",
-    layout: 'dashboard'
+    layout: 'dashboard',
+    requireRole: 'superadmin', // Réservé au superadmin uniquement
 })
 </script>
 <template>

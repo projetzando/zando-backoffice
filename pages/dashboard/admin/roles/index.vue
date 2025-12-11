@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 definePageMeta({
     name: "Liste des rôles",
-    layout: 'dashboard'
+    layout: 'dashboard',
+    requireRole: 'superadmin', // Réservé au superadmin uniquement
 })
 
 const enumStore = useEnumStore();

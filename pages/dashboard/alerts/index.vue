@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Alertes de sécurité',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Alertes réservées aux admins
 })
 
 const alertStore = useAlertStore()

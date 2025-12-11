@@ -4,6 +4,7 @@ import type { FormSubmitEvent } from '#ui/types'
 definePageMeta({
   name: "Créer un administrateur",
   layout: "dashboard",
+  roles: ['admin', 'superadmin'],
 });
 
 const adminStore = useAdminStore();

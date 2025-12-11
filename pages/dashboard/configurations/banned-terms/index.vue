@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
     name: 'Termes bannis',
-    layout: 'dashboard'
+    layout: 'dashboard',
+    roles: ['admin', 'superadmin'], // Configuration réservée aux admins
 })
 
 const bannedTermStore = useBannedTermStore()
