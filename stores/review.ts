@@ -13,14 +13,49 @@ export const useReviewStore = defineStore('review', () => {
     rating?: number
   }) {
     const supabase = useSupabaseClient()
+    const authStore = useAuthStore()
     loading.value = true
     error.value = null
 
     try {
+      // Vérifier si l'utilisateur est un vendeur
+      const isSellerUser = authStore.connected_user?.role === 'seller'
+      let sellerProductIds: string[] = []
+
+      if (isSellerUser) {
+        // Récupérer l'ID du vendeur
+        const { data: sellerData } = await supabase
+          .from('sellers')
+          .select('id')
+          .eq('user_id', authStore.connected_user.id)
+          .single()
+
+        if (sellerData) {
+          // Récupérer les IDs des produits du vendeur
+          const { data: productsData } = await supabase
+            .from('products')
+            .select('id')
+            .eq('seller_id', sellerData.id)
+
+          if (productsData && productsData.length > 0) {
+            sellerProductIds = productsData.map(p => p.id!)
+          } else {
+            // Aucun produit, donc aucun avis
+            reviews.value = []
+            return { success: true, data: [] }
+          }
+        }
+      }
+
       let query = supabase
         .from('reviews')
         .select('*, product:products(*), order:orders(*)')
         .order('created_at', { ascending: false })
+
+      // Si c'est un vendeur, filtrer par ses produits
+      if (isSellerUser && sellerProductIds.length > 0) {
+        query = query.in('product_id', sellerProductIds)
+      }
 
       if (filters?.product_id) {
         query = query.eq('product_id', filters.product_id)
