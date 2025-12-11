@@ -1,14 +1,5 @@
 import { PAGINATION } from '~/utils/constants'
-
-/**
- * Interface pour les options de pagination
- */
-export interface PaginationOptions {
-  page?: number
-  pageSize?: number
-  orderBy?: string
-  ascending?: boolean
-}
+import type { PaginationOptions } from '~/utils/models/filter'
 
 /**
  * Interface pour les résultats paginés
@@ -45,9 +36,16 @@ export function usePagination() {
     const {
       page = 1,
       pageSize = PAGINATION.DEFAULT_PAGE_SIZE,
-      orderBy = 'created_at',
-      ascending = false,
+      orderBy,
+      sortBy,
+      sortOrder = 'desc',
+      ascending,
     } = options
+
+    // Déterminer la colonne et l'ordre de tri
+    // Priorité à sortBy/sortOrder, puis orderBy/ascending
+    const sortColumn = sortBy || orderBy || 'created_at'
+    const isAscending = ascending !== undefined ? ascending : sortOrder === 'asc'
 
     // Calculer l'offset
     const from = (page - 1) * pageSize
@@ -62,7 +60,7 @@ export function usePagination() {
     }
 
     // Appliquer l'ordre et la pagination
-    query = query.order(orderBy, { ascending }).range(from, to)
+    query = query.order(sortColumn, { ascending: isAscending }).range(from, to)
 
     // Exécuter la requête
     const { data, error, count } = await query

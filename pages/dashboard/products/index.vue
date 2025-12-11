@@ -27,9 +27,13 @@ const filters = ref({
 })
 
 // Debounce sur la recherche
-const { debounced: debouncedSearch } = useDebouncedRef(
-  computed(() => filters.value.search),
-  500,
+const debouncedSearch = ref('')
+watch(
+  () => filters.value.search,
+  useDebounce((value: string) => {
+    debouncedSearch.value = value
+  }, 500),
+  { immediate: true },
 )
 
 // Récupérer le seller_id si l'utilisateur est un vendeur
@@ -371,27 +375,31 @@ watch(
       </template>
 
       <template #footer>
-        <div class="flex items-center justify-between px-4 py-3 border-t">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
           <div class="text-sm text-gray-700">
-            Affichage de
-            <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
-            à
-            <span class="font-medium">{{
-              Math.min(currentPage * pageSize, paginationInfo.total)
-            }}</span>
-            sur
-            <span class="font-medium">{{ paginationInfo.total }}</span>
-            produits
+            <template v-if="paginationInfo.total > 0">
+              Affichage de
+              <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+              à
+              <span class="font-medium">{{
+                Math.min(currentPage * pageSize, paginationInfo.total)
+              }}</span>
+              sur
+              <span class="font-medium">{{ paginationInfo.total }}</span>
+              produits
+            </template>
+            <template v-else>
+              Aucun produit trouvé
+            </template>
           </div>
 
-          <UPagination
-            v-if="paginationInfo.total > 0"
-            v-model="currentPage"
-            show-first
-            show-last
-            :page-count="totalPages"
+          <Pagination
+            v-if="totalPages > 0"
+            :current-page="currentPage"
+            :total-pages="totalPages"
             :total="paginationInfo.total"
-            @update:model-value="onPageChange"
+            :page-size="pageSize"
+            @update:current-page="onPageChange"
           />
         </div>
       </template>

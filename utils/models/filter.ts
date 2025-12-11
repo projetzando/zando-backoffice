@@ -1,3 +1,12 @@
+export interface PaginationOptions {
+  page?: number
+  pageSize?: number
+  orderBy?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  ascending?: boolean
+}
+
 export interface Filter {
   query: string
   acte_administratif_id?: number
