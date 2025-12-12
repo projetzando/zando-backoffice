@@ -15,8 +15,11 @@ const emit = defineEmits<{
 const { pricings, zones } = storeToRefs(zoneStore)
 const { cities } = storeToRefs(cityStore)
 
-const selectedCityFilter = ref<string | null>(null)
+const selectedCityFilter = ref<string | undefined>(undefined)
 const showOnlyBidirectional = ref(false)
+const bulkCreateMode = ref(false)
+const defaultPrice = ref<number>(0)
+const isCreatingBulk = ref(false)
 
 // Générer le rapport des tarifs manquants
 const missingReport = computed(() => {
@@ -35,7 +38,7 @@ const filteredReport = computed(() => {
 })
 
 const cityOptions = computed(() => [
-  { label: 'Toutes les villes', value: null },
+  { label: 'Toutes les villes', value: undefined },
   ...cities.value.map(city => ({ label: city.name, value: city.id })),
 ])
 
@@ -58,6 +61,67 @@ function handleCreatePricing(route: any) {
 
 function formatRouteName(route: any) {
   return `${route.from_zone_name} → ${route.to_zone_name}`
+}
+
+async function handleBulkCreate() {
+  if (!defaultPrice.value || defaultPrice.value <= 0) {
+    toast.add({
+      title: 'Erreur',
+      description: 'Veuillez entrer un montant valide',
+      color: 'red',
+    })
+    return
+  }
+
+  isCreatingBulk.value = true
+
+  try {
+    const routesToCreate = filteredReport.value.flatMap((city: any) =>
+      city.missing_routes.map((route: any) => ({
+        city_id: route.city_id,
+        from_zone_id: route.from_zone_id,
+        to_zone_id: route.to_zone_id,
+        price: defaultPrice.value,
+      })),
+    )
+
+    let successCount = 0
+    let errorCount = 0
+
+    // Créer tous les tarifs un par un
+    for (const pricing of routesToCreate) {
+      const result = await zoneStore.storePricing(pricing)
+      if (result.success) {
+        successCount++
+      }
+      else {
+        errorCount++
+      }
+    }
+
+    if (successCount > 0) {
+      toast.add({
+        title: 'Succès',
+        description: `${successCount} tarif(s) créé(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`,
+        color: 'green',
+      })
+
+      // Recharger les tarifs pour mettre à jour le rapport
+      await zoneStore.getPricings(selectedCityFilter.value || undefined)
+    }
+  }
+  catch (error: any) {
+    toast.add({
+      title: 'Erreur',
+      description: error.message || 'Erreur lors de la création en masse',
+      color: 'red',
+    })
+  }
+  finally {
+    isCreatingBulk.value = false
+    bulkCreateMode.value = false
+    defaultPrice.value = 0
+  }
 }
 </script>
 
@@ -124,6 +188,78 @@ function formatRouteName(route: any) {
           title="Tous les tarifs sont configurés"
           description="Toutes les combinaisons de zones ont un tarif défini"
         />
+
+        <!-- Section de création en masse -->
+        <div
+          v-if="globalStats.totalMissing > 0"
+          class="border border-primary-200 bg-primary-50 rounded-lg p-4"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <UIcon
+                  name="i-heroicons-bolt"
+                  class="w-5 h-5 text-primary-600"
+                />
+                Création rapide en masse
+              </h4>
+              <p class="text-sm text-gray-600 mb-3">
+                Créez tous les tarifs manquants avec un montant par défaut. Vous pourrez les ajuster individuellement après.
+              </p>
+
+              <div
+                v-if="!bulkCreateMode"
+                class="flex gap-2"
+              >
+                <UButton
+                  icon="i-heroicons-plus-circle"
+                  color="primary"
+                  @click="bulkCreateMode = true"
+                >
+                  Configurer la création en masse
+                </UButton>
+              </div>
+
+              <div
+                v-else
+                class="space-y-3"
+              >
+                <UFormGroup
+                  label="Montant par défaut (XAF)"
+                  help="Ce montant sera appliqué à toutes les routes manquantes"
+                >
+                  <UInput
+                    v-model.number="defaultPrice"
+                    type="number"
+                    placeholder="Ex: 1000"
+                    min="0"
+                    icon="i-heroicons-currency-dollar"
+                  />
+                </UFormGroup>
+
+                <div class="flex gap-2">
+                  <UButton
+                    icon="i-heroicons-check"
+                    color="primary"
+                    :loading="isCreatingBulk"
+                    :disabled="!defaultPrice || defaultPrice <= 0"
+                    @click="handleBulkCreate"
+                  >
+                    Créer {{ globalStats.totalMissing }} tarif(s)
+                  </UButton>
+                  <UButton
+                    color="gray"
+                    variant="outline"
+                    :disabled="isCreatingBulk"
+                    @click="bulkCreateMode = false; defaultPrice = 0"
+                  >
+                    Annuler
+                  </UButton>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Rapport par ville -->
