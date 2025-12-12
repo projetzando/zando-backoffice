@@ -2,22 +2,51 @@
 const cityStore = useCityStore()
 const toast = useToast()
 
-onMounted(() => {
-  cityStore.get()
-})
-
-const { cities } = storeToRefs(cityStore)
+// Pagination
+const page = ref(1)
+const pageSize = ref(12)
+const totalItems = ref(0)
+const totalPages = ref(0)
 
 const searchQuery = ref('')
 const showModal = ref(false)
 const isEditing = ref(false)
 const currentCity = ref<City>({ name: '' })
 
+const { cities } = storeToRefs(cityStore)
+
+async function loadCities() {
+  const result = await cityStore.getPaginated({
+    page: page.value,
+    pageSize: pageSize.value,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
+
+  if (result.success && result.pagination) {
+    totalItems.value = result.pagination.total
+    totalPages.value = result.pagination.totalPages
+  }
+}
+
+onMounted(async () => {
+  await loadCities()
+})
+
+watch(page, () => {
+  loadCities()
+})
+
 const filteredCities = computed(() => {
-  if (!searchQuery.value) return cities.value
-  return cities.value.filter(city =>
-    city.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
-  )
+  let filtered = cities.value
+
+  if (searchQuery.value) {
+    filtered = filtered.filter(city =>
+      city.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    )
+  }
+
+  return filtered
 })
 
 function openCreateModal() {
@@ -44,7 +73,7 @@ async function saveCity() {
       color: 'green',
     })
     showModal.value = false
-    await cityStore.get()
+    await loadCities()
   }
   else {
     toast.add({
@@ -66,7 +95,7 @@ async function deleteCity(city: City) {
       description: 'Ville supprimée avec succès',
       color: 'green',
     })
-    await cityStore.get()
+    await loadCities()
   }
   else {
     toast.add({
@@ -129,6 +158,39 @@ async function deleteCity(city: City) {
           </div>
         </div>
       </UCard>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      v-if="totalItems > 0"
+      class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t"
+    >
+      <div class="text-sm text-gray-700 text-center sm:text-left">
+        Affichage de
+        <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
+        à
+        <span class="font-medium">{{ Math.min(page * pageSize, totalItems) }}</span>
+        sur
+        <span class="font-medium">{{ totalItems }}</span>
+        ville(s)
+      </div>
+
+      <Pagination
+        :current-page="page"
+        :total-pages="totalPages"
+        :total="totalItems"
+        :page-size="pageSize"
+        :loading="cityStore.loading"
+        @update:current-page="page = $event"
+      />
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div
+      v-else
+      class="text-center py-12 text-gray-500"
+    >
+      Aucune ville trouvée
     </div>
 
     <!-- Modal -->

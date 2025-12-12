@@ -39,6 +39,44 @@ export const useCityStore = defineStore(
       }
     }
 
+    async function getPaginated(options: PaginationOptions = {}) {
+      const { fetchPaginated } = usePagination()
+      loading.value = true
+      error.value = null
+
+      try {
+        const result = await fetchPaginated<City>(
+          'cities',
+          options,
+          '*',
+        )
+
+        cities.value = result.data
+        return {
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            pageSize: result.pageSize,
+            totalPages: result.totalPages,
+          },
+        }
+      }
+      catch (err: any) {
+        error.value = err.message
+        return {
+          success: false,
+          error: err.message,
+          data: [],
+          pagination: { total: 0, page: 1, pageSize: 10, totalPages: 0 },
+        }
+      }
+      finally {
+        loading.value = false
+      }
+    }
+
     async function store(city: Omit<City, 'id' | 'created_at'>) {
       const supabase = useSupabaseClient()
       loading.value = true
@@ -184,6 +222,7 @@ export const useCityStore = defineStore(
 
       // Actions
       get,
+      getPaginated,
       store,
       update,
       destroy,
