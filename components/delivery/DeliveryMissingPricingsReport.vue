@@ -76,6 +76,7 @@ async function handleBulkCreate() {
   isCreatingBulk.value = true
 
   try {
+    // Préparer tous les tarifs à créer
     const routesToCreate = filteredReport.value.flatMap((city: any) =>
       city.missing_routes.map((route: any) => ({
         city_id: route.city_id,
@@ -85,29 +86,38 @@ async function handleBulkCreate() {
       })),
     )
 
-    let successCount = 0
-    let errorCount = 0
+    // Insertion en masse optimisée par batches de 500 lignes
+    const result = await zoneStore.storeBulkPricings(routesToCreate)
 
-    // Créer tous les tarifs un par un
-    for (const pricing of routesToCreate) {
-      const result = await zoneStore.storePricing(pricing)
-      if (result.success) {
-        successCount++
-      }
-      else {
-        errorCount++
-      }
-    }
+    if (result.count > 0) {
+      const color = result.errors ? 'orange' : 'green'
+      const title = result.errors ? 'Création partielle' : 'Succès'
+      const description = result.message
+        || `${result.count} tarif(s) créé(s) avec succès`
 
-    if (successCount > 0) {
       toast.add({
-        title: 'Succès',
-        description: `${successCount} tarif(s) créé(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`,
-        color: 'green',
+        title,
+        description,
+        color,
       })
 
       // Recharger les tarifs pour mettre à jour le rapport
       await zoneStore.getPricings(selectedCityFilter.value || undefined)
+    }
+    else if (result.message) {
+      // Aucun tarif à créer
+      toast.add({
+        title: 'Information',
+        description: result.message,
+        color: 'blue',
+      })
+    }
+    else {
+      toast.add({
+        title: 'Erreur',
+        description: result.error?.message || 'Erreur lors de la création en masse',
+        color: 'red',
+      })
     }
   }
   catch (error: any) {

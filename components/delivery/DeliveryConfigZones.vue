@@ -3,13 +3,11 @@ const zoneStore = useDeliveryZoneStore()
 const cityStore = useCityStore()
 const toast = useToast()
 
-onMounted(() => {
-  cityStore.get()
-  zoneStore.getZones()
-})
-
-const { zones } = storeToRefs(zoneStore)
-const { cities } = storeToRefs(cityStore)
+// Pagination
+const page = ref(1)
+const pageSize = ref(12)
+const totalItems = ref(0)
+const totalPages = ref(0)
 
 const searchQuery = ref('')
 const selectedCityFilter = ref<string | null>(null)
@@ -17,12 +15,37 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const currentZone = ref<DeliveryZone>({ name: '', city_id: '', description: '' })
 
+const { zones } = storeToRefs(zoneStore)
+const { cities } = storeToRefs(cityStore)
+
+async function loadZones() {
+  const result = await zoneStore.getZonesPaginated(
+    {
+      page: page.value,
+      pageSize: pageSize.value,
+      sortBy: 'name',
+      sortOrder: 'asc',
+    },
+    selectedCityFilter.value || undefined,
+  )
+
+  if (result.success && result.pagination) {
+    totalItems.value = result.pagination.total
+    totalPages.value = result.pagination.totalPages
+  }
+}
+
+onMounted(async () => {
+  await cityStore.get()
+  await loadZones()
+})
+
+watch([page, selectedCityFilter], () => {
+  loadZones()
+})
+
 const filteredZones = computed(() => {
   let filtered = zones.value
-
-  if (selectedCityFilter.value) {
-    filtered = filtered.filter(zone => zone.city_id === selectedCityFilter.value)
-  }
 
   if (searchQuery.value) {
     filtered = filtered.filter(zone =>
@@ -61,7 +84,7 @@ async function saveZone() {
       color: 'green',
     })
     showModal.value = false
-    await zoneStore.getZones()
+    await loadZones()
   }
   else {
     toast.add({
@@ -83,7 +106,7 @@ async function deleteZone(zone: DeliveryZone) {
       description: 'Zone supprimée avec succès',
       color: 'green',
     })
-    await zoneStore.getZones()
+    await loadZones()
   }
   else {
     toast.add({
@@ -166,6 +189,39 @@ async function deleteZone(zone: DeliveryZone) {
           </p>
         </div>
       </UCard>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      v-if="totalItems > 0"
+      class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t"
+    >
+      <div class="text-sm text-gray-700 text-center sm:text-left">
+        Affichage de
+        <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
+        à
+        <span class="font-medium">{{ Math.min(page * pageSize, totalItems) }}</span>
+        sur
+        <span class="font-medium">{{ totalItems }}</span>
+        zone(s)
+      </div>
+
+      <Pagination
+        :current-page="page"
+        :total-pages="totalPages"
+        :total="totalItems"
+        :page-size="pageSize"
+        :loading="zoneStore.loading"
+        @update:current-page="page = $event"
+      />
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div
+      v-else
+      class="text-center py-12 text-gray-500"
+    >
+      Aucune zone trouvée
     </div>
 
     <!-- Modal -->

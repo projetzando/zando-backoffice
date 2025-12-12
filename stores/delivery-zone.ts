@@ -50,6 +50,50 @@ export const useDeliveryZoneStore = defineStore(
       }
     }
 
+    async function getZonesPaginated(options: PaginationOptions = {}, cityId?: string) {
+      const { fetchPaginated } = usePagination()
+      loading.value = true
+      error.value = null
+
+      try {
+        const result = await fetchPaginated<DeliveryZone>(
+          'delivery_zones',
+          options,
+          '*, city:cities(id, name)',
+          (query) => {
+            if (cityId) {
+              query = query.eq('city_id', cityId)
+            }
+            return query
+          },
+        )
+
+        zones.value = result.data
+        return {
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            pageSize: result.pageSize,
+            totalPages: result.totalPages,
+          },
+        }
+      }
+      catch (err: any) {
+        error.value = err.message
+        return {
+          success: false,
+          error: err.message,
+          data: [],
+          pagination: { total: 0, page: 1, pageSize: 10, totalPages: 0 },
+        }
+      }
+      finally {
+        loading.value = false
+      }
+    }
+
     async function storeZone(zone: Omit<DeliveryZone, 'id' | 'created_at'>) {
       const supabase = useSupabaseClient()
       loading.value = true
@@ -227,6 +271,55 @@ export const useDeliveryZoneStore = defineStore(
       }
     }
 
+    async function getPricingsPaginated(options: PaginationOptions = {}, cityId?: string) {
+      const { fetchPaginated } = usePagination()
+      loading.value = true
+      error.value = null
+
+      try {
+        const result = await fetchPaginated<DeliveryPricing>(
+          'delivery_pricings',
+          options,
+          `
+            *,
+            city:cities(id, name),
+            from_zone:delivery_zones!delivery_pricings_from_zone_id_fkey(id, name),
+            to_zone:delivery_zones!delivery_pricings_to_zone_id_fkey(id, name)
+          `,
+          (query) => {
+            if (cityId) {
+              query = query.eq('city_id', cityId)
+            }
+            return query
+          },
+        )
+
+        pricings.value = result.data
+        return {
+          success: true,
+          data: result.data,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            pageSize: result.pageSize,
+            totalPages: result.totalPages,
+          },
+        }
+      }
+      catch (err: any) {
+        error.value = err.message
+        return {
+          success: false,
+          error: err.message,
+          data: [],
+          pagination: { total: 0, page: 1, pageSize: 10, totalPages: 0 },
+        }
+      }
+      finally {
+        loading.value = false
+      }
+    }
+
     async function storePricing(pricing: Omit<DeliveryPricing, 'id' | 'created_at'>) {
       const supabase = useSupabaseClient()
       loading.value = true
@@ -260,6 +353,78 @@ export const useDeliveryZoneStore = defineStore(
       catch (err: any) {
         error.value = err.message
         return { success: false, error: err.message }
+      }
+      finally {
+        loading.value = false
+      }
+    }
+
+    // Insertion en masse de tarifs (optimisé pour des milliers de lignes)
+    async function storeBulkPricings(pricingsToCreate: Array<Omit<DeliveryPricing, 'id' | 'created_at'>>) {
+      const supabase = useSupabaseClient()
+      loading.value = true
+      error.value = null
+
+      try {
+        const BATCH_SIZE = 500 // Taille optimale pour Supabase (limite ~1000)
+        const allInsertedData: any[] = []
+        let totalInserted = 0
+        let totalSkipped = 0
+        const errors: any[] = []
+
+        // Diviser en batches pour respecter les limites de Supabase
+        for (let i = 0; i < pricingsToCreate.length; i += BATCH_SIZE) {
+          const batch = pricingsToCreate.slice(i, i + BATCH_SIZE)
+
+          // Utiliser upsert avec ignoreDuplicates pour éviter les erreurs de contrainte
+          const { data, error: supaError } = await supabase
+            .from('delivery_pricings')
+            .upsert(batch, {
+              onConflict: 'city_id,from_zone_id,to_zone_id',
+              ignoreDuplicates: true, // Ignore les doublons au lieu de lever une erreur
+            })
+            .select()
+
+          if (supaError) {
+            // Continuer avec les autres batches même si un échoue
+            errors.push({ batch: i / BATCH_SIZE + 1, error: supaError })
+            continue
+          }
+
+          if (data) {
+            allInsertedData.push(...data)
+            totalInserted += data.length
+          }
+
+          // Les doublons sont ignorés silencieusement
+          totalSkipped += batch.length - (data?.length || 0)
+        }
+
+        // Ajouter tous les nouveaux tarifs au store en une seule fois
+        if (allInsertedData.length > 0) {
+          pricings.value.push(...allInsertedData)
+        }
+
+        return {
+          success: errors.length === 0,
+          data: allInsertedData,
+          count: totalInserted,
+          skipped: totalSkipped,
+          errors: errors.length > 0 ? errors : undefined,
+          message: errors.length > 0
+            ? `${totalInserted} tarifs créés, ${totalSkipped} doublons ignorés, ${errors.length} batch(s) en erreur`
+            : totalSkipped > 0
+              ? `${totalInserted} tarifs créés, ${totalSkipped} doublons ignorés`
+              : undefined,
+        }
+      }
+      catch (err: any) {
+        error.value = err.message
+        return {
+          success: false,
+          error: err.message,
+          count: 0,
+        }
       }
       finally {
         loading.value = false
@@ -592,6 +757,7 @@ export const useDeliveryZoneStore = defineStore(
 
       // Actions - Zones
       getZones,
+      getZonesPaginated,
       storeZone,
       updateZone,
       destroyZone,
@@ -599,7 +765,9 @@ export const useDeliveryZoneStore = defineStore(
 
       // Actions - Pricings
       getPricings,
+      getPricingsPaginated,
       storePricing,
+      storeBulkPricings,
       updatePricing,
       destroyPricing,
       showPricing,

@@ -3,14 +3,11 @@ const zoneStore = useDeliveryZoneStore()
 const cityStore = useCityStore()
 const toast = useToast()
 
-onMounted(() => {
-  cityStore.get()
-  zoneStore.getZones()
-  zoneStore.getPricings()
-})
-
-const { pricings, zones } = storeToRefs(zoneStore)
-const { cities } = storeToRefs(cityStore)
+// Pagination
+const page = ref(1)
+const pageSize = ref(10)
+const totalItems = ref(0)
+const totalPages = ref(0)
 
 const selectedCityFilter = ref<string | null>(null)
 const showModal = ref(false)
@@ -23,9 +20,34 @@ const currentPricing = ref<DeliveryPricing>({
   price: 0,
 })
 
-const filteredPricings = computed(() => {
-  if (!selectedCityFilter.value) return pricings.value
-  return pricings.value.filter(p => p.city_id === selectedCityFilter.value)
+const { pricings, zones } = storeToRefs(zoneStore)
+const { cities } = storeToRefs(cityStore)
+
+async function loadPricings() {
+  const result = await zoneStore.getPricingsPaginated(
+    {
+      page: page.value,
+      pageSize: pageSize.value,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    },
+    selectedCityFilter.value || undefined,
+  )
+
+  if (result.success && result.pagination) {
+    totalItems.value = result.pagination.total
+    totalPages.value = result.pagination.totalPages
+  }
+}
+
+onMounted(async () => {
+  await cityStore.get()
+  await zoneStore.getZones()
+  await loadPricings()
+})
+
+watch([page, selectedCityFilter], () => {
+  loadPricings()
 })
 
 const cityOptions = computed(() =>
@@ -74,7 +96,7 @@ async function savePricing() {
       color: 'green',
     })
     showModal.value = false
-    await zoneStore.getPricings()
+    await loadPricings()
   }
   else {
     toast.add({
@@ -96,7 +118,7 @@ async function deletePricing(pricing: DeliveryPricing) {
       description: 'Tarif supprimé avec succès',
       color: 'green',
     })
-    await zoneStore.getPricings()
+    await loadPricings()
   }
   else {
     toast.add({
@@ -142,7 +164,7 @@ function handleCreateFromReport(route: any) {
         class="w-64"
       />
       <div class="flex gap-2">
-        <div class="relative">
+        <!-- <div class="relative">
           <UButton
             icon="i-heroicons-document-chart-bar"
             label="Rapport des tarifs manquants"
@@ -156,7 +178,7 @@ function handleCreateFromReport(route: any) {
             color="red"
             class="absolute -top-2 -right-2"
           />
-        </div>
+        </div> -->
         <UButton
           icon="i-heroicons-plus"
           label="Nouveau tarif"
@@ -168,7 +190,7 @@ function handleCreateFromReport(route: any) {
 
     <!-- Liste des tarifs -->
     <UTable
-      :rows="filteredPricings"
+      :rows="pricings"
       :columns="[
         { key: 'city', label: 'Ville' },
         { key: 'from_zone', label: 'De' },
@@ -176,6 +198,7 @@ function handleCreateFromReport(route: any) {
         { key: 'price', label: 'Prix' },
         { key: 'actions', label: 'Actions' },
       ]"
+      :loading="zoneStore.loading"
     >
       <template #city-data="{ row }">
         <UBadge
@@ -222,6 +245,39 @@ function handleCreateFromReport(route: any) {
         </div>
       </template>
     </UTable>
+
+    <!-- Pagination -->
+    <div
+      v-if="totalItems > 0"
+      class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t"
+    >
+      <div class="text-sm text-gray-700 text-center sm:text-left">
+        Affichage de
+        <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
+        à
+        <span class="font-medium">{{ Math.min(page * pageSize, totalItems) }}</span>
+        sur
+        <span class="font-medium">{{ totalItems }}</span>
+        tarif(s)
+      </div>
+
+      <Pagination
+        :current-page="page"
+        :total-pages="totalPages"
+        :total="totalItems"
+        :page-size="pageSize"
+        :loading="zoneStore.loading"
+        @update:current-page="page = $event"
+      />
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div
+      v-else
+      class="text-center py-12 text-gray-500"
+    >
+      Aucun tarif trouvé
+    </div>
 
     <!-- Modal -->
     <UModal v-model="showModal">

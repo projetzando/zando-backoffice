@@ -3,13 +3,11 @@ const areaStore = useAreaStore()
 const cityStore = useCityStore()
 const toast = useToast()
 
-onMounted(() => {
-  cityStore.get()
-  areaStore.get()
-})
-
-const { areas } = storeToRefs(areaStore)
-const { cities } = storeToRefs(cityStore)
+// Pagination
+const page = ref(1)
+const pageSize = ref(10)
+const totalItems = ref(0)
+const totalPages = ref(0)
 
 const searchQuery = ref('')
 const selectedCityFilter = ref<string | null>(null)
@@ -17,12 +15,37 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const currentArea = ref<Area>({ name: '', city_id: '' })
 
+const { areas } = storeToRefs(areaStore)
+const { cities } = storeToRefs(cityStore)
+
+async function loadAreas() {
+  const result = await areaStore.getPaginated(
+    {
+      page: page.value,
+      pageSize: pageSize.value,
+      sortBy: 'name',
+      sortOrder: 'asc',
+    },
+    selectedCityFilter.value || undefined,
+  )
+
+  if (result.success && result.pagination) {
+    totalItems.value = result.pagination.total
+    totalPages.value = result.pagination.totalPages
+  }
+}
+
+onMounted(async () => {
+  await cityStore.get()
+  await loadAreas()
+})
+
+watch([page, selectedCityFilter], () => {
+  loadAreas()
+})
+
 const filteredAreas = computed(() => {
   let filtered = areas.value
-
-  if (selectedCityFilter.value) {
-    filtered = filtered.filter(area => area.city_id === selectedCityFilter.value)
-  }
 
   if (searchQuery.value) {
     filtered = filtered.filter(area =>
@@ -61,7 +84,7 @@ async function saveArea() {
       color: 'green',
     })
     showModal.value = false
-    await areaStore.get()
+    await loadAreas()
   }
   else {
     toast.add({
@@ -83,7 +106,7 @@ async function deleteArea(area: Area) {
       description: 'Quartier supprimé avec succès',
       color: 'green',
     })
-    await areaStore.get()
+    await loadAreas()
   }
   else {
     toast.add({
@@ -129,6 +152,7 @@ async function deleteArea(area: Area) {
         { key: 'city', label: 'Ville' },
         { key: 'actions', label: 'Actions' },
       ]"
+      :loading="areaStore.loading"
     >
       <template #city-data="{ row }">
         <UBadge
@@ -158,6 +182,39 @@ async function deleteArea(area: Area) {
         </div>
       </template>
     </UTable>
+
+    <!-- Pagination -->
+    <div
+      v-if="totalItems > 0"
+      class="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t"
+    >
+      <div class="text-sm text-gray-700 text-center sm:text-left">
+        Affichage de
+        <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
+        à
+        <span class="font-medium">{{ Math.min(page * pageSize, totalItems) }}</span>
+        sur
+        <span class="font-medium">{{ totalItems }}</span>
+        quartier(s)
+      </div>
+
+      <Pagination
+        :current-page="page"
+        :total-pages="totalPages"
+        :total="totalItems"
+        :page-size="pageSize"
+        :loading="areaStore.loading"
+        @update:current-page="page = $event"
+      />
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div
+      v-else
+      class="text-center py-12 text-gray-500"
+    >
+      Aucun quartier trouvé
+    </div>
 
     <!-- Modal -->
     <UModal v-model="showModal">
